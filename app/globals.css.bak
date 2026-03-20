@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+:root {
+  /* 0. Design Tokens - Primary Colors */
+  --bg-primary: #020617;
+  /* Slate 950 */
+  --bg-secondary: #0f172a;
+  /* Slate 900 */
+  --bg-tertiary: #1e293b;
+  /* Slate 800 */
+  --bg-panel: rgba(15, 23, 42, 0.8);
+  /* Translucent Slate 900 */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-active: rgba(59, 130, 246, 0.5);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* 1. Functional Colors */
+  --price-buy: #10B981;
+  --price-sell: #F97316;
+  --price-wait: #FBBF24;
+  --price-critical: #EF4444;
+  --accent-blue: #3B82F6;
+
+  /* 2. Sizing & Spacing (rem-based) - Base sized for Accessibility */
+  --spacing-xs: 0.25rem;
+  /* 4px */
+  --spacing-sm: 0.5rem;
+  /* 8px */
+  --spacing-md: 1rem;
+  /* 16px */
+  --spacing-lg: 1.5rem;
+  /* 24px */
+  --spacing-xl: 2rem;
+  /* 32px */
+  --spacing-xxl: 3rem;
+  /* 48px */
+
+  /* 3. Typography Tokens - Enhanced for Presbyopia */
+  --font-main: 'Outfit', 'Inter', 'SF Pro JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --line-height-tight: 1.25;
+  --line-height-base: 1.6;
+  --line-height-relaxed: 1.8;
+
+  /* 4. Layout Constraints */
+  --sidebar-width: 480px;
+  --nav-height: 260px;
+  --panel-radius: 2.5rem;
+  --panel-border: 2px solid var(--border-subtle);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  font-size: 18px;
+  /* Base 1rem = 18px for better readability */
+}
+
+/* Base Body Update */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* 100-Point Excellence Scaling (90% Professional standard) */
+.excellence-viewport {
+  margin: 1.5rem auto;
+  width: 90vw;
+  max-width: 1800px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3.5rem;
+  padding: 4rem;
+  box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  /* Prevent internal content from bleeding into corners */
+}
+
+/* Corner-Safe Padding for Rounded Cards */
+.corner-safe-card {
+  padding: 3.5rem !important;
+  /* Increased to ensure safety on all resolutions */
+  position: relative;
+}
+
+/* Monospace Helpers */
+.font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.04em;
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply backdrop-blur-3xl border border-white/20 bg-[rgba(15, 23, 42, 0.85)] rounded-[2.5rem] shadow-[0_30px_60px_rgba(0, 0, 0, 0.7)];
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-panel:hover {
+    @apply border-white/30 -translate-y-1;
+  }
+
+  .btn-accessible {
+    @apply min-h-[60px] px-10 py-5 rounded-[2rem] font-black transition-all flex items-center justify-center shadow-2xl active:scale-95 text-lg uppercase tracking-widest;
+  }
+
+  .text-pro-headline {
+    @apply text-5xl font-black tracking-tighter leading-none;
+  }
+
+  .text-market-value {
+    @apply text-8xl font-mono font-black tracking-tighter;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: var(--line-height-tight);
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+/* Scrollbar Integration */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Evolution System Styles */
+.evolution-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+  opacity: 1;
+}
+
+/* Ensure sidebar content doesn't crash on high density */
+aside>.glass-panel {
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* GRID LAYOUT DEFINITION (Phase 1-2) */
+.app-grid {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  gap: var(--spacing-xxl);
+  padding: 0 var(--spacing-xxl) var(--spacing-xxl);
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+/* Screen Resolution Adaptation */
+@media (max-width: 1440px) {
+  :root {
+    --sidebar-width: 360px;
+    --spacing-xxl: 2rem;
+  }
+}
+
+@media (max-width: 1366px) {
+  html {
+    font-size: 14px;
+    /* Scale down for smaller laptops */
+  }
+}
+
+/* 175% Zoom / Standard HD Resolution Adaptation */
+@media (max-width: 1280px) {
+  html {
+    font-size: 14px;
+  }
+
+  .excellence-viewport {
+    width: 95vw;
+    padding: 2.5rem;
+    border-radius: 2.5rem;
+    transform: none !important;
+    /* Disable manual shrink on high-zoom to use real estate */
+  }
+
+  .corner-safe-card {
+    padding: 2.5rem !important;
+  }
+
+  .grid-cols-12 {
+    gap: 2rem !important;
+  }
+}
+
+/* Critical Overlap Prevention (Ultra-Zoom) */
+@media (max-width: 1024px) {
+
+  .lg\:col-span-8,
+  .lg\:col-span-4 {
+    grid-column: span 12 / span 12 !important;
+    /* Stack vertically */
+  }
+
+  .excellence-viewport {
+    padding: 1.5rem;
+    margin: 0.5rem auto;
+  }
+}

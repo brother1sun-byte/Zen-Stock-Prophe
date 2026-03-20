@@ -1,0 +1,7 @@
+{
+    "max_stale_minutes": 30,
+    "weekend_threshold_hours": 24,
+    "market_timezone": "Asia/Tokyo",
+    "market_open_hour": 9,
+    "market_close_hour": 15
+}

@@ -1,0 +1,36 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260209022917
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/up.ps1
+プロセス ID: 8200
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260209_022917.log
+[20260209_022917] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260209_022917] 1. Starting Backend...
+[20260209_022917] 2. Building Frontend (this may take a minute)...
+
+[20260209_022917] 3. Starting Frontend...
+[20260209_022917] 4. Waiting for services to stabilize (10s)...
+[20260209_022917] 5. Running Smoke Test & Safety Gate...
+[20260209_022917] 
+[WARNING] Status is PARTIAL. Continuing, but be careful.
+[20260209_022917] RESULT: PARTIAL
+[20260209_022917] 
+=== STARTUP SUCCESSFUL ===
+[20260209_022917] Access the dashboard at: http://localhost:3000
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260209022941
+**********************

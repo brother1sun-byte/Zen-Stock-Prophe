@@ -1,0 +1,58 @@
+
+> japan-stock-prophet@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.26:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 866ms
+ POST /api/predict 200 in 539ms (compile: 193ms, render: 346ms)
+ GET / 200 in 551ms (compile: 295ms, render: 257ms)
+ GET /api/hot-picks 200 in 1542ms (compile: 29ms, render: 1512ms)
+ POST /api/predict 200 in 1548ms (compile: 4ms, render: 1544ms)
+ GET / 200 in 45ms (compile: 5ms, render: 40ms)
+ POST /api/predict 200 in 541ms (compile: 4ms, render: 537ms)
+ POST /api/predict 200 in 1621ms (compile: 1983µs, render: 1619ms)
+ GET / 200 in 26ms (compile: 4ms, render: 22ms)
+ GET /api/hot-picks 200 in 1637ms (compile: 10ms, render: 1628ms)
+ POST /api/predict 200 in 1139ms (compile: 3ms, render: 1136ms)
+ POST /api/predict 200 in 2.1s (compile: 4ms, render: 2.1s)
+ GET /?ui=basic 200 in 61ms (compile: 5ms, render: 57ms)
+ GET /api/hot-picks 200 in 1192ms (compile: 13ms, render: 1179ms)
+ POST /api/predict 200 in 1399ms (compile: 4ms, render: 1395ms)
+ POST /api/predict 200 in 780ms (compile: 3ms, render: 777ms)
+ POST /api/predict 200 in 1365ms (compile: 1607µs, render: 1363ms)
+ POST /api/predict 200 in 1049ms (compile: 1534µs, render: 1047ms)
+ GET / 200 in 27ms (compile: 3ms, render: 24ms)
+ POST /api/predict 200 in 964ms (compile: 1585µs, render: 963ms)
+ GET /api/hot-picks 200 in 966ms (compile: 8ms, render: 958ms)
+ GET / 200 in 51ms (compile: 6ms, render: 45ms)
+ POST /api/predict 200 in 1269ms (compile: 2ms, render: 1267ms)
+ GET /api/hot-picks 200 in 1270ms (compile: 9ms, render: 1261ms)
+ POST /api/predict 200 in 1141ms (compile: 1323µs, render: 1140ms)
+ POST /api/predict 200 in 1022ms (compile: 2ms, render: 1020ms)
+ POST /api/predict 200 in 1001ms (compile: 1652µs, render: 1000ms)
+ POST /api/predict 200 in 1218ms (compile: 1451µs, render: 1217ms)
+ POST /api/predict 200 in 752ms (compile: 1439µs, render: 751ms)
+ POST /api/predict 200 in 1176ms (compile: 2ms, render: 1174ms)
+ POST /api/predict 200 in 811ms (compile: 1426µs, render: 810ms)
+ POST /api/predict 200 in 1194ms (compile: 1558µs, render: 1192ms)
+ POST /api/predict 200 in 1046ms (compile: 1657µs, render: 1045ms)
+ POST /api/predict 200 in 1053ms (compile: 2ms, render: 1051ms)
+ POST /api/predict 200 in 877ms (compile: 1942µs, render: 875ms)
+ POST /api/predict 200 in 1357ms (compile: 2ms, render: 1355ms)
+ POST /api/predict 200 in 919ms (compile: 2ms, render: 917ms)
+ POST /api/predict 200 in 1265ms (compile: 1620µs, render: 1264ms)
+ POST /api/predict 200 in 1422ms (compile: 1579µs, render: 1420ms)
+✓ Compiled in 185ms
+✓ Compiled in 261ms
+ POST /api/predict 500 in 374ms (compile: 245ms, render: 129ms)
+ GET / 200 in 149ms (compile: 117ms, render: 32ms)
+ POST /api/predict 200 in 2.1s (compile: 1730µs, render: 2.1s)
+✓ Compiled in 87ms
+ GET / 200 in 85ms (compile: 59ms, render: 26ms)
+ POST /api/predict 200 in 1292ms (compile: 3ms, render: 1290ms)
+[?25h

@@ -1,0 +1,219 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-02-07T21:14:37.353169",
+      "ticker": "7203.T",
+      "price_at_decision": 3780.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 99,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 58.59802847754655,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:14:46.775757",
+      "ticker": "7203.T",
+      "price_at_decision": 3780.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 99,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 58.59802847754655,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:14:57.179155",
+      "ticker": "7203.T",
+      "price_at_decision": 3780.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 99,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 58.59802847754655,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:14:58.179796",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:03.571126",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:07.838155",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:17.761519",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:18.243713",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:27.534951",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    },
+    {
+      "timestamp": "2026-02-07T21:15:38.131516",
+      "ticker": "4980.T",
+      "price_at_decision": 2880.0,
+      "decision": "STANDBY",
+      "action": "市場休場：待機中",
+      "super_score": 80,
+      "confidence": 1.0,
+      "reasons": [
+        "本日は市場休場日のため、リアルタイム分析は行われません。",
+        "表示データは全て前営業日終値をベースとした参考シミュレーションです。"
+      ],
+      "market_phase": "STABLE",
+      "metrics_snapshot": {
+        "ev": 0,
+        "rsi": 50.74096028452875,
+        "macd_cross": false,
+        "vol_pct": 0.0
+      },
+      "missing_data_gaps": []
+    }
+  ],
+  "stats": {
+    "total_trades": 0,
+    "wins": 0,
+    "losses": 0
+  }
+}

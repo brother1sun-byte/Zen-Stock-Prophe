@@ -1,0 +1,26 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260209233746
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/stop.ps1
+プロセス ID: 11416
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/down_20260209_233746.log
+[20260209_233746] === Japan Stock Prophet: Application Shutdown (npm run down) ===
+[20260209_233746] 
+Warning: Shutdown encountered an error: 用語 'Stop-Process-Robust' は、コマンドレット、関数、スクリプト ファイル、または操作可能なプログラムの名前として認識されません。名前が正しく記述されていることを確認し、パスが含まれている場合はそのパスが正しいことを確認してから、再試行してください。
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260209233746
+**********************

@@ -1,0 +1,24 @@
+{
+  "test_date": "2026-02-07 13:33:46",
+  "n_trials": 30,
+  "successful_trials": 30,
+  "statistics": {
+    "p50_ms": 17.3,
+    "p95_ms": 462.58,
+    "avg_ms": 49.79,
+    "max_ms": 994.72
+  },
+  "cache_effect": {
+    "cold_avg_ms": 347.61,
+    "warm_avg_ms": 16.7,
+    "speedup": 20.81
+  },
+  "breakdown": {
+    "fetch_ms": 569.67,
+    "analysis_ms": 4.33
+  },
+  "slo": {
+    "target_ms": 2000,
+    "achievement_rate": 100.0
+  }
+}

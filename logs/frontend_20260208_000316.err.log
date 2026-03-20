@@ -1,0 +1,868 @@
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayout.tsx:19:28
+Module not found: Can't resolve '../page_original_v7.5'
+[0m [90m 17 |[39m         [90m// legacy ルートへリダイレクトするか、ここでも LegacyHome を出せるが[39m
+ [90m 18 |[39m         [90m// 型定義や共通化の観点から legacy ページへのリンクを推奨（ここでは既存の page_original_v7.5 をインポートして出す）[39m
+[31m[1m>[22m[39m[90m 19 |[39m         [36mconst[39m [33mLegacyHome[39m [33m=[39m require([32m'../page_original_v7.5'[39m)[33m.[39m[36mdefault[39m[33m;[39m
+ [90m    |[39m                            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m         [36mreturn[39m [33m<[39m[33mLegacyHome[39m [33m/[39m[33m>[39m[33m;[39m
+ [90m 21 |[39m     }
+ [90m 22 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./app/components/layout/DesktopLayoutFull.tsx:507:20
+Parsing ecmascript source code failed
+[0m [90m 505 |[39m                         [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 506 |[39m                     [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+[31m[1m>[22m[39m[90m 507 |[39m             [33m<[39m[33m/[39m[33mmain[39m[33m>[39m
+ [90m     |[39m                    [31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 508 |[39m
+ [90m     |[39m [31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 509 |[39m             {[90m/* Footer (Full Terminal Info) */[39m}
+ [90m     |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 510 |[39m             [33m<[39m[33mfooter[39m className[33m=[39m[32m"mt-20 py-20 flex flex-col items-center gap-6 border-t hairline opacity-30"[39m[33m>[39m
+ [90m 511 |[39m                 [33m<[39m[33mdiv[39m className[33m=[39m[32m"flex items-center gap-12 text-[10px] font-black tracking-[0.5em] uppercase"[39m[33m>[39m
+ [90m 512 |[39m                     [33m<[39m[33mspan[39m[33m>[39m[33mSecurity[39m [33mProtocol[39m [33mAlpha[39m[33m-[39m[35m9[39m[33m<[39m[33m/[39m[33mspan[39m[33m>[39m[0m
+
+Expected '</', got 'jsx text (
+
+            )'
+
+Import traces:
+  Client Component Browser:
+    ./app/components/layout/DesktopLayoutFull.tsx [Client Component Browser]
+    ./app/components/layout/DesktopLayout.tsx [Client Component Browser]
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/components/layout/DesktopLayoutFull.tsx [Client Component SSR]
+    ./app/components/layout/DesktopLayout.tsx [Client Component SSR]
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+Error: `@utility btn-accessible:hover` defines an invalid utility name. Utilities should be alphanumeric and start with a lowercase letter.
+    [2m[at C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\tailwindcss\dist\lib.js:32:3856][0m
+    [2m[at Rr (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\tailwindcss\dist\lib.js:3:1718)][0m
+    [2m[at _ (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\tailwindcss\dist\lib.js:3:1377)][0m
+    [2m[at un (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\tailwindcss\dist\lib.js:32:2712)][0m
+    [2m[at async cn (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\tailwindcss\dist\lib.js:38:631)][0m
+    [2m[at async Xr (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\@tailwindcss\node\dist\index.js:10:3417)][0m
+    [2m[at async I (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\@tailwindcss\postcss\dist\index.js:10:3977)][0m
+    [2m[at async Object.Once (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\@tailwindcss\postcss\dist\index.js:10:4249)][0m
+    [2m[at async LazyResult.runAsync (turbopack:///[project]/node_modules/postcss/lib/lazy-result.js:293:11)][0m
+    [2m[at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34)][0m
+⨯ ./app/globals.css
+Error evaluating Node.js code
+CssSyntaxError: tailwindcss: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\app\globals.css:1:1: `@utility btn-accessible:hover` defines an invalid utility name. Utilities should be alphanumeric and start with a lowercase letter.
+    [at Input.error (turbopack:///[project]/node_modules/postcss/lib/input.js:135:16)]
+    [at Root.error (turbopack:///[project]/node_modules/postcss/lib/node.js:146:32)]
+    [at Object.Once (C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\node_modules\@tailwindcss\postcss\dist\index.js:10:6911)]
+    [at async LazyResult.runAsync (turbopack:///[project]/node_modules/postcss/lib/lazy-result.js:293:11)]
+    [at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34)]
+    [at async run (turbopack:///[turbopack-node]/ipc/evaluate.ts:92:23)]
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component]
+
+
+⚠ Fast Refresh had to perform a full reload due to a runtime error.

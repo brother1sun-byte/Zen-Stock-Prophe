@@ -1,0 +1,94 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260209113444
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/up.ps1
+プロセス ID: 9680
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260209_113444.log
+[20260209_113444] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260209_113444] 0. Cleaning up previous state...
+[20260209_113444] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+[20260209_113444] 
+!!! STARTUP FAILED !!!
+[20260209_113444] FAILED_STEP: BACKEND_STARTUP_TIMEOUT: CHECK C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/backend_startup_20260209_113444.log
+[20260209_113444] 
+[CLEANUP] Ensuring all processes are stopped...
+[20260209_113444] 
+NEXT: npm run down && npm run up
+[20260209_113444] LOG: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260209_113444.log
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260209113650
+**********************

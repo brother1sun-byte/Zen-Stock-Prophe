@@ -1,0 +1,602 @@
+[
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T12:44:02.984375",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T12:44:03.673578",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T13:57:19.599274",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T13:57:29.041194",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T13:57:39.193040",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T13:57:49.004887",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:57:53.795000",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:57:59.064606",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:58:03.235417",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:58:13.795164",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:58:23.538514",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:58:33.557090",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T13:58:43.334295",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:44:05.188829",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:45:08.015423",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:52:01.356725",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:52:04.402921",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:52:07.798294",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:54:07.599416",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:56:19.621331",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T14:56:29.144819",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:12:34.680113",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:15:37.324268",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:16:05.305245",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:17:09.732946",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:17:56.875392",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T15:41:50.887427",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T16:30:52.723588",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T16:31:01.791914",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T16:31:06.777559",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T16:31:16.505203",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T16:45:29.999542",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T16:45:38.573812",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T16:45:48.759886",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T16:45:53.714740",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T16:45:58.349133",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:01:16.801568",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:01:20.717490",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:01:23.933273",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:01:30.948596",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:01:40.470246",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:01:50.860346",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:02:00.456827",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:03.117340",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:02:04.170857",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:12.730965",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:16.016704",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:22.749657",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "8306",
+        "timestamp": "2026-02-07T21:02:23.699649",
+        "current_price": 2951.5,
+        "forecast_1d": 3024.4570420045147
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:24.346346",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:30.765035",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "8306",
+        "timestamp": "2026-02-07T21:02:31.500637",
+        "current_price": 2951.5,
+        "forecast_1d": 3024.4570420045147
+    },
+    {
+        "ticker": "6501",
+        "timestamp": "2026-02-07T21:02:37.149997",
+        "current_price": 5367.0,
+        "forecast_1d": 5537.173843936043
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:02:37.983335",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "6501",
+        "timestamp": "2026-02-07T21:02:46.790809",
+        "current_price": 5367.0,
+        "forecast_1d": 5537.173843936043
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:02:52.934093",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:03.129097",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:13.050685",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:22.926844",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:33.908628",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:43.963980",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:03:53.907026",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:04:03.780177",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:04:13.888224",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:04:23.619802",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:04:55.873422",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:05:56.022820",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:06:56.245240",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:07:55.917191",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:08:55.993727",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:09:35.007955",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:09:36.541933",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:09:46.473295",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:09:56.557932",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:07.107867",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:16.709491",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:27.069950",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:36.399776",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:46.981209",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:10:56.374321",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:06.942115",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:16.750319",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:27.070144",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:36.873412",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:46.823114",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:11:56.883428",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:12:55.893711",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:13:55.876688",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:14:19.342050",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:14:26.309383",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:14:36.804649",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:14:46.533107",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.4435360341245
+    },
+    {
+        "ticker": "7203",
+        "timestamp": "2026-02-07T21:14:56.579352",
+        "current_price": 3780.0,
+        "forecast_1d": 3868.443528706051
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:14:57.852072",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:03.280107",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:07.279527",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:17.252954",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:18.042439",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:27.140288",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305395488667
+    },
+    {
+        "ticker": "4980",
+        "timestamp": "2026-02-07T21:15:37.606875",
+        "current_price": 2880.0,
+        "forecast_1d": 2979.5305390243057
+    }
+]

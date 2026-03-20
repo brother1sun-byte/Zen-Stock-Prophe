@@ -1,0 +1,162 @@
+[
+    {
+        "case_id": "TEST_1770525560",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:39:20.761169",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:39:22.795825",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525595",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:39:55.895724",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:39:57.915504",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525624",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:40:24.861674",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:40:26.911913",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525655",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:40:55.148812",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:40:57.192156",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525891",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:44:51.693710",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:44:53.726153",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525905",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:45:05.093222",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:45:07.140350",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525955",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:45:55.972702",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:45:57.990136",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770525996",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:46:36.778349",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:46:38.807410",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770526023",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:47:03.144870",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:47:05.169666",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    },
+    {
+        "case_id": "TEST_1770526046",
+        "ticker": "7203",
+        "scenario_type": "GapUp follow",
+        "result_outcome": "Success",
+        "lessons_learned": "Wait for VWAP support",
+        "timestamp": "2026-02-08T13:47:26.440866",
+        "version": "1.0",
+        "created_at": "2026-02-08T13:47:28.476282",
+        "asof": "",
+        "tags": [
+            "test",
+            "v2-refinement"
+        ],
+        "market_regime": "UNKNOWN"
+    }
+]

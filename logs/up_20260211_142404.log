@@ -1,0 +1,44 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260211142404
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File scripts\up.ps1
+プロセス ID: 24504
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260211_142404.log
+[20260211_142404] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260211_142404] 0. Cleaning up previous state...
+[20260211_142404] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "処理がタイムアウトになりました。"
+.
+[20260211_142404] 
+Backend is READY (Port 8000).
+[20260211_142404] 2. Building Frontend...
+
+[20260211_142404] 
+!!! STARTUP FAILED !!!
+[20260211_142404] FAILED_STEP: FRONTEND_BUILD
+[20260211_142404] ERROR_MSG: FRONTEND_BUILD_FAILED
+[20260211_142404] 
+[CLEANUP] Ensuring all processes are stopped...
+[20260211_142404] 
+--- NEXT ACTIONS ---
+[20260211_142404] 1. Run: npm run down
+[20260211_142404] 2. Run: npm run up
+[20260211_142404] 3. Run: npm run diagnosis
+[20260211_142404] LOG FILE: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260211_142404.log
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260211142420
+**********************

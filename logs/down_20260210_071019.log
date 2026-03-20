@@ -1,0 +1,28 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260210071019
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/stop.ps1
+プロセス ID: 9268
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/down_20260210_071019.log
+[20260210_071019] === Japan Stock Prophet: Application Shutdown (npm run down) ===
+[20260210_071019] Stopping Port 3000...
+[20260210_071019] Stopping Port 8000...
+[20260210_071019] 
+=== SHUTDOWN COMPLETE ===
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260210071020
+**********************

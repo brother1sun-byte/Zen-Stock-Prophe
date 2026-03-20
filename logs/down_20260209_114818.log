@@ -1,0 +1,35 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260209114818
+Username: EVER-AI\Ebarai
+RunAs User: EVER-AI\Ebarai
+Configuration Name: 
+Machine: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+Host Application: powershell -ExecutionPolicy Bypass -File ./scripts/stop.ps1
+Process ID: 21360
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/down_20260209_114818.log
+[20260209_114818] === Japan Stock Prophet: Application Shutdown (npm run down) ===
+[20260209_114818] 1. Checking port 3000...
+[20260209_114818] Cleaning up dangling processes for node...
+[20260209_114818] Verifying port 3000 is released...
+[20260209_114818] Port 3000 is FREE.
+True
+[20260209_114818] 1. Checking port 8000...
+[20260209_114818] Verifying port 8000 is released...
+[20260209_114818] Port 8000 is FREE.
+True
+[20260209_114818] 
+=== SHUTDOWN COMPLETE ===
+**********************
+Windows PowerShell transcript end
+End time: 20260209114820
+**********************

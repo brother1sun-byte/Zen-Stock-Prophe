@@ -1,0 +1,15 @@
+[
+    {
+        "version": "1",
+        "id": "ef3a65eb-3b96-4288-8a9c-c65c5e5498c8",
+        "created_at": "2026-02-08T21:15:26.196174",
+        "date": "2026-02-08",
+        "ticker": "7203.T",
+        "scenario_type": "range",
+        "planned_action": "Wait for signal",
+        "actual_action": "Executed",
+        "result": "win",
+        "pnl_yen": 10000.0,
+        "notes": "Manual PowerShell test"
+    }
+]

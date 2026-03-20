@@ -1,0 +1,76 @@
+[
+  {
+    "timestamp": "2026-02-07T12:00:00.000",
+    "routes": {
+      "predict": {
+        "latency": {
+          "p50": 120.5,
+          "p95": 450.2,
+          "avg": 180.0,
+          "max": 800.1
+        },
+        "rates": {
+          "success": 99.8,
+          "degraded": 0.0
+        },
+        "counts": {
+          "total": 1500,
+          "error_429": 2
+        }
+      },
+      "other": {
+        "latency": {
+          "p50": 45.0,
+          "p95": 90.0,
+          "avg": 50.0,
+          "max": 200.0
+        },
+        "rates": {
+          "success": 100.0,
+          "degraded": 0.0
+        },
+        "counts": {
+          "total": 500,
+          "error_429": 0
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-02-07T12:00:00.000",
+    "routes": {
+      "predict": {
+        "latency": {
+          "p50": 120.5,
+          "p95": 450.2,
+          "avg": 180.0,
+          "max": 800.1
+        },
+        "rates": {
+          "success": 99.8,
+          "degraded": 0.0
+        },
+        "counts": {
+          "total": 1500,
+          "error_429": 2
+        }
+      },
+      "other": {
+        "latency": {
+          "p50": 45.0,
+          "p95": 90.0,
+          "avg": 50.0,
+          "max": 200.0
+        },
+        "rates": {
+          "success": 100.0,
+          "degraded": 0.0
+        },
+        "counts": {
+          "total": 500,
+          "error_429": 0
+        }
+      }
+    }
+  }
+]

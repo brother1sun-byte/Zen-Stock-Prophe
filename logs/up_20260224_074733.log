@@ -1,0 +1,50 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260224074733
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.26200.0)
+ホスト アプリケーション: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\up.ps1
+プロセス ID: 9808
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260224_074733.log
+[20260224_074733] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260224_074733] 0. Cleaning up previous state...
+[20260224_074733] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "処理がタイムアウトになりました。"
+.
+[20260224_074733] 
+Backend is READY (Port 8000).
+[20260224_074733] 2. Building Frontend...
+
+> japan-stock-prophet@0.1.0 build
+> next build
+
+⨯ Unable to acquire lock at C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\.next\lock, is another insta
+nce of next build running?
+  Suggestion: If you intended to restart next build, terminate the other process, and then try again.
+[20260224_074733] 
+!!! STARTUP FAILED !!!
+[20260224_074733] FAILED_STEP: FRONTEND_BUILD
+[20260224_074733] ERROR_MSG: FRONTEND_BUILD_FAILED
+[20260224_074733] 
+[CLEANUP] Ensuring all processes are stopped...
+[20260224_074733] 
+--- NEXT ACTIONS ---
+[20260224_074733] 1. Run: npm run down
+[20260224_074733] 2. Run: npm run up
+[20260224_074733] 3. Run: npm run diagnosis
+[20260224_074733] LOG FILE: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260224_074733.log
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260224074745
+**********************

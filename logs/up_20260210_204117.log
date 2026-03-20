@@ -1,0 +1,43 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260210204117
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/up.ps1
+プロセス ID: 10320
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260210_204117.log
+[20260210_204117] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260210_204117] 0. Cleaning up previous state...
+[20260210_204117] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "処理がタイムアウトになりました。"
+.
+[20260210_204117] 
+ERROR: Backend process exited prematurely with code 1.
+[20260210_204117] Please check the log: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/backend_startup_20260210_204117.log
+[20260210_204117] 
+!!! STARTUP FAILED !!!
+[20260210_204117] FAILED_STEP: BACKEND_HEALTH
+[20260210_204117] ERROR_MSG: BACKEND_CRASHED: Exit code 1. See C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/backend_startup_20260210_204117.log for details.
+[20260210_204117] 
+[CLEANUP] Ensuring all processes are stopped...
+[20260210_204117] 
+--- NEXT ACTIONS ---
+[20260210_204117] 1. Run: npm run down
+[20260210_204117] 2. Run: npm run up
+[20260210_204117] 3. Run: npm run diagnosis
+[20260210_204117] LOG FILE: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260210_204117.log
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260210204126
+**********************

@@ -1,0 +1,20 @@
+﻿                    <label className="text-[10px] text-slate-500">謳榊・ (SL)</label>
+                    <input
+                        type="text"
+                        value={rule.stop_loss}
+                        onChange={e => onChange('stop_loss', e.target.value)}
+                        className="w-full bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                    />
+                </div>
+            </div>
+            <div className="space-y-1">
+                <label className="text-[10px] text-slate-500">繝弱・繝・/label>
+                <textarea
+                    value={rule.note}
+                    onChange={e => onChange('note', e.target.value)}
+                    className="w-full bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 h-14 resize-none"
+                />
+            </div>
+        </div>
+    );
+};

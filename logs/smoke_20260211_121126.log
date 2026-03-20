@@ -1,0 +1,78 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260211121127
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/smoke.ps1
+プロセス ID: 2552
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/smoke_20260211_121126.log
+--- Starting Smoke Test & Freshness Check (Japan Stock Prophet) ---
+Checking http://localhost:8000/health...
+ [PASS]
+
+Checking http://localhost:8000/api/scoring?ticker=7203...
+ [PASS]
+
+  ! PARTIAL DATA: [entries]
+Checking http://localhost:8000/api/review?from=2026-02-04&to=2026-02-11...
+ [PASS]
+Checking http://localhost:8000/api/macro_snapshot?asof=2026-02-11...
+ [PASS]
+
+
+RESULT: PARTIAL
+WARNING: Some data fields are missing. Use with caution.
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260211121131
+**********************
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260211121127
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/smoke.ps1
+プロセス ID: 9328
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/smoke_20260211_121126.log
+--- Starting Smoke Test & Freshness Check (Japan Stock Prophet) ---
+Checking http://localhost:8000/health...
+ [PASS]
+
+Checking http://localhost:8000/api/scoring?ticker=7203...
+ [PASS]
+
+  ! PARTIAL DATA: [entries]
+Checking http://localhost:8000/api/review?from=2026-02-04&to=2026-02-11...
+ [PASS]
+Checking http://localhost:8000/api/macro_snapshot?asof=2026-02-11...
+ [PASS]
+
+
+RESULT: PARTIAL
+WARNING: Some data fields are missing. Use with caution.
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260211121131
+**********************

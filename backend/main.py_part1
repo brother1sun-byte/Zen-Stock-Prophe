@@ -1,0 +1,63 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict
+import uvicorn
+import json
+import os
+import logging
+import sys
+import asyncio
+import time
+from datetime import datetime, timedelta
+try:
+    import pandas as pd
+    import numpy as np
+    import yfinance
+    from scipy.signal import find_peaks
+except ImportError as e:
+    # datetime is now safely imported
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] CRITICAL ERROR: Missing dependency: {e}")
+    print("Run: pip install pandas numpy yfinance scipy fastapi uvicorn")
+    sys.exit(1)
+import os
+import logging
+from ops_manager import OpsMetricsManager
+from data_ingestion import DataIngestion
+# Early initialization for absolute global availability
+try:
+    from data_ingestion import DataIngestion
+    ingestor = DataIngestion()
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] SUCCESS: Ingestor initialized.")
+except Exception as e:
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] CRITICAL: Failed to initialize ingestor: {e}")
+    # We define it as None to avoid NameError, but the app will likely fail healthchecks
+    ingestor = None
+from zen_analysis import ZenSignalAnalyzer
+
+app = FastAPI(
+    title="Project Tenkai API",
+    description="High-Precision Japanese Stock Prediction AI",
+    version="1.0.0"
+)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
+import time
+# 
+LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+# Phase 8: Initialize Ops Manager
+ops_manager = OpsMetricsManager(LOG_DIR)
+# ingestor initialized early
+# Model initialization flag
+model_loaded = True  # Set to True since we don't use a separate ML model file
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for now (dev mode)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for frontend to verify backend availability"""
+    return {"status": "ok", "timestamp": time.time()}

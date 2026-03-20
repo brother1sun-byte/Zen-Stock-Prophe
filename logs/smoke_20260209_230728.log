@@ -1,0 +1,41 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260209230728
+Username: EVER-AI\Ebarai
+RunAs User: EVER-AI\Ebarai
+Configuration Name: 
+Machine: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/smoke.ps1
+Process ID: 7540
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/smoke_20260209_230728.log
+--- Starting Smoke Test & Freshness Check (Japan Stock Prophet) ---
+Checking http://localhost:8000/health...
+ [PASS]
+
+Checking http://localhost:8000/api/scoring?ticker=7203...
+ [PASS]
+
+  ! PARTIAL DATA: [entries]
+ (Market Closed mode: threshold 1440m)
+Checking http://localhost:8000/api/review?from=2026-02-02&to=2026-02-09...
+ [PASS]
+ (Market Closed mode: threshold 1440m)
+Checking http://localhost:8000/api/macro_snapshot?asof=2026-02-09...
+ [PASS]
+
+
+RESULT: PARTIAL
+WARNING: Some data fields are missing. Use with caution.
+**********************
+Windows PowerShell transcript end
+End time: 20260209230731
+**********************

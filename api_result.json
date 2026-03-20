@@ -1,0 +1,121 @@
+{
+  "confidence": 1.0,
+  "confidence_reasons": [],
+  "decision": "WAIT",
+  "action_text": "WAIT",
+  "final_action_line": "【様子見（期待値不足）】現在値 ¥3,714 - エントリー条件が改善するまで待機推奨",
+  "reasoning_list": [
+    "期待値が低い: 現在のリスクリワード比では十分な利益が見込めません"
+  ],
+  "reason_top3": [
+    "期待値が低い: 現在のリスクリワード比では十分な利益が見込めません"
+  ],
+  "data_status": "fresh",
+  "scan_status": "ok",
+  "pro_tips": [
+    "より良いエントリーポイントを待つことで、勝率と期待値を向上できます"
+  ],
+  "beginner_warnings": [],
+  "is_risk_alert": false,
+  "alert_message": "",
+  "super_score": 99,
+  "volume_profile": {
+    "poc": 3350.291666666667,
+    "walls": [
+      3350.291666666667,
+      3727.541666666666,
+      3434.125
+    ]
+  },
+  "regime_info": {
+    "regime": "HIGH_VOL",
+    "regime_jp": "HighV",
+    "atr": 99.28571428571429,
+    "vol_pct": 2.1891610702652313
+  },
+  "technical_summary": {
+    "rsi": 59.14221218961625,
+    "macd_hist": 13.092917599578499,
+    "ma_deviation": 4.284831807716061
+  },
+  "order_flow": {
+    "bias_raw": 0.0,
+    "bias_label": "Neutral",
+    "break_status": "STABLE",
+    "absorption": "NEUTRAL"
+  },
+  "risk_management": {
+    "win_rate_estimate": 50,
+    "risk_reward_ratio": 1.99,
+    "is_high_volatility_protected": false,
+    "is_analysis_only_mode": false
+  },
+  "explanations": {
+    "regime_desc": "High Volatility",
+    "technical_reasons": [
+      "25日移動平均線を上回り上昇トレンド"
+    ]
+  },
+  "goal_consistency": {
+    "expected_value": 0.0,
+    "expected_value_label": "Expected PnL",
+    "goal_status": "Conservative",
+    "alternatives": []
+  },
+  "lot_management": {
+    "shares": 0,
+    "shares_adjusted": false,
+    "capital": 500000.0,
+    "max_risk": 5000.0,
+    "loss_limit": 10000.0,
+    "entry_price": 3714.0,
+    "stop_price": 3535.0,
+    "target_price": 4071.0,
+    "holding_period": "デイトレード（当日決済）",
+    "entry_type": "見送り",
+    "limit_price": null,
+    "entry_timing": "エントリー条件が改善するまで待機推奨",
+    "expected_profit": 0,
+    "expected_loss": 0,
+    "shares_reason": "エントリー条件未達のため0株"
+  },
+  "decision_jp": "様子見（期待値不足）",
+  "terminology": {},
+  "data_gaps": [],
+  "system_status": "ACTIVE",
+  "hot_picks": null,
+  "market_sentiment": {
+    "vibe": "BULLISH",
+    "status_text": "Bullish momentum",
+    "score": 0.9,
+    "change_pct": 2.2826609072220307,
+    "current": 57650.5390625,
+    "index_name": " (TOPIX/VIX)",
+    "components": [
+      {
+        "name": "Nikkei 225",
+        "change": 2.2826609072220307,
+        "current": 57650.5390625
+      }
+    ]
+  },
+  "external_drivers": [
+    {
+      "factor": "USD/JPY",
+      "impact": "Positive",
+      "reason": "Exchange Rate"
+    },
+    {
+      "factor": "Nikkei 225",
+      "impact": "Neutral",
+      "reason": "Market Trend"
+    }
+  ],
+  "market_phase": {
+    "phase": "AFTERNOON_SESSION",
+    "label": "Afternoon",
+    "is_open": true,
+    "risk": "NORMAL",
+    "detail": "Steady"
+  }
+}

@@ -1,0 +1,51 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260211123448
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/up.ps1
+プロセス ID: 17464
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260211_123448.log
+[20260211_123448] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260211_123448] 0. Cleaning up previous state...
+[20260211_123448] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "処理がタイムアウトになりました。"
+.
+[20260211_123448] 
+Backend is READY (Port 8000).
+[20260211_123448] 2. Building Frontend...
+
+[20260211_123448] 3. Starting Frontend...
+[20260211_123448] 4. Waiting for Frontend Port 3000...
+.
+[20260211_123448] Port 3000 is now LISTEN.
+[20260211_123448] 5. Running Smoke Test...
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/smoke_20260211_123509.log
+--- Starting Smoke Test & Freshness Check (Japan Stock Prophet) ---
+Checking http://localhost:8000/health... [PASS]
+Checking http://localhost:8000/api/scoring?ticker=7203... [PASS]
+  ! PARTIAL DATA: [entries]
+Checking http://localhost:8000/api/review?from=2026-02-04&to=2026-02-11... [PASS]Checking http://localhost:8000/api/macro_snapshot?asof=2026-02-11... [PASS]
+
+RESULT: PARTIAL
+WARNING: Some data fields are missing. Use with caution.
+トランスクリプトが停止されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\smoke_20260211_123509.log
+[20260211_123448] Smoke Test Passed.
+[20260211_123448] 
+=== STARTUP SUCCESSFUL ===
+[20260211_123448] Access at: http://127.0.0.1:3000
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260211123512
+**********************

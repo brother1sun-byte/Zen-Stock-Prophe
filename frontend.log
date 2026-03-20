@@ -1,0 +1,139 @@
+▲ Next.js 16.1.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.26:3000
+
+✓ Starting...
+✓ Ready in 7.2s
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 1615ms (compile: 1383ms, render: 232ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 569ms (compile: 382ms, render: 187ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 52ms (compile: 6ms, render: 46ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 46ms (compile: 6ms, render: 41ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 42ms (compile: 4ms, render: 38ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 60ms (compile: 10ms, render: 50ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 53ms (compile: 9ms, render: 44ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 706ms (compile: 327ms, render: 380ms)
+Debugger listening on ws://127.0.0.1:9229/40de2d1c-1a6b-4891-a38e-99e39dd27c5d
+For help, see: https://nodejs.org/en/docs/inspector
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 589ms (compile: 269ms, render: 320ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 70ms (compile: 5ms, render: 64ms)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 51ms (compile: 5ms, render: 46ms)
+✓ Compiled in 28ms
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 262ms (compile: 129ms, render: 133ms)
+✓ Compiled in 103ms
+✓ Compiled in 42ms
+✓ Compiled in 92ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: ZoomIn is not defined
+    at Home (app\page.tsx:238:16)
+  236 |           <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-5">
+  237 |             <div className="flex items-center gap-2 mb-3 border-b border-[#30363D] pb-2">
+> 238 |               <ZoomIn className="w-5 h-5 text-[#8B949E]" />
+      |                ^
+  239 |               <h3 className="font-bold text-[#E6EDF3]">判断理由（Reasoning）</h3>
+  240 |             </div>
+  241 |             <ul className="space-y-3"> {
+  digest: '2596165889'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+✓ Compiled in 35ms
+⨯ ReferenceError: ZoomIn is not defined
+    at Home (app\page.tsx:238:16)
+  236 |           <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-5">
+  237 |             <div className="flex items-center gap-2 mb-3 border-b border-[#30363D] pb-2">
+> 238 |               <ZoomIn className="w-5 h-5 text-[#8B949E]" />
+      |                ^
+  239 |               <h3 className="font-bold text-[#E6EDF3]">判断理由（Reasoning）</h3>
+  240 |             </div>
+  241 |             <ul className="space-y-3"> {
+  digest: '2596165889'
+}
+⨯ ReferenceError: ZoomIn is not defined
+    at Home (app\page.tsx:238:16)
+  236 |           <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-5">
+  237 |             <div className="flex items-center gap-2 mb-3 border-b border-[#30363D] pb-2">
+> 238 |               <ZoomIn className="w-5 h-5 text-[#8B949E]" />
+      |                ^
+  239 |               <h3 className="font-bold text-[#E6EDF3]">判断理由（Reasoning）</h3>
+  240 |             </div>
+  241 |             <ul className="space-y-3"> {
+  digest: '2596165889'
+}
+ GET / 500 in 360ms (compile: 88ms, render: 272ms)
+ GET / 500 in 125ms (compile: 3ms, render: 121ms)
+ GET / 500 in 67ms (compile: 5ms, render: 62ms)
+✓ Compiled in 184ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 375ms (compile: 60ms, render: 315ms)
+ GET / 200 in 200ms (compile: 4ms, render: 196ms)
+ GET / 200 in 127ms (compile: 14ms, render: 113ms)
+✓ Compiled in 42ms
+✓ Compiled in 115ms
+✓ Compiled in 23ms
+✓ Compiled in 39ms
+✓ Compiled in 122ms
+✓ Compiled in 48ms
+
+C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet>

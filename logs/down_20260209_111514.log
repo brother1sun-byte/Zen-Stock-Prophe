@@ -1,0 +1,251 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260209111514
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/stop.ps1
+プロセス ID: 21400
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/down_20260209_111514.log
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+=== Japan Stock Prophet: Application Shutdown (npm run down) ===
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+1. Checking port 3000...
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+Cleaning up dangling processes for node...
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+Verifying port 3000 is released...
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+Port 3000 is FREE.
+True
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+1. Checking port 8000...
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+Verifying port 8000 is released...
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+Port 8000 is FREE.
+True
+PS>終了エラー(Out-File): "別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_20260209_111514.log' にアクセスできません。"
+Out-File : 別のプロセスで使用されているため、プロセスはファイル 'C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\logs\down_2026020
+9_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts\stop.ps1:8 文字:18
++     $formatted | Out-File -FilePath $logFile -Append
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (:) [Out-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Microsoft.PowerShell.Commands.OutFileCommand
+Out-File : 別のプロセスで使用されているため、プロ
+セスはファイル 'C:\Users\BRB33\OneDrive\Desktop\A
+ntigravity\japan-stock-prophet\logs\down_20260209
+_111514.log' にアクセスできません。
+発生場所 C:\Users\BRB33\OneDrive\Desktop\Antigrav
+ity\japan-stock-prophet\scripts\stop.ps1:8 文字:1
+8
++     $formatted | Out-File -FilePath $logFile -A
+ppend
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          : OpenError: (:) [Ou
+   t-File], IOException
+    + FullyQualifiedErrorId : FileOpenFailure,Mi
+   crosoft.PowerShell.Commands.OutFileCommand
+
+
+=== SHUTDOWN COMPLETE ===
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260209111517
+**********************

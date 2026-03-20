@@ -1,0 +1,529 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-02-04T20:31:42.810207",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:40:16.489473",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:40:37.817021",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:44:29.945589",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:51:44.465967",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:57:45.270576",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:57:45.842703",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:58:06.808944",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T20:58:20.506479",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:13:50.020161",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:14:03.876328",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:14:42.507034",
+      "ticker": "9984.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥239.2",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 5.69%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 売り優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:00.483598",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:08.060539",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:11.426204",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:11.772003",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:21.409904",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:15:26.889275",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:16:34.103606",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:17:06.325957",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:18:01.545922",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:18:08.231393",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:18:15.777076",
+      "ticker": "4980.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: パニック的乱高下 (急落注意/静観)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥110.3",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 3.78%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 均衡",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: STABLE",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:28:56.716518",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:28:57.523861",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    },
+    {
+      "timestamp": "2026-02-04T21:28:58.129328",
+      "ticker": "7203.T",
+      "pre_market_decision": "NO TRADE",
+      "action_line": "本日は売買なし（NO TRADE）",
+      "metrics": {
+        "market_regime": "市場の状態（Market Regime）: 強いトレンド発生中 (順張り推奨)",
+        "atr": "平均変動幅（ATR: Average True Range）: ¥100.9",
+        "expected_value": "期待値（Expected Value）: 0円",
+        "volatility": "価格変動率（Volatility）: 2.71%",
+        "order_flow_bias": "注文の偏り（Order Flow Bias）: 注文の偏り（Order Flow Bias）: 買い優勢",
+        "order_book_support": "板の支え（Order Book Support）: 板の支え（Order Book Support）: NEUTRAL",
+        "breakout_signal": "上抜け判定（Breakout Signal）: 上抜け判定（Breakout Signal）: FAKE_BREAK",
+        "earnings_risk": "決算リスク（Earnings Risk）: 決算リスク低",
+        "volume_quality": "出来高の質（Volume Quality）: 良好",
+        "ai_wisdom": "自己学習フィードバック（AI Wisdom）: 過去の同様のパターンの反省により、現在は出来高の持続性をより厳格に評価しています。"
+      },
+      "actual_result": null,
+      "learning_point": null
+    }
+  ],
+  "stats": {
+    "total_decisions": 26,
+    "correct": 0,
+    "v5_weight_adjustments": {}
+  }
+}

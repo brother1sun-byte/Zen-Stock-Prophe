@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+:root {
+  /* Design Tokens (Dark Trading Terminal) */
+  --bg0: #050814;
+  --bg1: #070b1f;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel2: rgba(255, 255, 255, 0.10);
+  --stroke: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.65);
+
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --red: #fb7185;
+
+  /* Typography */
+  --font-main: 'Outfit', 'Inter', 'SF Pro JP', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Breakpoints */
+  --breakpoint-mobile: 767px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1025px;
+
+  /* Legacy compatibility / Global vars */
+  --bg-primary: var(--bg0);
+  --bg-secondary: var(--bg1);
+  --text-primary: var(--text);
+  --panel-radius: 1.5rem;
+}
+
+/* Base Level Readability */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg0);
+  color: var(--text);
+  font-family: var(--font-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Production-grade Background */
+@utility bg-app {
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(34, 211, 238, 0.10), transparent 55%),
+    radial-gradient(1200px 600px at 80% 30%, rgba(52, 211, 153, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  background-attachment: fixed;
+}
+
+/* Professional Glass Panels */
+@utility panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  backdrop-filter: blur(10px);
+  border-radius: var(--panel-radius);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility glass-panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  backdrop-filter: blur(10px);
+  border-radius: var(--panel-radius);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility panel-strong {
+  background: var(--panel2);
+  border: 1px solid var(--stroke);
+  backdrop-filter: blur(12px);
+  border-radius: var(--panel-radius);
+}
+
+@utility hairline {
+  border: 1px solid var(--stroke);
+}
+
+/* Buttons & Inputs */
+@utility btn-accessible {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--panel2);
+  border: 1px solid var(--stroke);
+
+  &:hover {
+    background: var(--stroke);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Typography Utilities */
+@utility text-muted {
+  color: var(--muted);
+}
+
+@utility text-pro-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--stroke);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Animations (Controlled for performance/accessibility) */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

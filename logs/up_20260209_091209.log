@@ -1,0 +1,69 @@
+﻿**********************
+Windows PowerShell トランスクリプト開始
+開始時刻: 20260209091209
+ユーザー名: EVER-AI\Ebarai
+RunAs ユーザー: EVER-AI\Ebarai
+構成名: 
+コンピューター: EVER-AI (Microsoft Windows NT 10.0.22631.0)
+ホスト アプリケーション: powershell -ExecutionPolicy Bypass -File ./scripts/up.ps1
+プロセス ID: 1148
+PSVersion: 5.1.22621.6133
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.22621.6133
+BuildVersion: 10.0.22621.6133
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+トランスクリプトが開始されました。出力ファイル: C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\scripts/../logs/up_20260209_091209.log
+[20260209_091209] === Japan Stock Prophet: Automated Startup (npm run up) ===
+[20260209_091209] 1. Starting Backend & Waiting for Health Check...
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+.
+PS>終了エラー(Invoke-RestMethod): "リモート サーバーに接続できません。"
+PS>終了エラー(): "パイプラインが停止されています。"
+**********************
+Windows PowerShell トランスクリプト終了
+終了時刻: 20260209091339
+**********************

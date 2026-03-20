@@ -1,0 +1,244 @@
+C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\backend\main.py:146: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Will watch for changes in these directories: ['C:\\Users\\BRB33\\OneDrive\\Desktop\\Antigravity\\japan-stock-prophet']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [12220] using StatReload
+INFO:     Started server process [12988]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Initializing Minato Mirai Neural Core...
+INFO:     127.0.0.1:52056 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:52056 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56321 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:56321 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:59266 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61383 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:61383 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56225 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:56225 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51078 - "OPTIONS /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51078 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:51078 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:60825 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:64120 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:63427 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62838 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  StatReload detected changes in 'backend\main.py'. Reloading...
+ INFO:     127.0.0.1:51773 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:51773 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:54511 - "POST /predict HTTP/1.1" 200 OK
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 49984.T"}}}
+$49984.T: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+Backend Error: 404: Ticker not found
+Traceback (most recent call last):
+  File "C:\Users\BRB33\OneDrive\Desktop\Antigravity\japan-stock-prophet\backend\main.py", line 740, in predict_stock
+    elif avg_change < -0.8:
+        ^^^^^^^^^^^^^^^^^^^^
+fastapi.exceptions.HTTPException: 404: Ticker not found
+
+INFO:     127.0.0.1:50703 - "POST /predict HTTP/1.1" 500 Internal Server Error
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 9984...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:50703 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:63767 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:63983 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:63983 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:61963 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:49669 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:49669 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:51635 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:50413 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:61955 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:63692 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 4980...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:49261 - "POST /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51475 - "OPTIONS /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52047 - "OPTIONS /predict HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56603 - "OPTIONS /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:51475 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:52047 - "POST /predict HTTP/1.1" 200 OK
+$^TOPX: possibly delisted; no price data found  (period=1mo)
+$1552.T: possibly delisted; no price data found  (period=1mo)
+DEBUG: Fetching multi-index data...
+DEBUG: Analyzing drivers for 7203...
+Driver fetch error: name 'yfinance' is not defined
+DEBUG: Final Response Day Trading keys: dict_keys(['decision', 'action_text', 'final_action_line', 'reasoning_list', 'is_risk_alert', 'alert_message', 'goal_consistency', 'lot_management', 'terminology', 'data_gaps', 'hot_picks', 'market_sentiment', 'external_drivers', 'order_flow', 'market_phase'])
+DEBUG: Drivers count: 0
+INFO:     127.0.0.1:56603 - "POST /predict HTTP/1.1" 200 OK
