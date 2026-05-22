@@ -227,15 +227,29 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 170px;
   gap: 18px;
-  margin-top: 16px;
+  margin-top: 0;
   padding: 20px;
-  border: 1px solid rgba(22, 241, 164, 0.22);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(22, 241, 164, 0.1), rgba(56, 189, 248, 0.04));
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(56, 189, 248, 0.035));
   box-shadow: var(--shadow);
 }
 
+.jobs-brief.ready {
+  border-color: rgba(22, 241, 164, 0.34);
+  background: linear-gradient(135deg, rgba(22, 241, 164, 0.1), rgba(56, 189, 248, 0.04));
+}
+
+.jobs-brief.watch h2 {
+  color: var(--amber);
+}
+
+.jobs-brief.ready h2 {
+  color: var(--green);
+}
+
 .jobs-brief h2 {
+  margin-top: 8px;
   font-size: clamp(22px, 3vw, 34px);
   max-width: 780px;
 }
@@ -248,13 +262,27 @@ h1 {
   font-weight: 600;
 }
 
+.decision-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .brief-score {
   min-height: 128px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(6, 7, 11, 0.34);
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--amber);
+}
+
+.jobs-brief.ready .brief-score {
+  border-color: rgba(22, 241, 164, 0.34);
+  background: rgba(22, 241, 164, 0.1);
+  color: var(--green);
 }
 
 .brief-score strong {
