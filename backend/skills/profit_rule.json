@@ -1,0 +1,12 @@
+{
+  "name": "Strict Profit Rule Skill",
+  "version": "1.0.0",
+  "description": "鉄の掟：利確・損切ルール",
+  "rules": {
+    "take_profit_target_pct": 8.0,
+    "stop_loss_target_pct": -3.5,
+    "trailing_stop_activation_pct": 5.0,
+    "max_holding_stocks": 10
+  },
+  "behavior": "売却判断において、テクニカル分析の結果よりもこのルール（利確・損切）を最優先すること。欲を捨ててルールに忠実であれ。"
+}

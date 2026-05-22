@@ -1,0 +1,19 @@
+{
+  "name": "Master Design Logic Skill",
+  "version": "1.0.0",
+  "description": "超一流SaaS企業とプロ向け金融端末を融合させたデザイン哲学",
+  "principles": [
+    "データの純度を最大化せよ：不要な装飾を削り、数値そのものを主役にする",
+    "階層を光で表現せよ：シャドウではなく、微かなボーダーの発光（Glow）で要素を際立たせる",
+    "リズムとグリッド：全ての要素は 8px 単位の黄金律に従い、視覚的な安定感を生む",
+    "インタラクティブな呼吸：ホバー時の微かなスケールアップや色彩の変化により、UIが『生きている』と感じさせる"
+  ],
+  "colors": {
+    "background": "#000000",
+    "surface": "#0a0a0a",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "accent_primary": "#0070f3",
+    "accent_success": "#00ff9d",
+    "accent_warning": "#ff4d4d"
+  }
+}

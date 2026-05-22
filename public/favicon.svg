@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Zen Stock Prophet Pro">
+  <defs>
+    <linearGradient id="bg" x1="32" x2="224" y1="28" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071016"/>
+      <stop offset="1" stop-color="#0d1824"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="58" x2="205" y1="178" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#16f1a4"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="54" fill="url(#bg)"/>
+  <path d="M64 175c25-42 49-56 72-42 19 12 38 4 58-55" fill="none" stroke="url(#signal)" stroke-linecap="round" stroke-linejoin="round" stroke-width="14" filter="url(#glow)"/>
+  <path d="M178 78h33v33" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="13"/>
+  <circle cx="82" cy="174" r="13" fill="#16f1a4"/>
+  <circle cx="136" cy="132" r="11" fill="#f8fafc"/>
+  <circle cx="194" cy="86" r="13" fill="#38bdf8"/>
+  <path d="M128 44l13 45 45 13-45 13-13 45-13-45-45-13 45-13 13-45Z" fill="none" stroke="#f8fafc" stroke-linejoin="round" stroke-width="9"/>
+  <path d="M128 70l6 20 20 6-20 6-6 20-6-20-20-6 20-6 6-20Z" fill="#16f1a4"/>
+  <path d="M60 206h136" stroke="#203446" stroke-linecap="round" stroke-width="10"/>
+</svg>
