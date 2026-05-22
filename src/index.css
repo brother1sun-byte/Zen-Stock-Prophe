@@ -376,13 +376,14 @@ h1 {
 
 .advanced-score-grid,
 .advanced-detail-grid,
-.advanced-guardrails {
+.advanced-guardrails,
+.advanced-explainability {
   display: grid;
   gap: 10px;
 }
 
 .advanced-score-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .advanced-factor,
@@ -439,7 +440,7 @@ h1 {
 }
 
 .advanced-detail-grid {
-  grid-template-columns: minmax(0, 1.5fr) minmax(210px, 0.7fr) minmax(230px, 0.8fr);
+  grid-template-columns: minmax(0, 1.35fr) repeat(3, minmax(190px, 0.75fr));
 }
 
 .scenario-tape,
@@ -494,6 +495,22 @@ h1 {
 
 .advanced-guardrails {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.advanced-explainability {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.advanced-explainability span {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  color: var(--muted);
+  min-height: 54px;
+  padding: 11px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .advanced-guardrails > div {
@@ -2149,6 +2166,7 @@ button:disabled {
   .advanced-analysis-head,
   .advanced-score-grid,
   .advanced-detail-grid,
+  .advanced-explainability,
   .advanced-guardrails,
   .market-command,
   .market-command-grid,

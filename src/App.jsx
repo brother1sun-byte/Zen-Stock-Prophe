@@ -267,15 +267,11 @@ function shortDate(value) {
 }
 
 function candidateScore(stock) {
-  if (stock?.ticker === PROPHET_PRO_RESULT.pick.ticker) return PROPHET_PRO_RESULT.pick.confidence;
-  if (stock?.ticker === PINNED_WATCH_TICKER) return 100;
   const parsed = Number(stock?.candidateScore);
   return Number.isFinite(parsed) ? clamp(parsed) : 55;
 }
 
 function candidateReason(stock) {
-  if (stock?.ticker === PROPHET_PRO_RESULT.pick.ticker) return PROPHET_WATCH_STOCK.candidateReason;
-  if (stock?.ticker === PINNED_WATCH_TICKER) return PINNED_WATCH_STOCK.candidateReason;
   return stock?.candidateReason || 'AIスクリーニングで抽出した注目候補です。詳細画面でシグナルとリスクを確認してください。';
 }
 
@@ -299,15 +295,14 @@ function ensurePinnedWatchStock(list = []) {
   const prophetStock = {
     ...PROPHET_WATCH_STOCK,
     ...prophet,
-    ...PROPHET_WATCH_STOCK,
+    mustInclude: true,
+    candidateRank: prophet?.candidateRank ?? PROPHET_WATCH_STOCK.candidateRank,
   };
   const pinnedStock = {
     ...PINNED_WATCH_STOCK,
     ...pinned,
     mustInclude: true,
-    candidateScore: 100,
-    candidateRank: 1,
-    candidateReason: PINNED_WATCH_STOCK.candidateReason,
+    candidateRank: pinned?.candidateRank ?? PINNED_WATCH_STOCK.candidateRank,
   };
   return [
     prophetStock,
@@ -1062,6 +1057,23 @@ export default function App() {
     ? `${jquantsResearch?.latestStatement?.earningsPerShare || '-'} / ${jquantsResearch?.latestStatement?.bookValuePerShare || '-'}`
     : '未取得';
   const jquantsNote = jquantsResearch?.summary || jquantsResearch?.nextStep || 'J-Quants APIトークンを設定すると、銘柄マスタ・日足・財務データを読み取り専用で取得できます。未設定でもアプリ本体は利用できます。';
+  const prophetGateApplies = selectedTicker === PROPHET_PRO_RESULT.pick.ticker || detail?.ticker === PROPHET_PRO_RESULT.pick.ticker;
+  const prophetValidated = prophetGateApplies
+    && advancedReport?.verdict === 'ADVANCED_READY'
+    && Number(advancedReport?.walkForward?.edgePct || 0) > 0
+    && advancedReport?.guardrails?.every((item) => item.ok);
+  const prophetGateLabel = prophetValidated ? '高精度ゲート通過' : '高精度ゲート未通過';
+  const prophetGateTone = prophetValidated ? 'buy' : 'warn';
+  const prophetHeadline = prophetValidated
+    ? '明日デイトレで買える高騰候補 1銘柄'
+    : '一次候補を高精度ゲートで再評価中';
+  const prophetJudgement = prophetValidated
+    ? 'ジョブズ判断: 高精度ゲートを通過したため、板・出来高・VWAPを確認したうえで手入力候補にできます。'
+    : 'ジョブズ判断: 一次スクリーニングでは強い候補ですが、過去条件一致の検証・RR・トレンド整列のゲートを満たすまで買い候補にはしません。';
+  const tradeStrategyTitle = prophetValidated
+    ? `デイトレ買い候補 ${PROPHET_PRO_RESULT.pick.ticker} ${PROPHET_PRO_RESULT.pick.name}`
+    : `見送り・監視 ${PROPHET_PRO_RESULT.pick.ticker} ${PROPHET_PRO_RESULT.pick.name}`;
+  const tradeStrategyTone = prophetValidated ? 'buy' : 'warn';
 
   return (
     <div className="app-shell">
@@ -1154,7 +1166,7 @@ export default function App() {
               <div className="section-title"><BrainCircuit size={18} /><span>高度分析エンジン</span></div>
               <h2>{advancedReport?.actionLabel || '銘柄選択に連動して確率分析を準備中'}</h2>
               <p>
-                1年分の日足から、トレンド整列、モメンタム、流動性、変動率、5営業日シナリオ、100株単位の損失許容を同時に確認します。
+                1年分の日足から、トレンド整列、モメンタム、流動性、変動率、5営業日シナリオ、過去条件一致のウォークフォワード検証、100株単位の損失許容を同時に確認します。
                 実注文は作成せず、判断補助だけを表示します。
               </p>
             </div>
@@ -1169,6 +1181,8 @@ export default function App() {
               ['勢い', advancedReport?.factors?.momentumScore, `5日 ${pct(advancedReport?.factors?.momentum5Pct)} / 20日 ${pct(advancedReport?.factors?.momentum20Pct)}`],
               ['流動性', advancedReport?.factors?.liquidityScore, `出来高 ${ratioLabel(advancedReport?.factors?.volumeRatio)}`],
               ['守備力', advancedReport?.factors?.riskControlScore, `ATR ${pct(advancedReport?.factors?.atrPct)} / DD ${pct(advancedReport?.factors?.maxDrawdown60Pct)}`],
+              ['検証力', advancedReport?.walkForward?.score, `一致 ${advancedReport?.walkForward?.sampleCount ?? 0}件 / エッジ ${pct(advancedReport?.walkForward?.edgePct)}`],
+              ['データ品質', advancedReport?.dataQuality?.score, `${advancedReport?.dataQuality?.bars ?? 0}本 / ${advancedReport?.dataQuality?.verdict || '-'}`],
             ].map(([label, value, note]) => (
               <div key={label} className={`advanced-factor ${scoreTone(value)}`}>
                 <span>{label}</span>
@@ -1210,6 +1224,14 @@ export default function App() {
                 RR 1:{advancedReport?.positionPlan?.riskReward || '-'}
               </small>
             </div>
+            <div className="probability-panel">
+              <span>過去検証</span>
+              <strong>{advancedReport ? `${advancedReport.walkForward.hitRatePct.toFixed(1)}%` : '-'}</strong>
+              <small>
+                勝率 / 平均 {advancedReport ? pct(advancedReport.walkForward.avgReturnPct) : '-'} /
+                全体比 {advancedReport ? pct(advancedReport.walkForward.edgePct) : '-'}
+              </small>
+            </div>
           </div>
           <div className="advanced-guardrails">
             {(advancedReport?.guardrails || []).map((item) => (
@@ -1219,21 +1241,27 @@ export default function App() {
               </div>
             ))}
           </div>
+          <div className="advanced-explainability">
+            {(advancedReport?.explainability || []).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
         </section>
 
         <section className="prophet-pro-panel" aria-label="Zen Stock Prophet Pro 明日候補">
           <div className="prophet-main">
             <div className="section-title"><Sparkles size={18} color="#16f1a4" /><span>Zen Stock Prophet Pro 組み込み判定</span></div>
-            <p className="prophet-eyebrow">明日デイトレで買える高騰候補 1銘柄</p>
+            <p className="prophet-eyebrow">{prophetHeadline}</p>
             <h2>{PROPHET_PRO_RESULT.pick.ticker} {PROPHET_PRO_RESULT.pick.name}</h2>
             <p>
-              ジョブズ判断: 買い候補です。買えない深い指値ではなく、寄付き後の板・出来高・VWAPを確認して、現在値近辺の上限指値または成行許容で入る前提に切り替えます。
+              {prophetJudgement}
               {PROPHET_PRO_RESULT.pick.reasons.join(' / ')}
             </p>
             <div className="prophet-actions">
-              <StatusPill label={`信頼度 ${PROPHET_PRO_RESULT.pick.confidence.toFixed(2)}%`} tone="buy" />
+              <StatusPill label={prophetGateLabel} tone={prophetGateTone} />
+              <StatusPill label={`一次候補確度 ${PROPHET_PRO_RESULT.pick.confidence.toFixed(2)}%`} tone="info" />
               <StatusPill label={`上限指値 ${yen(PROPHET_WATCH_STOCK.buyLimit)}`} tone="info" />
-              <StatusPill label={`スコア ${PROPHET_PRO_RESULT.pick.score.toFixed(4)}`} tone="good" />
+              <StatusPill label={`検証エッジ ${pct(advancedReport?.walkForward?.edgePct)}`} tone={Number(advancedReport?.walkForward?.edgePct || 0) > 0 ? 'good' : 'warn'} />
               <button className="treasure-button" onClick={focusProphetPick} disabled={busy === 'detail'}>
                 {busy === 'detail' ? <Loader2 size={15} className="spin" /> : <Search size={15} />}
                 <span>この候補を表示</span>
@@ -1282,23 +1310,25 @@ export default function App() {
         <section className="jobs-brief actionable-insights" style={{ background: 'linear-gradient(to right, rgba(16, 185, 129, 0.1), rgba(0, 0, 0, 0))', borderLeft: '4px solid #10b981' }}>
           <div>
             <div className="section-title"><Zap size={18} color="#10b981" /><span>明日のトレード戦略（AI実行判断）</span></div>
-            <h2 style={{ marginTop: '8px', marginBottom: '8px', color: tradePlan.tone === 'buy' ? '#10b981' : tradePlan.tone === 'sell' ? '#fb7185' : '#f59e0b' }}>
-              デイトレ買い候補 {PROPHET_PRO_RESULT.pick.ticker} {PROPHET_PRO_RESULT.pick.name}
+            <h2 style={{ marginTop: '8px', marginBottom: '8px', color: tradeStrategyTone === 'buy' ? '#10b981' : '#f59e0b' }}>
+              {tradeStrategyTitle}
             </h2>
             <p>
-              <strong>ジョブズ判断:</strong> 買えない指値は使いません。寄付き後5分以内に板厚・スプレッド・VWAP付近を確認し、現在値近辺の上限指値、条件が揃えば成行許容で入る候補です。<br/>
+              <strong>ジョブズ判断:</strong> {prophetValidated
+                ? '買えない指値は使いません。寄付き後5分以内に板厚・スプレッド・VWAP付近を確認し、現在値近辺の上限指値、条件が揃えば成行許容で入る候補です。'
+                : '過去検証が市場全体平均に勝っていないため、今は手入力候補へ昇格させません。監視に留め、条件が改善したら再評価します。'}<br/>
               {PROPHET_PRO_RESULT.pick.reasons.join(' / ')}
             </p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-              <StatusPill label="実行: デイトレ買い候補" tone="buy" />
+              <StatusPill label={`実行: ${prophetValidated ? 'デイトレ買い候補' : '見送り・監視'}`} tone={tradeStrategyTone} />
               <StatusPill label={`上限指値: ${yen(PROPHET_WATCH_STOCK.buyLimit)}`} tone="info" />
-              <StatusPill label={`信頼度: ${PROPHET_PRO_RESULT.pick.confidence.toFixed(2)}%`} tone="good" />
-              <StatusPill label="成行: 板条件OK時のみ" tone="warn" />
+              <StatusPill label={`高精度: ${advancedReport?.compositeScore ?? '-'} / 100`} tone={scoreTone(advancedReport?.compositeScore)} />
+              <StatusPill label={`過去エッジ: ${pct(advancedReport?.walkForward?.edgePct)}`} tone={Number(advancedReport?.walkForward?.edgePct || 0) > 0 ? 'good' : 'warn'} />
             </div>
           </div>
-          <div className="brief-score" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <strong>{PROPHET_PRO_RESULT.pick.confidence.toFixed(0)}%</strong>
-            <span>Prophet Pro</span>
+          <div className="brief-score" style={{ background: prophetValidated ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.12)', color: prophetValidated ? '#10b981' : '#f59e0b' }}>
+            <strong>{advancedReport?.compositeScore ?? '-'}</strong>
+            <span>高精度判定</span>
           </div>
         </section>
 
