@@ -72,12 +72,18 @@ PORTFOLIO_VOIDED = "VOIDED"
 PORTFOLIO_ARCHIVED = "ARCHIVED"
 PORTFOLIO_CLOSED_STATUSES = {PORTFOLIO_SOLD, PORTFOLIO_VOIDED, PORTFOLIO_ARCHIVED}
 
-PROPHET_PRO_TICKER = "6503.T"
 PINNED_WATCH_TICKER = "4980.T"
-PROPHET_PRO_REASON = (
-    "Prophet Proのデイトレ買い候補: 5日モメンタム 6.07%、20日モメンタム 19.70%、"
-    "終値が20日線・50日線を上回り、RSIは順張り適温帯です。"
+JPX_LISTED_ISSUES_URL = os.environ.get(
+    "ZEN_JPX_LISTED_ISSUES_URL",
+    "https://www.jpx.co.jp/english/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_e.xls",
 )
+JPX_UPDATED_ISSUES_URL = os.environ.get(
+    "ZEN_JPX_UPDATED_ISSUES_URL",
+    "https://www.jpx.co.jp/english/markets/statistics-equities/misc/tvdivq0000001vg2-att/jyoujyou(updated)_e.xlsx",
+)
+JPX_UNIVERSE_PATH = os.environ.get("ZEN_JPX_UNIVERSE_PATH", "")
+SCREEN_MAX_UNIVERSE = int(os.environ.get("ZEN_SCREEN_MAX_UNIVERSE", "0") or 0)
+SCREEN_BATCH_SIZE = max(10, int(os.environ.get("ZEN_SCREEN_BATCH_SIZE", "80") or 80))
 
 
 def watch_candidate(score: float, reason: str, rank: int | None = None, must_include: bool = False) -> dict[str, Any]:
@@ -90,23 +96,14 @@ def watch_candidate(score: float, reason: str, rank: int | None = None, must_inc
 
 
 MUST_INCLUDE: dict[str, dict[str, Any]] = {
-    PROPHET_PRO_TICKER: {
-        "name": "三菱電機",
-        "emoji": "ME",
-        "is_prime": True,
-        "must_include": True,
-        "candidate_score": 93.51,
-        "candidate_rank": 1,
-        "candidate_reason": PROPHET_PRO_REASON,
-    },
     PINNED_WATCH_TICKER: {
         "name": "デクセリアルズ",
         "emoji": "DX",
         "is_prime": True,
         "must_include": True,
         "candidate_score": 100,
-        "candidate_rank": 2,
-        "candidate_reason": "固定観察銘柄です。AIデイトレ候補との比較対象として表示します。",
+        "candidate_rank": 1,
+        "candidate_reason": "固定観察銘柄です。国内市場スキャンの候補と常に比較します。",
     },
 }
 
@@ -146,6 +143,96 @@ def normalize_candidate_score(raw_score: float) -> int:
     return max(1, min(99, round(50 + raw_score)))
 
 
+def load_market_universe() -> dict[str, dict[str, Any]]:
+    sources = [source for source in (JPX_UNIVERSE_PATH, JPX_LISTED_ISSUES_URL, JPX_UPDATED_ISSUES_URL) if source]
+    frame = None
+    for source in sources:
+        try:
+            frame = pd.read_excel(source, dtype={"Local Code": str})
+            break
+        except Exception:
+            continue
+    if frame is None:
+        return dict(FALLBACK_CANDIDATE_POOL)
+
+    universe: dict[str, dict[str, Any]] = {}
+    for _, row in frame.iterrows():
+        code = _normalize_jpx_code(row.get("Local Code"))
+        if not (code.isdigit() and len(code) == 4):
+            continue
+        section = str(row.get("Section/Products", ""))
+        section_lower = section.lower()
+        if "foreign" in section_lower:
+            continue
+        if "domestic" not in section_lower and not any(market in section_lower for market in ("prime", "standard", "growth")):
+            continue
+        ticker = f"{code}.T"
+        name = str(row.get("Name (English)") or row.get("Name") or ticker).strip()
+        sector = str(row.get("33 Sector(name)") or row.get("17 Sector(name)") or "").strip()
+        universe[ticker] = {
+            "name": name if name and name.lower() != "nan" else ticker,
+            "emoji": "JP",
+            "is_prime": "prime" in section_lower,
+            "market_section": section,
+            "sector": sector,
+        }
+
+    if PINNED_WATCH_TICKER in MUST_INCLUDE:
+        universe[PINNED_WATCH_TICKER] = {**universe.get(PINNED_WATCH_TICKER, {}), **MUST_INCLUDE[PINNED_WATCH_TICKER]}
+    return universe or dict(FALLBACK_CANDIDATE_POOL)
+
+
+def _history_from_download(downloaded: pd.DataFrame | None, ticker: str) -> pd.DataFrame | None:
+    if downloaded is None or downloaded.empty:
+        return None
+    try:
+        if isinstance(downloaded.columns, pd.MultiIndex):
+            if ticker in downloaded.columns.get_level_values(0):
+                hist = downloaded[ticker].copy()
+            elif ticker in downloaded.columns.get_level_values(-1):
+                hist = downloaded.xs(ticker, axis=1, level=-1).copy()
+            else:
+                return None
+        else:
+            hist = downloaded.copy()
+        return clean_price_history(hist)
+    except Exception:
+        return None
+
+
+def _candidate_from_history(ticker: str, info: dict[str, Any], hist: pd.DataFrame | None) -> dict[str, Any] | None:
+    hist = clean_price_history(hist)
+    if hist is None or hist.empty or len(hist) < 30:
+        return None
+
+    prices = hist["Close"].tolist()
+    highs = hist["High"].tolist()
+    lows = hist["Low"].tolist()
+    volumes = hist["Volume"].tolist()
+    price = _finite(prices[-1])
+    rr = calculate_risk_reward(price, highs, lows, prices)
+    quality = build_candidate_quality(prices, highs, lows, volumes, rr=rr)
+    preopen_report = preopen_for_ticker(ticker, info, hist)
+    analysis = TechnicalAnalyzer.analyze(prices, price)
+    score_parts = [quality["qualityScore"]]
+    if preopen_report:
+        score_parts.append(preopen_report["score"])
+    score = round(float(np.mean(score_parts)), 1)
+    if analysis["execution"]["decision"] == "AVOID":
+        score = max(1, score - 12)
+    reason = " / ".join(preopen_report["keyReasons"][:2]) if preopen_report else analysis["reason"]
+    return {
+        "ticker": ticker,
+        "info": {
+            **info,
+            "candidate_quality": quality,
+            "preopen_report": preopen_report,
+        },
+        "score": score,
+        "reason": reason,
+    }
+
+
 def _merge_display_candidates(*candidate_groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     merged: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -173,7 +260,7 @@ def _publish_watchlist_candidates(candidates: list[dict[str, Any]]) -> dict[str,
             **watch_candidate(item["score"], item.get("reason", "AIスクリーニング候補です。"), rank=rank),
         }
         count += 1
-        if count >= NUM_SELECTED - 1:
+        if count >= max(0, NUM_SELECTED - len(MUST_INCLUDE)):
             break
     STOCKS = new_stocks
     return new_stocks
@@ -277,7 +364,7 @@ def build_candidate_quality(
 
     gates = [
         {"id": "momentum", "label": "5日/20日モメンタム", "passed": bool(mom5 > 0.8 and mom20 > 3.0), "ok": bool(mom5 > 0.8 and mom20 > 3.0)},
-        {"id": "rsi", "label": "RSI順張り適温帯", "passed": bool(45 <= rsi <= 78), "ok": bool(45 <= rsi <= 78)},
+        {"id": "rsi", "label": "RSI適温帯", "passed": bool(45 <= rsi <= 78), "ok": bool(45 <= rsi <= 78)},
         {"id": "liquidity", "label": "流動性", "passed": bool(avg_vol20 >= 100_000), "ok": bool(avg_vol20 >= 100_000)},
         {"id": "rr", "label": "リスク・リワード", "passed": bool(_finite(rr.get("rr_ratio")) >= 1.6), "ok": bool(_finite(rr.get("rr_ratio")) >= 1.6)},
         {"id": "backtest", "label": "翌日パターン検証", "passed": bool(backtest["sampleCount"] >= 3 and backtest["winRate"] >= 52), "ok": bool(backtest["sampleCount"] >= 3 and backtest["winRate"] >= 52)},
@@ -501,7 +588,7 @@ def build_exit_plan(
         hold_allowed = False
     elif pnl_pct >= 8 and (current_price >= first_target * 0.985 or rsi >= 74 or market_context.get("riskOff")):
         action = "SCALE_OUT"
-        label = "利確優先"
+        label = "一部利確"
         timing = "本日から2営業日以内に、100株単位で利益を確定し、残りは逆指値を引き上げます。"
         review_price = _round_review_price(max(current_price * 0.998, first_target))
     elif pnl_pct >= 14 or rsi >= 80:
@@ -525,7 +612,7 @@ def build_exit_plan(
     else:
         action = "HOLD_WITH_STOP"
         label = "保有・逆指値管理"
-        timing = "地合いと25日線を確認しながら、損切り線を割るまでは保有候補です。"
+        timing = "地合いと25日線を確認しながら、損切りラインを割るまでは保有候補です。"
         review_price = _round_review_price(first_target)
 
     confidence = 50
@@ -562,7 +649,7 @@ def build_exit_plan(
         ],
         "rules": [
             "8%以上の含み益は100株単位で利確候補にする",
-            "利益が乗ったら損切り線を建値上へ引き上げる",
+            "利益が乗ったら損切りラインを建値以上へ引き上げる",
             "25日線割れと5日モメンタム悪化は撤退候補にする",
             "RISK_OFF地合いでは保有継続の判定を一段厳しくする",
         ],
@@ -685,32 +772,32 @@ class TechnicalAnalyzer:
             decision = "AVOID"
             label = "買わない"
             headline = "買いよりも撤退・見送りを優先します。"
-            plain_reason = "テクニカルが売り優勢です。反発期待で先回りする局面ではありません。"
+            plain_reason = "テクニカルが売り優勢です。反発待ちで先回りする局面ではありません。"
             entry_condition = "買いシグナルへ反転するまで待つ"
         elif raw_is_buy and confidence >= 68 and -1.5 <= entry_gap_pct <= 0.35:
             decision = "DAYTRADE_ENTRY_OK"
-            label = "デイトレ買い候補"
-            headline = "明日、実際に買える価格帯のデイトレ候補です。"
-            plain_reason = "買えない深い指値ではなく、現在値近辺の上限指値で入る候補です。寄付き後に出来高、板厚、スプレッド、VWAP近辺を確認し、条件が崩れない時だけ成行を許容します。"
-            entry_condition = f"寄付き後5分以内、{buy_limit:,.0f}円以下を上限。スプレッドが狭く、VWAP乖離が小さく、出来高が伴う場合のみ成行許容。"
+            label = "デイトレ候補"
+            headline = "本日、手入力で監視できる価格帯のデイトレ候補です。"
+            plain_reason = "現在値近辺の上限指値で入る候補です。寄付き後に出来高、板厚、スプレッド、VWAP付近を確認します。"
+            entry_condition = f"寄付き後5分以内に {buy_limit:,.0f}円以下を上限。スプレッドが薄く、出来高が伴う場合のみ。"
         elif raw_is_buy and entry_gap_pct < -1.5:
             decision = "REPRICE_FOR_DAYTRADE"
-            label = "買える価格へ再計算"
-            headline = "買い候補ですが、指値が遠すぎるためデイトレ用に再計算が必要です。"
-            plain_reason = f"現在値から{abs(entry_gap_pct):.1f}%下の指値は、明日約定しない可能性が高いです。寄付き後の板を見て、近い上限指値へ再計算します。"
-            entry_condition = "寄付き後の板・出来高を確認し、現在値から0.35%以内の上限指値に再計算"
+            label = "価格再計算"
+            headline = "買い候補ですが、指値が遠すぎるためデイトレ用に再計算します。"
+            plain_reason = f"現在値から{abs(entry_gap_pct):.1f}%下の指値は、本日約定しない可能性が高いです。"
+            entry_condition = "寄付き後の板と出来高を確認し、現在値から0.35%以内の上限指値に再計算"
         elif raw_is_buy and confidence >= 60:
             decision = "BUY_LIMIT_OK"
-            label = "買い候補"
-            headline = "明日買える範囲の上限価格で検討できる買い候補です。"
-            plain_reason = "買いシグナルと注文価格の距離が許容範囲です。上限指値を決め、板条件が良い時だけ実行します。"
+            label = "監視候補"
+            headline = "本日監視できる範囲の上限価格で検討する候補です。"
+            plain_reason = "買いシグナルと注文価格の距離が許容範囲です。条件が崩れた場合は見送ります。"
             entry_condition = f"{buy_limit:,.0f}円以下を上限。寄付き直後のスプレッド拡大時は見送り。"
         else:
             decision = "WATCH"
             label = "観察"
-            headline = "根拠が薄いので、買い候補にはまだ入れません。"
+            headline = "根拠が薄いため、買い候補にはまだ入れません。"
             plain_reason = "複数指標の足並みが揃っていません。候補として監視し、条件が揃ったら再評価します。"
-            entry_condition = "買いシグナル、出来高、損切り幅が揃うまで待つ"
+            entry_condition = "買いシグナル、出来高、値動き幅が揃うまで待つ"
 
         return {
             "decision": decision,
@@ -748,10 +835,10 @@ class TechnicalAnalyzer:
             reasons.append("中長期トレンドも崩れていません。")
         if mom5 > 1 and mom20 > 5 and 45 <= rsi <= 75:
             score += 4
-            reasons.append(f"デイトレ向けモメンタムが強いです: 5日 {mom5:.1f}%、20日 {mom20:.1f}%、RSI {rsi:.0f}。")
+            reasons.append(f"デイトレ向けモメンタムが強いです。5日 {mom5:.1f}%、20日 {mom20:.1f}%、RSI {rsi:.0f}。")
         elif mom5 > 0 and mom20 > 0 and rsi < 78:
             score += 2
-            reasons.append(f"モメンタムが改善しています: 5日 {mom5:.1f}%、20日 {mom20:.1f}%。")
+            reasons.append(f"モメンタムが改善しています。5日 {mom5:.1f}%、20日 {mom20:.1f}%。")
         if rsi > 80:
             score -= 3
             reasons.append("RSIが過熱しています。")
@@ -826,6 +913,10 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
         "riskFlags": preopen_report["riskFlags"] if preopen_report else [],
         "watchPoints": preopen_report["watchPoints"] if preopen_report else [],
         "buyLimit": analysis["strategy"]["buy_limit"],
+        "sellLimit": analysis["strategy"]["sell_limit"],
+        "stopLoss": analysis["strategy"]["stop_loss"],
+        "rrRatio": analysis["strategy"]["rr_ratio"],
+        "entryGapPct": analysis["execution"]["entryGapPct"],
         "candidateScore": live_score,
         "candidateReason": live_reason,
         "publishedCandidateScore": info.get("candidate_score"),
@@ -1063,14 +1154,64 @@ def screen_progress() -> dict[str, Any]:
 
 @app.post("/api/screen")
 def run_screen() -> dict[str, Any]:
+    universe = load_market_universe()
+    items = list(universe.items())
+    if SCREEN_MAX_UNIVERSE > 0:
+        items = items[:SCREEN_MAX_UNIVERSE]
+
     candidates = []
-    for ticker, info in FALLBACK_CANDIDATE_POOL.items():
-        quality = quality_for_ticker(ticker)
-        score = quality["qualityScore"] if quality else 50
-        candidates.append({"ticker": ticker, "info": {**info, "candidate_quality": quality}, "score": score, "reason": "デイトレスクリーニング候補です。"})
+    SCREENING_PROGRESS.update({"status": "running", "message": "JPX universe screening", "progress": 0, "total": len(items)})
+    for start in range(0, len(items), SCREEN_BATCH_SIZE):
+        batch = items[start:start + SCREEN_BATCH_SIZE]
+        tickers = [ticker for ticker, _ in batch]
+        try:
+            downloaded = yf.download(
+                tickers,
+                period="6mo",
+                interval="1d",
+                group_by="ticker",
+                threads=True,
+                progress=False,
+                timeout=12,
+            )
+        except Exception:
+            downloaded = None
+
+        for ticker, info in batch:
+            hist = _history_from_download(downloaded, ticker)
+            candidate = _candidate_from_history(ticker, info, hist)
+            if candidate is not None:
+                candidates.append(candidate)
+            elif ticker in FALLBACK_CANDIDATE_POOL:
+                quality = quality_for_ticker(ticker)
+                score = quality["qualityScore"] if quality else 50
+                candidates.append({
+                    "ticker": ticker,
+                    "info": {**info, "candidate_quality": quality},
+                    "score": score,
+                    "reason": "Fallback screening candidate.",
+                })
+
+        SCREENING_PROGRESS.update({
+            "status": "running",
+            "message": "JPX universe screening",
+            "progress": min(start + len(batch), len(items)),
+            "total": len(items),
+        })
+
     _publish_watchlist_candidates(candidates)
-    SCREENING_PROGRESS.update({"status": "completed", "message": "スクリーニング完了", "progress": len(candidates), "total": len(candidates)})
-    return {"selected": list(STOCKS), "top_candidates": candidates[:10], "stats": {"analyzed": len(candidates)}}
+    top_candidates = sorted(candidates, key=lambda value: value["score"], reverse=True)[:10]
+    SCREENING_PROGRESS.update({"status": "completed", "message": "JPX universe screening completed", "progress": len(items), "total": len(items)})
+    return {
+        "selected": list(STOCKS),
+        "top_candidates": top_candidates,
+        "stats": {
+            "analyzed": len(candidates),
+            "universe": len(items),
+            "fixed_watchlist": [PINNED_WATCH_TICKER],
+            "source": JPX_UNIVERSE_PATH or JPX_LISTED_ISSUES_URL,
+        },
+    }
 
 
 @app.get("/api/alerts/watchlist")
@@ -1300,7 +1441,7 @@ def get_daytrade_signals() -> dict[str, Any]:
 def scan_daytrade_signals() -> dict[str, Any]:
     from daytrade_engine import sample_signals
     signals = sample_signals()
-    return {"success": True, "source": "LOCAL_PAPER_SIMULATION", "message": f"ペーパーシグナル検証完了: {len(signals)}件", "orderIntentsPath": None, "signals": signals}
+    return {"success": True, "source": "LOCAL_PAPER_SIMULATION", "message": f"ペーパーシグナル検証完了 {len(signals)}件", "orderIntentsPath": None, "signals": signals}
 
 
 @app.get("/api/daytrade/broker-status")

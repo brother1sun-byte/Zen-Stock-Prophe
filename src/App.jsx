@@ -47,6 +47,7 @@ const API_BASE = import.meta.env.VITE_ZEN_API_BASE || `http://${window.location.
 const CACHE_KEY = 'zen-stock-prophet-pro-cache-v1';
 const COLORS = ['#16f1a4', '#38bdf8', '#f59e0b', '#fb7185', '#a78bfa', '#22c55e'];
 const PINNED_WATCH_TICKER = '4980.T';
+const JOBS_SIM_BUDGET_JPY = 500000;
 const daytradeFallback = {
   plan: {
     premise: '楽天証券・MarketSpeedとは連携しません。短期検証はローカルの価格データとシミュレーション記録だけで行います。',
@@ -120,75 +121,6 @@ const PINNED_WATCH_STOCK = {
   candidateRank: 1,
   mustInclude: true,
   candidateReason: '固定観察銘柄。AI候補と常に比較します。',
-};
-
-const PROPHET_PRO_RESULT = {
-  generatedAt: '2026-05-11T12:15:30+00:00',
-  pick: {
-    ticker: '6503.T',
-    name: '三菱電機',
-    confidence: 93.51,
-    score: 0.9955,
-    close: 6460,
-    direction: 'up',
-    reasons: [
-      '5日モメンタム 6.07%',
-      '20日モメンタム 19.70%',
-      '終値 > 20日線 > 50日線',
-      'RSIが順張り適温帯(68.2)',
-    ],
-    warnings: [],
-    metrics: {
-      momentum5: 6.07,
-      momentum20: 19.70,
-      rsi: 68.2,
-      atr: 3.87,
-    },
-    quality: {
-      qualityScore: 99,
-      backtest: {
-        sampleCount: 36,
-        winRate: 58.3,
-        avgNextDayReturnPct: 0.57,
-        medianNextDayReturnPct: 0.18,
-        verdict: 'positive_edge',
-      },
-      gates: [
-        { id: 'truth', label: '1銘柄表示とウォッチリスト一致', ok: true },
-        { id: 'freshness', label: '日足鮮度確認', ok: true },
-        { id: 'momentum', label: '5日/20日モメンタム', ok: true },
-        { id: 'heat', label: 'RSI過熱回避', ok: true },
-        { id: 'order', label: '実注文は本人確認後', ok: true },
-      ],
-      warnings: [],
-    },
-  },
-  ranking: [
-    { ticker: '6503.T', name: '三菱電機', confidence: 93.51, score: 0.9955, warning: '採用候補 / 警告なし' },
-    { ticker: '6526.T', name: 'ソシオネクスト', confidence: 93.90, score: 1.3202, warning: 'ATR高 / RSIやや高い' },
-    { ticker: '9984.T', name: 'ソフトバンクG', confidence: 93.87, score: 1.2606, warning: 'ATR高' },
-    { ticker: '8035.T', name: '東京エレクトロン', confidence: 93.80, score: 1.1735, warning: '利確リスク' },
-    { ticker: '8053.T', name: '住友商事', confidence: 93.72, score: 1.1122, warning: 'RSIやや高い' },
-    { ticker: '6954.T', name: 'ファナック', confidence: 93.65, score: 1.0674, warning: '利確リスク' },
-    { ticker: '6981.T', name: '村田製作所', confidence: 93.52, score: 1.0017, warning: 'RSI過熱' },
-    { ticker: '6752.T', name: 'パナソニックHD', confidence: 93.50, score: 0.9948, warning: '決算イベントリスク' },
-  ],
-};
-
-const PROPHET_WATCH_STOCK = {
-  ticker: PROPHET_PRO_RESULT.pick.ticker,
-  name: PROPHET_PRO_RESULT.pick.name,
-  emoji: 'ME',
-  price: PROPHET_PRO_RESULT.pick.close,
-  decision: 'DAYTRADE_ENTRY_OK',
-  confidence: PROPHET_PRO_RESULT.pick.confidence,
-  candidateScore: PROPHET_PRO_RESULT.pick.confidence,
-  candidateRank: 1,
-  prophetPick: true,
-  mustInclude: true,
-  buyLimit: Math.round(PROPHET_PRO_RESULT.pick.close * 1.002),
-  entryGapPct: 0.2,
-  candidateReason: `Prophet Proの「明日デイトレで買える高騰候補」。寄付き後5分以内に板・出来高・VWAPを確認し、近い上限指値または成行許容で入る候補です。${PROPHET_PRO_RESULT.pick.reasons.join(' / ')}`,
 };
 
 const demo = {
@@ -275,7 +207,6 @@ function candidateReason(stock) {
 function candidateQuality(stock, detail) {
   if (detail?.candidateQuality) return detail.candidateQuality;
   if (stock?.candidateQuality) return stock.candidateQuality;
-  if (stock?.ticker === PROPHET_PRO_RESULT.pick.ticker) return PROPHET_PRO_RESULT.pick.quality;
   return null;
 }
 
@@ -299,13 +230,6 @@ function backtestLabel(backtest) {
 function ensurePinnedWatchStock(list = []) {
   const normalized = Array.isArray(list) ? list.filter(Boolean) : [];
   const pinned = normalized.find((stock) => stock.ticker === PINNED_WATCH_TICKER);
-  const prophet = normalized.find((stock) => stock.ticker === PROPHET_PRO_RESULT.pick.ticker);
-  const prophetStock = {
-    ...PROPHET_WATCH_STOCK,
-    ...prophet,
-    mustInclude: true,
-    candidateRank: prophet?.candidateRank ?? PROPHET_WATCH_STOCK.candidateRank,
-  };
   const pinnedStock = {
     ...PINNED_WATCH_STOCK,
     ...pinned,
@@ -313,9 +237,8 @@ function ensurePinnedWatchStock(list = []) {
     candidateRank: pinned?.candidateRank ?? PINNED_WATCH_STOCK.candidateRank,
   };
   return [
-    prophetStock,
     pinnedStock,
-    ...normalized.filter((stock) => ![PINNED_WATCH_TICKER, PROPHET_PRO_RESULT.pick.ticker].includes(stock.ticker)),
+    ...normalized.filter((stock) => stock.ticker !== PINNED_WATCH_TICKER),
   ];
 }
 
@@ -346,6 +269,12 @@ function ratioLabel(value) {
   return `${number.toFixed(2)}x`;
 }
 
+function lotSharesForBudget(entry, budget = JOBS_SIM_BUDGET_JPY) {
+  const price = Number(entry || 0);
+  if (!price) return 0;
+  return Math.floor(budget / price / 100) * 100;
+}
+
 function scoreTone(value) {
   const number = Number(value || 0);
   if (number >= 72) return 'good';
@@ -371,7 +300,6 @@ function exitPlanTone(action) {
 
 function stockDecisionPriority(stock) {
   if (stock?.decision === 'DAYTRADE_ENTRY_OK') return 0;
-  if (stock?.ticker === PROPHET_PRO_RESULT.pick.ticker) return 0;
   if (stock?.decision === 'BUY_LIMIT_OK') return 0;
   if (stock?.decision === 'REPRICE_FOR_DAYTRADE') return 1;
   if (stock?.decision === 'BUY_ON_PULLBACK') return 1;
@@ -423,7 +351,7 @@ export default function App() {
   const [stocks, setStocks] = useState(ensurePinnedWatchStock(cached?.stocks || demo.stocks));
   const [portfolio, setPortfolio] = useState(cached?.portfolio || demo.portfolio);
   const [transactions, setTransactions] = useState(cached?.transactions || demo.transactions);
-  const [selectedTicker, setSelectedTicker] = useState(PROPHET_PRO_RESULT.pick.ticker);
+  const [selectedTicker, setSelectedTicker] = useState(cached?.selectedTicker || PINNED_WATCH_TICKER);
   const [detail, setDetail] = useState(cached?.detail || null);
   const [daytradePlan, setDaytradePlan] = useState(cached?.daytradePlan || daytradeFallback.plan);
   const [daytradeSignals, setDaytradeSignals] = useState(cached?.daytradeSignals || daytradeFallback.signals);
@@ -434,7 +362,7 @@ export default function App() {
   const [alertReport, setAlertReport] = useState(cached?.alertReport || null);
   const [jquantsResearch, setJquantsResearch] = useState(cached?.jquantsResearch || null);
   const [advancedReport, setAdvancedReport] = useState(cached?.advancedReport || null);
-  const [jquantsCode, setJquantsCode] = useState(PROPHET_PRO_RESULT.pick.ticker);
+  const [jquantsCode, setJquantsCode] = useState(cached?.jquantsCode || PINNED_WATCH_TICKER);
   const [activeTab, setActiveTab] = useState('plan');
   const [busy, setBusy] = useState('');
   const [screenProgress, setScreenProgress] = useState(null);
@@ -482,9 +410,9 @@ export default function App() {
       const nextAlertReport = alertResult.status === 'fulfilled' && alertResult.value ? alertResult.value : alertReport;
       const nextJquantsResearch = jquantsResult.status === 'fulfilled' && jquantsResult.value ? jquantsResult.value : jquantsResearch;
       setStocks(nextStocks);
-      const topBuy = nextStocks.find((stock) => stock.ticker === PROPHET_PRO_RESULT.pick.ticker)
-        || nextStocks.find((stock) => ['BUY_LIMIT_OK', 'BUY_ON_PULLBACK'].includes(stock.decision));
-      const nextSelectedTicker = topBuy && (!selectedTicker || selectedTicker === PINNED_WATCH_TICKER)
+      const topBuy = nextStocks.find((stock) => ['DAYTRADE_ENTRY_OK', 'BUY_LIMIT_OK', 'BUY_ON_PULLBACK'].includes(stock.decision))
+        || nextStocks[0];
+      const nextSelectedTicker = topBuy && (!selectedTicker || !nextStocks.some((stock) => stock.ticker === selectedTicker))
         ? topBuy.ticker
         : selectedTicker;
       if (nextSelectedTicker !== selectedTicker) {
@@ -637,6 +565,32 @@ export default function App() {
       })
       .slice(0, 12);
   }, [stocks]);
+
+  const jobsCandidate = useMemo(() => {
+    const candidate = rankedStocks[0] || selectedStock || null;
+    if (!candidate) return null;
+    const entry = Number(candidate.buyLimit || candidate.price || 0);
+    const target = Number(candidate.sellLimit || (entry ? entry * 1.018 : 0));
+    const stop = Number(candidate.stopLoss || (entry ? entry * 0.992 : 0));
+    const shares = lotSharesForBudget(entry);
+    const budgetUsed = shares * entry;
+    const expectedProfit = Math.max(0, (target - entry) * shares);
+    const maxLoss = Math.max(0, (entry - stop) * shares);
+    const score = Number(candidate.preopenScore ?? candidate.candidateScore ?? candidate.confidence ?? 0);
+    return {
+      ...candidate,
+      entry,
+      target,
+      stop,
+      shares,
+      budgetUsed,
+      expectedProfit,
+      maxLoss,
+      score,
+      rr: candidate.rrRatio || (maxLoss > 0 ? (expectedProfit / maxLoss).toFixed(2) : '-'),
+      affordable: shares > 0,
+    };
+  }, [rankedStocks, selectedStock]);
 
   const portfolioHealth = useMemo(() => {
     const holdings = portfolio?.holdings || [];
@@ -974,15 +928,18 @@ export default function App() {
     ? `${jquantsResearch?.latestStatement?.earningsPerShare || '-'} / ${jquantsResearch?.latestStatement?.bookValuePerShare || '-'}`
     : '未取得';
   const jquantsNote = jquantsResearch?.summary || jquantsResearch?.nextStep || 'J-Quants APIトークンを設定すると、銘柄マスタ・日足・財務データを読み取り専用で取得できます。未設定でもアプリ本体は利用できます。';
-  const prophetGateApplies = selectedTicker === PROPHET_PRO_RESULT.pick.ticker || detail?.ticker === PROPHET_PRO_RESULT.pick.ticker;
-  const prophetValidated = prophetGateApplies
-    && advancedReport?.verdict === 'ADVANCED_READY'
+  const prophetValidated = advancedReport?.verdict === 'ADVANCED_READY'
     && Number(advancedReport?.walkForward?.edgePct || 0) > 0
     && advancedReport?.guardrails?.every((item) => item.ok);
-  const tradeStrategyTitle = prophetValidated
-    ? `デイトレ買い候補 ${PROPHET_PRO_RESULT.pick.ticker} ${PROPHET_PRO_RESULT.pick.name}`
-    : `見送り・監視 ${PROPHET_PRO_RESULT.pick.ticker} ${PROPHET_PRO_RESULT.pick.name}`;
-  const tradeStrategyTone = prophetValidated ? 'buy' : 'warn';
+  const monitoredTickerLabel = jobsCandidate ? `${jobsCandidate.ticker} ${jobsCandidate.name}` : '国内市場スキャン中';
+  const tradeStrategyTitle = jobsCandidate
+    ? `本日の最有力候補 ${monitoredTickerLabel}`
+    : '本日の候補を計算中';
+  const tradeStrategyReason = prophetValidated
+    ? '高精度ゲートを通過。板厚・スプレッド・VWAP付近を確認できる場合だけ、手入力候補にします。'
+    : `${monitoredTickerLabel} を50万円シミュレーションの最上位として表示します。ただし最終ゲート未通過のため、実行ではなく指値・売値・損切りを確認する分析支援候補です。`;
+  const decisionScoreLabel = prophetValidated ? '高精度' : '候補スコア';
+  const tradeStrategyTone = prophetValidated ? 'buy' : 'info';
 
   return (
     <div className="app-shell">
@@ -1008,20 +965,43 @@ export default function App() {
             <div className="section-title"><Zap size={18} /><span>Jobs Decision</span></div>
             <h2>{tradeStrategyTitle}</h2>
             <p>
-              <strong>ジョブズ判断:</strong> {prophetValidated
-                ? '高精度ゲートを通過。板厚・スプレッド・VWAP付近を確認できる場合だけ、手入力候補にします。'
-                : '過去検証が市場全体平均に勝っていないため、今は昇格させません。監視に留め、条件が改善したら再評価します。'}
+              <strong>ジョブズ判断:</strong> {tradeStrategyReason}
             </p>
             <div className="decision-pill-row">
-              <StatusPill label={`実行: ${prophetValidated ? '候補' : '見送り・監視'}`} tone={tradeStrategyTone} />
-              <StatusPill label={`高精度 ${advancedReport?.compositeScore ?? '-'} / 100`} tone={scoreTone(advancedReport?.compositeScore)} />
+              <StatusPill label={`実行: ${prophetValidated ? '手入力候補' : '分析候補'}`} tone={tradeStrategyTone} />
+              <StatusPill label={`予算 ${yen(JOBS_SIM_BUDGET_JPY)}`} tone="neutral" />
+              <StatusPill label={`${decisionScoreLabel} ${jobsCandidate?.score?.toFixed?.(1) ?? advancedReport?.compositeScore ?? '-'} / 100`} tone={scoreTone(jobsCandidate?.score ?? advancedReport?.compositeScore)} />
               <StatusPill label={`過去エッジ ${pct(advancedReport?.walkForward?.edgePct)}`} tone={Number(advancedReport?.walkForward?.edgePct || 0) > 0 ? 'good' : 'warn'} />
               <StatusPill label="実注文オフ" tone="warn" />
             </div>
+            {jobsCandidate && (
+              <div className="jobs-trade-ticket">
+                <div>
+                  <span>指値</span>
+                  <strong>{yen(jobsCandidate.entry)}以下</strong>
+                  <small>届かなければ見送り</small>
+                </div>
+                <div>
+                  <span>売値</span>
+                  <strong>{yen(jobsCandidate.target)}</strong>
+                  <small>想定利幅 {yen(jobsCandidate.expectedProfit)}</small>
+                </div>
+                <div>
+                  <span>損切り</span>
+                  <strong>{yen(jobsCandidate.stop)}</strong>
+                  <small>最大損失 {yen(jobsCandidate.maxLoss)}</small>
+                </div>
+                <div>
+                  <span>株数</span>
+                  <strong>{jobsCandidate.affordable ? `${jobsCandidate.shares}株` : '0株'}</strong>
+                  <small>使用額 {yen(jobsCandidate.budgetUsed)}</small>
+                </div>
+              </div>
+            )}
           </div>
           <div className="brief-score">
-            <strong>{advancedReport?.compositeScore ?? '-'}</strong>
-            <span>Final Gate</span>
+            <strong>{jobsCandidate?.expectedProfit ? yen(jobsCandidate.expectedProfit) : '-'}</strong>
+            <span>Sim Profit</span>
           </div>
         </section>
 

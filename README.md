@@ -1,5 +1,24 @@
 # Zen Stock Prophet Pro
 
+日本株の寄り付き前デイトレ候補を、統計・ルール・機械学習風スコアで絞り込む分析支援アプリです。投資助言、買い推奨、証券会社への自動注文は行いません。
+
+## Current Operating Policy
+
+- 固定観察銘柄は `4980.T` デクセリアルズのみです。
+- それ以外の候補は、JPX 上場銘柄リストから国内市場の銘柄を読み込み、無料データで一括スクリーニングします。
+- `/api/screen` は固定観察銘柄を残したまま、国内市場ユニバースの上位候補を `STOCKS` に反映します。
+- Jobs Decision は50万円のシミュレーションとして、指値、売値、損切り、100株単位の株数、想定利幅を表示します。実注文は常にオフです。
+
+## Universe Settings
+
+`.env` で以下を調整できます。
+
+- `ZEN_JPX_UNIVERSE_PATH`: ローカルのJPX銘柄マスタ xlsx/csv を優先使用する場合のパス
+- `ZEN_JPX_LISTED_ISSUES_URL`: JPX上場銘柄データURL。標準は月次の全上場銘柄 `.xls`
+- `ZEN_JPX_UPDATED_ISSUES_URL`: `.xls` を読み込めない環境で使う更新銘柄 `.xlsx` フォールバック
+- `ZEN_SCREEN_MAX_UNIVERSE`: `0` は読み込めた国内市場ユニバースを全件スキャン
+- `ZEN_SCREEN_BATCH_SIZE`: yfinance 一括取得のバッチ件数
+
 日本株の寄り付き前デイトレ候補を、統計・ルールベース・検証ログで絞り込む分析支援アプリです。投資助言、買い推奨、証券会社への自動発注は行いません。
 
 ## 現在構成
@@ -49,7 +68,7 @@ npm run dev
 
 - Frontend: `http://127.0.0.1:5174/latest.html`
 - Backend: `http://127.0.0.1:8889/api/stocks`
-- Pre-open API: `http://127.0.0.1:8889/api/preopen/6503.T`
+- Pre-open API: `http://127.0.0.1:8889/api/preopen/4980.T`
 
 ## 設定
 
