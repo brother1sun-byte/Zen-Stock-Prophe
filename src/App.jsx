@@ -279,6 +279,17 @@ function candidateQuality(stock, detail) {
   return null;
 }
 
+function preopenReport(stock, detail) {
+  return detail?.preopenReport || stock?.preopenReport || null;
+}
+
+function preopenRiskLabels(report) {
+  return (report?.riskFlags || [])
+    .slice(0, 3)
+    .map((item) => item.label)
+    .join(' / ');
+}
+
 function backtestLabel(backtest) {
   if (!backtest?.sampleCount) return '検証不足';
   const sign = Number(backtest.avgNextDayReturnPct || 0) >= 0 ? '+' : '';
@@ -579,6 +590,10 @@ export default function App() {
   );
   const selectedQuality = useMemo(
     () => candidateQuality(selectedStock, detail),
+    [detail, selectedStock],
+  );
+  const selectedPreopen = useMemo(
+    () => preopenReport(selectedStock, detail),
     [detail, selectedStock],
   );
 
@@ -1247,12 +1262,13 @@ export default function App() {
                   onClick={() => setSelectedTicker(stock.ticker)}
                 >
                   <span className="candidate-badge">
-                    {stock.decision === 'DAYTRADE_ENTRY_OK' ? 'デイトレ可' : stock.decision === 'BUY_LIMIT_OK' ? '買い検討' : stock.decision === 'REPRICE_FOR_DAYTRADE' ? '再計算' : stock.decision === 'BUY_ON_PULLBACK' ? '押し目買い' : stock.mustInclude ? '固定観察' : '観察'}
+                    {stock.preopenDecision || (stock.decision === 'DAYTRADE_ENTRY_OK' ? '監視候補' : stock.decision === 'BUY_LIMIT_OK' ? '条件確認' : stock.decision === 'REPRICE_FOR_DAYTRADE' ? '再計算' : stock.decision === 'BUY_ON_PULLBACK' ? '押し目監視' : stock.mustInclude ? '固定観察' : '観察')}
                   </span>
                   <span className="stock-emoji">{stock.emoji || 'JP'}</span>
                   <span className="stock-name">{stock.name || stock.ticker}</span>
                   <span className="stock-meta">{stock.ticker}</span>
-                  <span className="candidate-score">AI確度 {stock.confidence ?? Math.round(stock.candidateScore)}%</span>
+                  <span className="candidate-score">上昇期待 {Math.round(stock.preopenScore ?? stock.candidateScore ?? stock.confidence)} / 100</span>
+                  {preopenRiskLabels(stock.preopenReport) && <span className="candidate-risk">{preopenRiskLabels(stock.preopenReport)}</span>}
                   {stock.buyLimit && <span className="candidate-score">上限 {yen(stock.buyLimit)} / {pct(stock.entryGapPct)}</span>}
                   <span className="candidate-reason">{stock.candidateReason}</span>
                   <strong>{yen(stock.price)}</strong>
@@ -1323,6 +1339,37 @@ export default function App() {
                     <p>{tradePlan.avoidCondition}</p>
                   </div>
                 </div>
+                {selectedPreopen && (
+                  <div className="preopen-panel">
+                    <div className="preopen-head">
+                      <div>
+                        <span>Pre-Open Score</span>
+                        <h3>{selectedPreopen.decisionLabel} {selectedPreopen.score} / 100</h3>
+                      </div>
+                      <StatusPill label="分析支援" tone={selectedPreopen.score >= 55 ? 'warn' : 'neutral'} />
+                    </div>
+                    <div className="score-breakdown-grid">
+                      {[
+                        ['材料', selectedPreopen.scoreBreakdown?.material],
+                        ['出来高', selectedPreopen.scoreBreakdown?.volume],
+                        ['PTS/気配', selectedPreopen.scoreBreakdown?.indicationPts],
+                        ['テクニカル', selectedPreopen.scoreBreakdown?.technical],
+                        ['地合い', selectedPreopen.scoreBreakdown?.marketSector],
+                        ['流動性', selectedPreopen.scoreBreakdown?.liquidity],
+                        ['リスク控除', selectedPreopen.scoreBreakdown?.riskDeduction],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <span>{label}</span>
+                          <strong>{Number(value ?? 0).toFixed(1)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="preopen-evidence">
+                      <p>{(selectedPreopen.keyReasons || []).join(' / ')}</p>
+                      <p>{(selectedPreopen.riskFlags || []).slice(0, 3).map((risk) => risk.label).join(' / ') || '重大なリスクフラグなし'}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="evidence-panel">
                   <div>
                     <span>翌日パターン検証</span>

@@ -44,6 +44,11 @@ except Exception:  # pragma: no cover - optional integration
     build_advanced_report = None
 
 try:
+    from preopen_scoring import build_preopen_report
+except Exception:  # pragma: no cover - optional integration
+    build_preopen_report = None
+
+try:
     from local_env import load_local_env
     load_local_env()
 except Exception:
@@ -330,6 +335,22 @@ def quality_for_ticker(ticker: str) -> dict[str, Any] | None:
     return build_candidate_quality(prices, highs, lows, volumes, rr=rr)
 
 
+def preopen_for_ticker(ticker: str, info: dict[str, Any] | None = None, hist: pd.DataFrame | None = None) -> dict[str, Any] | None:
+    if build_preopen_report is None:
+        return None
+    source_hist = hist if hist is not None else get_stock_data(ticker, period="6mo", interval="1d")
+    if source_hist is None or source_hist.empty or len(source_hist) < 30:
+        return None
+    try:
+        return build_preopen_report(
+            ticker,
+            source_hist,
+            company_name=(info or {}).get("name", ticker),
+        )
+    except Exception:
+        return None
+
+
 def clean_price_history(hist: pd.DataFrame | None) -> pd.DataFrame | None:
     if hist is None or hist.empty:
         return hist
@@ -345,9 +366,16 @@ def clean_price_history(hist: pd.DataFrame | None) -> pd.DataFrame | None:
 def get_stock_data(ticker: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame | None:
     try:
         hist = yf.Ticker(ticker).history(period=period, interval=interval, timeout=6)
-        return clean_price_history(hist)
+        hist = clean_price_history(hist)
+        if hist is not None:
+            hist.attrs["source"] = "yfinance"
+            hist.attrs["synthetic"] = False
+        return hist
     except Exception:
-        return _synthetic_history(ticker)
+        hist = _synthetic_history(ticker)
+        hist.attrs["source"] = "synthetic"
+        hist.attrs["synthetic"] = True
+        return hist
 
 
 def normalize_portfolio_ticker(value: Any) -> str:
@@ -781,8 +809,9 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
             hist["Volume"].tolist(),
             rr=calculate_risk_reward(price, hist["High"].tolist(), hist["Low"].tolist(), hist["Close"].tolist()),
         )
-    live_score = quality["qualityScore"] if quality else analysis["confidence"]
-    live_reason = analysis["reason"]
+    preopen_report = preopen_for_ticker(ticker, info, hist if hist is not None and not hist.empty else None)
+    live_score = preopen_report["score"] if preopen_report else (quality["qualityScore"] if quality else analysis["confidence"])
+    live_reason = " / ".join(preopen_report["keyReasons"][:2]) if preopen_report else analysis["reason"]
     return {
         "ticker": ticker,
         "name": info.get("name", ticker),
@@ -791,6 +820,11 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
         "signal": analysis["signal"],
         "confidence": analysis["confidence"],
         "decision": analysis["execution"]["decision"],
+        "preopenDecision": preopen_report["decisionLabel"] if preopen_report else None,
+        "preopenScore": preopen_report["score"] if preopen_report else None,
+        "preopenReport": preopen_report,
+        "riskFlags": preopen_report["riskFlags"] if preopen_report else [],
+        "watchPoints": preopen_report["watchPoints"] if preopen_report else [],
         "buyLimit": analysis["strategy"]["buy_limit"],
         "candidateScore": live_score,
         "candidateReason": live_reason,
@@ -869,6 +903,7 @@ def get_stock_detail(ticker: str) -> dict[str, Any]:
         hist["Volume"].tolist(),
         rr=calculate_risk_reward(price, hist["High"].tolist(), hist["Low"].tolist(), hist["Close"].tolist()),
     )
+    preopen_report = preopen_for_ticker(ticker, info, hist)
     chart = [
         {
             "date": str(index.date() if hasattr(index, "date") else index),
@@ -888,8 +923,22 @@ def get_stock_detail(ticker: str) -> dict[str, Any]:
         "analysis": analysis,
         "chart": chart,
         "candidateQuality": quality,
+        "preopenReport": preopen_report,
+        "preopenScore": preopen_report["score"] if preopen_report else None,
+        "preopenDecision": preopen_report["decisionLabel"] if preopen_report else None,
+        "riskFlags": preopen_report["riskFlags"] if preopen_report else [],
+        "watchPoints": preopen_report["watchPoints"] if preopen_report else [],
         **history_context,
     }
+
+
+@app.get("/api/preopen/{ticker}")
+def get_preopen_analysis(ticker: str) -> dict[str, Any]:
+    info = STOCKS.get(ticker) or FALLBACK_CANDIDATE_POOL.get(ticker) or {"name": ticker, "emoji": "STK"}
+    report = preopen_for_ticker(ticker, info)
+    if report is None:
+        raise HTTPException(status_code=503, detail="Pre-open scoring engine unavailable")
+    return report
 
 
 @app.get("/api/analysis/advanced/{ticker}")
@@ -1028,9 +1077,7 @@ def run_screen() -> dict[str, Any]:
 def alerts_watchlist() -> dict[str, Any]:
     if build_watchlist_alert_report:
         try:
-            return build_watchlist_alert_report(local_only=True)
-        except TypeError:
-            return build_watchlist_alert_report()
+            return build_watchlist_alert_report(STOCKS, get_stock_data, TechnicalAnalyzer)
         except Exception as exc:
             return {"alerts": [], "error": str(exc)}
     return {"alerts": [], "summary": "アラートエンジンは利用できません。"}

@@ -1093,6 +1093,16 @@ table small {
   font-weight: 900;
 }
 
+.candidate-risk {
+  display: block;
+  margin-top: 6px;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .candidate-reason {
   display: -webkit-box;
   margin-top: 6px;
@@ -1109,6 +1119,71 @@ table small {
   display: block;
   margin-top: 12px;
   color: var(--green);
+}
+
+.preopen-panel {
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(15, 23, 42, .42);
+}
+
+.preopen-head,
+.score-breakdown-grid,
+.preopen-evidence {
+  display: grid;
+  gap: 12px;
+}
+
+.preopen-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.preopen-head span,
+.score-breakdown-grid span {
+  color: var(--dim);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.preopen-head h3 {
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.score-breakdown-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.score-breakdown-grid div {
+  min-width: 0;
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(2, 6, 23, .42);
+}
+
+.score-breakdown-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+}
+
+.preopen-evidence {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.preopen-evidence p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .focus-card {
@@ -2189,6 +2264,8 @@ button:disabled {
   .daytrade-grid,
   .jquants-grid,
   .decision-grid,
+  .score-breakdown-grid,
+  .preopen-evidence,
   .evidence-panel,
   .prophet-pro-panel,
   .advanced-analysis-head,

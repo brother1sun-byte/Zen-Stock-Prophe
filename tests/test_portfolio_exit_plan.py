@@ -16,7 +16,9 @@ import server  # noqa: E402
 
 
 def make_history(closes: list[float]) -> pd.DataFrame:
-    dates = pd.date_range(end=server.dt.date.today(), periods=len(closes), freq="B")
+    today = pd.Timestamp(server.dt.date.today())
+    prior_dates = pd.date_range(end=today - pd.Timedelta(days=1), periods=max(len(closes) - 1, 0), freq="B")
+    dates = prior_dates.append(pd.DatetimeIndex([today]))
     return pd.DataFrame(
         {
             "Open": [price * 0.995 for price in closes],
