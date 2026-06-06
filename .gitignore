@@ -11,6 +11,10 @@ node_modules
 dist
 build
 dist-ssr
+test-results/
+playwright-report/
+product-review-*.png
+selection-linkage-*.png
 *.local
 .env.local
 .env.*.local

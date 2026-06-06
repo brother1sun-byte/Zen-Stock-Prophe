@@ -17,7 +17,7 @@ import server  # noqa: E402
 
 def make_history(closes: list[float]) -> pd.DataFrame:
     today = pd.Timestamp(server.dt.date.today())
-    prior_dates = pd.date_range(end=today - pd.Timedelta(days=1), periods=max(len(closes) - 1, 0), freq="B")
+    prior_dates = pd.bdate_range(end=today - pd.offsets.BDay(1), periods=max(len(closes) - 1, 0))
     dates = prior_dates.append(pd.DatetimeIndex([today]))
     return pd.DataFrame(
         {

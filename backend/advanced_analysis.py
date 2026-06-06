@@ -13,6 +13,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+ADVANCED_PRICE_MAX_AGE_DAYS = 7
+
 
 def _finite(value: Any, default: float = 0.0) -> float:
     try:
@@ -79,6 +81,26 @@ def _volume_ratio(volumes: list[float], period: int = 20) -> float:
         return 0.0
     baseline = float(np.mean(volumes[-(period + 1) : -1]))
     return round(volumes[-1] / baseline, 2) if baseline else 0.0
+
+
+def _liquidity_profile(closes: list[float], volumes: list[float]) -> dict[str, Any]:
+    pairs = [(close, volume) for close, volume in zip(closes, volumes) if close > 0 and volume > 0]
+    turnovers = [close * volume for close, volume in pairs]
+    latest_turnover = turnovers[-1] if turnovers else 0.0
+    avg_turnover20 = float(np.mean(turnovers[-20:])) if turnovers else 0.0
+    latest_volume = pairs[-1][1] if pairs else 0.0
+    deep = avg_turnover20 >= 1_000_000_000 and latest_volume >= 250_000
+    tradable = avg_turnover20 >= 150_000_000 and latest_volume >= 100_000
+    watchable = avg_turnover20 >= 50_000_000 and latest_volume >= 80_000
+    grade = "deep" if deep else "tradable" if tradable else "watchable" if watchable else "thin"
+    return {
+        "latestTurnoverJpy": round(latest_turnover),
+        "avgTurnover20Jpy": round(avg_turnover20),
+        "latestVolume": round(latest_volume),
+        "absoluteLiquidityGrade": grade,
+        "absoluteLiquidityOk": bool(deep or tradable or watchable),
+        "minTradableTurnoverJpy": 50_000_000,
+    }
 
 
 def _trend_alignment(closes: list[float]) -> dict[str, Any]:
@@ -148,16 +170,21 @@ def _factor_scores(closes: list[float], highs: list[float], lows: list[float], v
     rsi = _rsi(closes)
     atr_pct = _atr_pct(highs, lows, closes)
     vol_ratio = _volume_ratio(volumes)
+    liquidity = _liquidity_profile(closes, volumes)
     drawdown = _max_drawdown(closes[-60:])
 
     momentum_score = max(1, min(99, 50 + mom5 * 4 + mom20 * 1.2 - max(0, rsi - 76) * 1.8))
-    liquidity_score = max(1, min(99, 45 + min(vol_ratio, 3) * 18))
+    turnover_score = min(math.log10(max(liquidity["avgTurnover20Jpy"], 1)) * 5, 45)
+    liquidity_score = max(1, min(99, 28 + min(vol_ratio, 3) * 12 + turnover_score))
+    if not liquidity["absoluteLiquidityOk"]:
+        liquidity_score = max(1, liquidity_score - 25)
     risk_score = max(1, min(99, 78 - max(0, atr_pct - 2.5) * 7 + max(drawdown, -25) * 0.7))
 
     return {
         "trend": trend,
         "momentumScore": round(momentum_score, 1),
         "liquidityScore": round(liquidity_score, 1),
+        "liquidity": liquidity,
         "riskControlScore": round(risk_score, 1),
         "momentum5Pct": mom5,
         "momentum20Pct": mom20,
@@ -175,6 +202,25 @@ def _data_quality(hist: pd.DataFrame, closes: list[float], volumes: list[float])
     missing_columns = sorted(required_columns - set(hist.columns))
     null_count = int(hist[available_required].isna().sum().sum()) if rows and available_required else 0
     zero_volume_days = sum(1 for value in volumes if value <= 0)
+    source = str(hist.attrs.get("source") or "unknown")
+    synthetic = bool(hist.attrs.get("synthetic") or source.lower() == "synthetic")
+    latest_bar_date = None
+    latest_bar_age_days = None
+    if rows:
+        latest_index = pd.to_datetime(hist.index[-1], errors="coerce")
+        if not pd.isna(latest_index):
+            latest_bar_date = latest_index.date().isoformat()
+            now = pd.Timestamp.now(tz=latest_index.tz) if latest_index.tz is not None else pd.Timestamp.now()
+            latest_bar_age_days = max(0, int((now.normalize() - latest_index.normalize()).days))
+    price_ok = latest_bar_age_days is not None and latest_bar_age_days <= ADVANCED_PRICE_MAX_AGE_DAYS
+    source_ok = bool(not synthetic and source.lower() not in {"", "unknown"})
+    source_reliability_grade = (
+        "synthetic"
+        if synthetic
+        else "market_data"
+        if source_ok
+        else "unknown"
+    )
     score = 100
     if rows < 120:
         score -= 18
@@ -186,15 +232,61 @@ def _data_quality(hist: pd.DataFrame, closes: list[float], volumes: list[float])
         score -= min((zero_volume_days / len(volumes)) * 35, 18)
     else:
         score -= 12
+    if synthetic:
+        score -= 45
+    elif not source_ok:
+        score -= 10
+    if latest_bar_age_days is None:
+        score -= 15
+    elif latest_bar_age_days > 10:
+        score -= 28
+    elif latest_bar_age_days > ADVANCED_PRICE_MAX_AGE_DAYS:
+        score -= 16
+    elif latest_bar_age_days > 5:
+        score -= 6
     score = round(max(1, min(100, score)), 1)
     return {
         "score": score,
         "bars": rows,
         "usableCloses": len(closes),
+        "source": source,
+        "synthetic": synthetic,
+        "sourceOk": source_ok,
+        "sourceReliabilityGrade": source_reliability_grade,
+        "latestBarDate": latest_bar_date,
+        "latestBarAgeDays": latest_bar_age_days,
+        "priceOk": price_ok,
+        "priceFreshnessVerdict": "fresh" if price_ok else "stale" if latest_bar_age_days is not None else "unknown",
+        "maxAgeDays": ADVANCED_PRICE_MAX_AGE_DAYS,
         "missingColumns": missing_columns,
         "nullCount": null_count,
         "zeroVolumeDays": zero_volume_days,
         "verdict": "HIGH" if score >= 85 else "MEDIUM" if score >= 65 else "LOW",
+    }
+
+
+def _walk_forward_evidence_strength(sample_count: int, baseline_count: int) -> dict[str, Any]:
+    coverage = (sample_count / baseline_count * 100) if baseline_count else 0
+    score = min(100, sample_count * 8 + min(coverage, 30))
+    if score >= 75:
+        grade = "strong"
+        label = "検証強度: 強"
+    elif score >= 50:
+        grade = "moderate"
+        label = "検証強度: 中"
+    elif score >= 25:
+        grade = "weak"
+        label = "検証強度: 弱"
+    else:
+        grade = "insufficient"
+        label = "検証強度: 不足"
+    return {
+        "score": round(score, 1),
+        "grade": grade,
+        "label": label,
+        "sampleCount": sample_count,
+        "baselineCount": baseline_count,
+        "coveragePct": round(coverage, 1),
     }
 
 
@@ -220,6 +312,7 @@ def _walk_forward_validation(
     horizon_days: int = 5,
 ) -> dict[str, Any]:
     if len(closes) < 90:
+        evidence = _walk_forward_evidence_strength(0, 0)
         return {
             "horizonDays": horizon_days,
             "sampleCount": 0,
@@ -231,6 +324,7 @@ def _walk_forward_validation(
             "worstReturnPct": 0,
             "score": 35,
             "verdict": "INSUFFICIENT_HISTORY",
+            "evidenceStrength": evidence,
         }
 
     signal_returns: list[float] = []
@@ -250,6 +344,7 @@ def _walk_forward_validation(
             signal_returns.append(future_return)
 
     if not signal_returns or not baseline_returns:
+        evidence = _walk_forward_evidence_strength(len(signal_returns), len(baseline_returns))
         return {
             "horizonDays": horizon_days,
             "sampleCount": len(signal_returns),
@@ -261,6 +356,7 @@ def _walk_forward_validation(
             "worstReturnPct": 0,
             "score": 38,
             "verdict": "NO_MATCHING_HISTORY",
+            "evidenceStrength": evidence,
         }
 
     avg_return = float(np.mean(signal_returns))
@@ -271,6 +367,7 @@ def _walk_forward_validation(
     consistency = min(len(signal_returns), 30) / 30 * 18
     score = 45 + edge * 7 + (hit_rate - 50) * 0.45 + consistency + min(max(worst, -8), 3) * 1.4
     score = round(max(1, min(99, score)), 1)
+    evidence = _walk_forward_evidence_strength(len(signal_returns), len(baseline_returns))
     return {
         "horizonDays": horizon_days,
         "sampleCount": len(signal_returns),
@@ -282,6 +379,7 @@ def _walk_forward_validation(
         "worstReturnPct": round(worst, 2),
         "score": score,
         "verdict": "POSITIVE_EDGE" if edge > 0.25 and hit_rate >= 53 and len(signal_returns) >= 8 else "WEAK_EDGE",
+        "evidenceStrength": evidence,
     }
 
 
@@ -338,6 +436,7 @@ def build_advanced_report(
     walk_forward = _walk_forward_validation(closes, highs, lows, volumes)
     data_quality = _data_quality(hist, closes, volumes)
     regime = _regime_fit(closes, highs, lows)
+    wf_evidence = walk_forward.get("evidenceStrength", _walk_forward_evidence_strength(0, 0))
     latest = closes[-1]
     atr_pct = factors["atrPct"]
     stop_price = latest * (1 - max(atr_pct * 1.35, 1.2) / 100)
@@ -346,6 +445,20 @@ def build_advanced_report(
     risk_budget = capital_jpy * risk_pct / 100
     shares = int(max(0, math.floor(risk_budget / risk_per_share / 100) * 100))
     rr = (target_price - latest) / risk_per_share if risk_per_share else 0
+    liquidity = factors["liquidity"]
+    avg_turnover20 = float(liquidity.get("avgTurnover20Jpy") or 0)
+    max_participation_pct = 1.0
+    liquidity_cap_notional = avg_turnover20 * (max_participation_pct / 100) if avg_turnover20 > 0 else 0.0
+    liquidity_cap_shares = (
+        int(max(0, math.floor(liquidity_cap_notional / latest / 100) * 100))
+        if latest > 0 and liquidity_cap_notional > 0
+        else 0
+    )
+    if not liquidity["absoluteLiquidityOk"]:
+        liquidity_cap_shares = 0
+    suggested_shares = min(shares, liquidity_cap_shares) if liquidity_cap_shares > 0 else 0
+    suggested_notional = suggested_shares * latest
+    participation_pct = (suggested_notional / avg_turnover20 * 100) if avg_turnover20 > 0 else 0.0
 
     composite = (
         factors["trend"]["score"] * 0.20
@@ -356,12 +469,42 @@ def build_advanced_report(
         + regime["score"] * 0.08
         + data_quality["score"] * 0.06
     )
+    if wf_evidence["grade"] == "weak":
+        composite -= 4
+    elif wf_evidence["grade"] == "insufficient":
+        composite -= 8
+    if not data_quality["sourceOk"]:
+        composite -= 8
+    if not data_quality["priceOk"]:
+        composite -= 6
+    if data_quality["score"] < 65:
+        composite -= 6
+    if not liquidity["absoluteLiquidityOk"]:
+        composite -= 8
     composite = round(max(1, min(99, composite)), 1)
 
-    if composite >= 72 and walk_forward["verdict"] == "POSITIVE_EDGE" and monte_carlo["probabilityUpPct"] >= 54 and rr >= 1.4:
+    if (
+        composite >= 72
+        and walk_forward["verdict"] == "POSITIVE_EDGE"
+        and wf_evidence["grade"] in {"strong", "moderate"}
+        and monte_carlo["probabilityUpPct"] >= 54
+        and rr >= 1.4
+        and data_quality["score"] >= 75
+        and data_quality["sourceOk"]
+        and data_quality["priceOk"]
+        and liquidity["absoluteLiquidityOk"]
+        and suggested_shares > 0
+    ):
         verdict = "ADVANCED_READY"
         action_label = "高精度判定: 買い候補"
-    elif composite >= 58 and walk_forward["score"] >= 45:
+    elif (
+        composite >= 58
+        and walk_forward["score"] >= 45
+        and data_quality["score"] >= 65
+        and data_quality["sourceOk"]
+        and data_quality["priceOk"]
+        and liquidity["absoluteLiquidityOk"]
+    ):
         verdict = "WATCHLIST"
         action_label = "高精度判定: 監視継続"
     else:
@@ -379,14 +522,22 @@ def build_advanced_report(
         "walkForward": walk_forward,
         "dataQuality": data_quality,
         "regime": regime,
+        "analysisReliability": wf_evidence,
         "positionPlan": {
             "entryPrice": round(latest, 1),
             "stopPrice": round(stop_price, 1),
             "targetPrice": round(target_price, 1),
             "riskReward": round(rr, 2),
             "riskBudgetJpy": round(risk_budget),
-            "suggestedShares": shares,
-            "notionalJpy": round(shares * latest),
+            "suggestedShares": suggested_shares,
+            "maxRiskBudgetShares": shares,
+            "liquidityCapShares": liquidity_cap_shares,
+            "notionalJpy": round(suggested_notional),
+            "maxRiskBudgetNotionalJpy": round(shares * latest),
+            "avgTurnover20Jpy": round(avg_turnover20),
+            "participationPct": _round(participation_pct, 4),
+            "maxParticipationPct": max_participation_pct,
+            "absoluteLiquidityGrade": liquidity["absoluteLiquidityGrade"],
         },
         "scenarios": [
             {"name": "強気", "returnPct": monte_carlo["p95Pct"], "price": round(latest * (1 + monte_carlo["p95Pct"] / 100), 1)},
@@ -396,15 +547,24 @@ def build_advanced_report(
         "guardrails": [
             {"label": "過去検証がプラス", "ok": walk_forward["verdict"] == "POSITIVE_EDGE"},
             {"label": "検証標本8件以上", "ok": walk_forward["sampleCount"] >= 8},
+            {"label": "検証強度が中以上", "ok": wf_evidence["grade"] in {"strong", "moderate"}},
             {"label": "トレンド整列", "ok": factors["trend"]["state"] == "BULLISH"},
             {"label": "過熱しすぎていない", "ok": factors["rsi"] <= 76},
             {"label": "RR 1.4以上", "ok": rr >= 1.4},
             {"label": "データ品質65以上", "ok": data_quality["score"] >= 65},
+            {"label": "直近日足が新鮮", "ok": data_quality["priceOk"]},
+            {"label": "実データソース", "ok": data_quality["sourceOk"]},
+            {"label": "売買代金が十分", "ok": liquidity["absoluteLiquidityOk"]},
+            {"label": "参加率1%以内", "ok": suggested_shares > 0 and participation_pct <= max_participation_pct},
+            {"label": "実注文は作成しない", "ok": True},
         ],
         "explainability": [
             f"過去{walk_forward['baselineCount']}本のうち条件一致{walk_forward['sampleCount']}件を5営業日先で検証",
+            f"{wf_evidence['label']} / カバー率{wf_evidence['coveragePct']}%",
             f"条件一致の平均{walk_forward['avgReturnPct']}% / 全体平均{walk_forward['baselineAvgReturnPct']}% / エッジ{walk_forward['edgePct']}%",
-            f"地合い適合 {regime['state']} / データ品質 {data_quality['verdict']}",
+            f"地合い適合 {regime['state']} / データ品質 {data_quality['verdict']} / ソース {data_quality['sourceReliabilityGrade']}",
+            f"最新日足 {data_quality['latestBarDate'] or '未確認'} / 鮮度 {data_quality['priceFreshnessVerdict']} / {data_quality['latestBarAgeDays'] if data_quality['latestBarAgeDays'] is not None else '-'}日",
+            f"20日平均売買代金 {round(avg_turnover20):,}円 / 参加率 {participation_pct:.4f}% / 流動性 {liquidity['absoluteLiquidityGrade']}",
         ],
-        "disclaimer": "Simulator-only decision support. No broker order is created.",
+        "disclaimer": "これは売買指示ではなく、条件一致に基づく投資シミュレーションです。実注文は作成しません。",
     }

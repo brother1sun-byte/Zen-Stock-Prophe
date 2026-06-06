@@ -68,7 +68,7 @@ def connector_status() -> dict[str, Any]:
         "unsupported": [
             "ライブ発注",
             "板・歩み値のリアルタイム代替",
-            "楽天証券やMarketSpeedとの連携",
+            "楽天証券やMarketSpeedとの自動連携",
             "APIキー未設定時の外部データ取得",
         ],
         "endpoints": [
@@ -207,6 +207,140 @@ def _quote_from_item(item: dict[str, Any], source: str, delayed: bool) -> dict[s
     }
 
 
+def _quote_has_price(quote: dict[str, Any] | None) -> bool:
+    if not quote:
+        return False
+    return quote.get("close") is not None or quote.get("adjustmentClose") is not None
+
+
+def _quote_age_days(quote: dict[str, Any] | None) -> int | None:
+    if not quote or not quote.get("date"):
+        return None
+    raw_date = quote.get("date")
+    try:
+        if isinstance(raw_date, date):
+            quote_date = raw_date
+        else:
+            quote_date = date.fromisoformat(str(raw_date)[:10])
+    except ValueError:
+        return None
+    return max(0, (date.today() - quote_date).days)
+
+
+def _statement_present(statement: dict[str, Any] | None) -> bool:
+    if not statement:
+        return False
+    return any(value not in {None, ""} for value in statement.values())
+
+
+def _source_integrity(
+    status: dict[str, Any],
+    *,
+    latest_quote: dict[str, Any] | None = None,
+    recent_quote: dict[str, Any] | None = None,
+    delayed_quote: dict[str, Any] | None = None,
+    latest_statement: dict[str, Any] | None = None,
+    source_policy: str | None = None,
+) -> dict[str, Any]:
+    mode = status.get("mode") or "NOT_CONFIGURED"
+    configured = bool(status.get("configured"))
+    policy = source_policy or (
+        "official_delayed_plus_recent_supplement" if mode == "API_KEY" else "direct_official_jquants"
+    )
+    v1_official_quote = latest_quote if mode != "API_KEY" and _quote_has_price(latest_quote) else None
+    official_quote = delayed_quote or v1_official_quote
+    official_history_present = bool(official_quote)
+    recent_supplement_present = bool(recent_quote)
+    official_history_usable = _quote_has_price(official_quote)
+    recent_supplement_usable = _quote_has_price(recent_quote)
+    statement_usable = _statement_present(latest_statement)
+    latest_source = latest_quote.get("source") if latest_quote else None
+    if not configured:
+        verdict = "UNAVAILABLE"
+        label = "J-Quants未接続"
+        detail = "J-Quants APIキー未設定のため、公式履歴・財務データは未取得です。無料/公開ソースのみで確認します。"
+    elif mode == "API_KEY":
+        if official_history_usable and recent_supplement_usable:
+            verdict = "PASS"
+            label = "公式遅延履歴+直近補完"
+            detail = "J-Quantsの遅延公式履歴と直近補完ソースを分離して確認できます。"
+        elif official_history_usable:
+            verdict = "REVIEW"
+            label = "公式履歴のみ"
+            detail = "J-Quants遅延公式履歴はありますが、直近価格の補完が未確認です。"
+        elif recent_supplement_usable:
+            verdict = "REVIEW"
+            label = "直近補完のみ"
+            detail = (
+                "直近補完価格はありますが、J-Quants公式遅延履歴は終値または調整後終値が不足しているため"
+                "未確認扱いです。根拠確認は要レビューです。"
+                if official_history_present
+                else "直近補完価格はありますが、J-Quants公式遅延履歴が未確認です。根拠確認は要レビューです。"
+            )
+        else:
+            verdict = "UNAVAILABLE"
+            if official_history_present or recent_supplement_present:
+                label = "価格終値未確認"
+                detail = (
+                    "J-Quants APIキーは設定済みで一部データ応答はありますが、"
+                    "分析に使う終値または調整後終値が不足しています。"
+                )
+            else:
+                label = "公式履歴未取得"
+                detail = "J-Quants APIキーは設定済みですが、公式履歴も直近補完も取得できていません。"
+    elif official_history_usable:
+        verdict = "PASS"
+        label = "J-Quants公式データ"
+        detail = "J-Quants V1の公式銘柄・日足・財務データを読み取り専用で確認できます。"
+    else:
+        verdict = "REVIEW"
+        label = "J-Quants応答不足"
+        detail = "J-Quantsは接続済みですが、日足または財務の取得結果が不足しています。"
+    return {
+        "verdict": verdict,
+        "label": label,
+        "detail": detail,
+        "configured": configured,
+        "mode": mode,
+        "sourcePolicy": policy,
+        "latestQuoteSource": latest_source,
+        "latestQuoteAgeDays": _quote_age_days(latest_quote),
+        "latestQuoteHasPrice": _quote_has_price(latest_quote),
+        "officialHistoryPresent": official_history_present,
+        "officialHistoryUsable": official_history_usable,
+        "officialHistorySource": official_quote.get("source") if official_quote else None,
+        "officialHistoryAgeDays": _quote_age_days(official_quote),
+        "recentSupplementPresent": recent_supplement_present,
+        "recentSupplementUsable": recent_supplement_usable,
+        "recentSupplementSource": recent_quote.get("source") if recent_quote else None,
+        "recentSupplementAgeDays": _quote_age_days(recent_quote),
+        "statementUsable": statement_usable,
+        "lanes": [
+            {
+                "id": "official_history",
+                "label": "公式履歴",
+                "ok": official_history_usable,
+                "source": official_quote.get("source") if official_quote else None,
+                "ageDays": _quote_age_days(official_quote),
+            },
+            {
+                "id": "recent_supplement",
+                "label": "直近補完",
+                "ok": recent_supplement_usable,
+                "source": recent_quote.get("source") if recent_quote else None,
+                "ageDays": _quote_age_days(recent_quote),
+            },
+            {
+                "id": "financial_statement",
+                "label": "財務",
+                "ok": statement_usable,
+                "source": "J-Quants fins/statements" if statement_usable else None,
+                "ageDays": None,
+            },
+        ],
+    }
+
+
 def _empty_packet(status: dict[str, Any], code: str, summary: str) -> dict[str, Any]:
     return {
         **status,
@@ -219,6 +353,7 @@ def _empty_packet(status: dict[str, Any], code: str, summary: str) -> dict[str, 
         "delayedQuote": None,
         "latestStatement": None,
         "quotes": [],
+        "sourceIntegrity": _source_integrity(status),
     }
 
 
@@ -231,7 +366,12 @@ def _recent_quote_yfinance(code: str) -> dict[str, Any] | None:
         return None
     if frame is None or frame.empty:
         return None
-    row = frame.dropna(how="all").tail(1)
+    cleaned = frame.dropna(how="all")
+    if cleaned.empty:
+        return None
+    price_columns = [column for column in ("Close", "Adj Close") if column in cleaned.columns]
+    priced_rows = cleaned[cleaned[price_columns].notna().any(axis=1)] if price_columns else cleaned
+    row = (priced_rows if not priced_rows.empty else cleaned).tail(1)
     if row.empty:
         return None
     last = row.iloc[0]
@@ -310,6 +450,13 @@ def _research_packet_v2(
         "latestStatement": None,
         "quotes": quotes,
         "jquantsError": None if delayed_quote else last_error,
+        "sourceIntegrity": _source_integrity(
+            status,
+            latest_quote=latest_quote,
+            recent_quote=recent_quote,
+            delayed_quote=delayed_quote,
+            source_policy="official_delayed_plus_recent_supplement",
+        ),
     }
 
 
@@ -329,6 +476,20 @@ def _research_packet_v1(code: str, status: dict[str, Any], session=requests) -> 
     latest_quote = _latest(quotes, "Date")
     latest_statement = _latest(statement_payload.get("statements") or [], "DisclosedDate")
 
+    latest_quote_payload = _quote_from_item(latest_quote, "J-Quants V1", False)
+    latest_statement_payload = {
+        "disclosedDate": latest_statement.get("DisclosedDate"),
+        "type": latest_statement.get("TypeOfDocument"),
+        "netSales": latest_statement.get("NetSales"),
+        "operatingProfit": latest_statement.get("OperatingProfit"),
+        "ordinaryProfit": latest_statement.get("OrdinaryProfit"),
+        "profit": latest_statement.get("Profit"),
+        "earningsPerShare": latest_statement.get("EarningsPerShare"),
+        "bookValuePerShare": latest_statement.get("BookValuePerShare"),
+        "forecastEarningsPerShare": latest_statement.get("ForecastEarningsPerShare"),
+        "forecastDividendPerShareAnnual": latest_statement.get("ForecastDividendPerShareAnnual"),
+    }
+
     return {
         **status,
         "code": code,
@@ -341,22 +502,17 @@ def _research_packet_v1(code: str, status: dict[str, Any], session=requests) -> 
             "sector33": issue.get("Sector33CodeName"),
             "scale": issue.get("ScaleCategory"),
         },
-        "latestQuote": _quote_from_item(latest_quote, "J-Quants V1", False),
+        "latestQuote": latest_quote_payload,
         "recentQuote": None,
         "delayedQuote": None,
-        "latestStatement": {
-            "disclosedDate": latest_statement.get("DisclosedDate"),
-            "type": latest_statement.get("TypeOfDocument"),
-            "netSales": latest_statement.get("NetSales"),
-            "operatingProfit": latest_statement.get("OperatingProfit"),
-            "ordinaryProfit": latest_statement.get("OrdinaryProfit"),
-            "profit": latest_statement.get("Profit"),
-            "earningsPerShare": latest_statement.get("EarningsPerShare"),
-            "bookValuePerShare": latest_statement.get("BookValuePerShare"),
-            "forecastEarningsPerShare": latest_statement.get("ForecastEarningsPerShare"),
-            "forecastDividendPerShareAnnual": latest_statement.get("ForecastDividendPerShareAnnual"),
-        },
+        "latestStatement": latest_statement_payload,
         "quotes": quotes[-10:],
+        "sourceIntegrity": _source_integrity(
+            status,
+            latest_quote=latest_quote_payload,
+            latest_statement=latest_statement_payload,
+            source_policy="direct_official_jquants",
+        ),
     }
 
 
