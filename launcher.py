@@ -10,16 +10,32 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
+LOG_DIR = ROOT / "logs"
 API_PORT = os.environ.get("ZEN_API_PORT", "8889")
 API_HOST = os.environ.get("ZEN_API_HOST", "127.0.0.1")
 WEB_URL = "http://localhost:5174/"
 
 
-def popen(command: list[str]) -> subprocess.Popen:
+def _hidden_creationflags() -> int:
+    if sys.platform != "win32":
+        return 0
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    return flags
+
+
+def popen(command: list[str], log_name: str, env: dict[str, str] | None = None) -> subprocess.Popen:
+    LOG_DIR.mkdir(exist_ok=True)
+    log_path = LOG_DIR / log_name
+    log_file = log_path.open("a", encoding="utf-8", errors="replace")
     return subprocess.Popen(
         command,
         cwd=ROOT,
-        creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
+        env=env,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
+        creationflags=_hidden_creationflags(),
     )
 
 
@@ -28,37 +44,27 @@ def npm_command() -> str:
 
 
 def main() -> int:
-    print("Zen Stock Prophet Pro")
-    print("Starting local-only retail safety mode dashboard...")
-
     backend_env = os.environ.copy()
     backend_env["ZEN_API_PORT"] = API_PORT
     backend_env["ZEN_API_HOST"] = API_HOST
 
-    backend = subprocess.Popen(
+    backend = popen(
         [sys.executable, str(ROOT / "backend" / "server.py")],
-        cwd=ROOT,
+        "backend.log",
         env=backend_env,
-        creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
     )
     time.sleep(4)
 
-    frontend = popen([npm_command(), "run", "dev"])
+    frontend = popen([npm_command(), "run", "dev"], "frontend.log")
     time.sleep(4)
 
     webbrowser.open(WEB_URL)
 
-    print("Dashboard:", WEB_URL)
-    print("Live broker orders are disabled.")
-    print("Close this window only after stopping the app.")
-
     try:
         while True:
             if backend.poll() is not None:
-                print("Backend stopped.")
                 return backend.returncode or 1
             if frontend.poll() is not None:
-                print("Frontend stopped.")
                 return frontend.returncode or 1
             time.sleep(2)
     except KeyboardInterrupt:

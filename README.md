@@ -63,6 +63,14 @@
 
 ## 起動
 
+### クイック起動 (Windows)
+
+エクスプローラーから以下のスクリプトをダブルクリックするだけで、バックエンドとフロントエンドが自動で起動し、ブラウザで画面が開きます。
+- `ZEN_LAUNCHER.bat` (コマンドプロンプト画面が表示されます)
+- `ZEN_LAUNCHER.vbs` (バックグラウンドで静かに起動します)
+
+### 手動起動 (コマンドライン)
+
 ```powershell
 cd C:\Users\BRB33\investment-simulator-pro
 python -m pip install -r requirements-daytrade.txt

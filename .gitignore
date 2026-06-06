@@ -46,3 +46,4 @@ backend/alerts/*.txt
 *.njsproj
 *.sln
 *.sw?
+.workflow/
