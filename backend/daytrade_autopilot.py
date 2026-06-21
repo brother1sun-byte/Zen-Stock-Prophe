@@ -70,7 +70,7 @@ class DaytradeAutopilot:
             "cycles": self.cycles,
             "orderIntentsPath": self.order_intents_path,
             "liveOrdersEnabled": False,
-            "verdict": "Autopilot is local-only: paper signal output and logs. Broker integration is disabled.",
+            "verdict": "自動運用はローカルの練習ログだけです。証券会社連携は無効です。",
         }
 
     def _run(self) -> None:

@@ -220,28 +220,28 @@ def tokyo_market_status(now: dt.datetime | None = None) -> dict[str, Any]:
 
 MUST_INCLUDE: dict[str, dict[str, Any]] = {
     PINNED_WATCH_TICKER: {
-        "name": "Dexerials Corporation",
+        "name": "デクセリアルズ",
         "emoji": "DX",
         "is_prime": True,
         "must_include": True,
         "candidate_score": 100,
         "candidate_rank": 1,
-        "candidate_reason": "Pinned watch candidate for continuity checks and simulation review.",
+        "candidate_reason": "継続確認とシミュレーション比較用の固定監視候補です。",
     },
 }
 
 FALLBACK_CANDIDATE_POOL: dict[str, dict[str, Any]] = {
     "6503.T": {"name": "\u4e09\u83f1\u96fb\u6a5f", "emoji": "ME", "is_prime": True, "ranking_metrics": {"changePct": 1.4, "surgeScore": 70, "volumeRatio": 1.9, "popularityScore": 82, "qualityScore": 78, "overheatRisk": 48}},
     "4980.T": {"name": "\u30c7\u30af\u30bb\u30ea\u30a2\u30eb\u30ba", "emoji": "DX", "is_prime": True, "ranking_metrics": {"changePct": 1.2, "surgeScore": 82, "volumeRatio": 1.3, "popularityScore": 84, "qualityScore": 76, "overheatRisk": 42, "high20Breakout": True}},
-    "7203.T": {"name": "Toyota Motor", "emoji": "TY", "is_prime": True, "ranking_metrics": {"changePct": 0.4, "surgeScore": 55, "volumeRatio": 0.9, "popularityScore": 95, "qualityScore": 83, "overheatRisk": 20}},
-    "6758.T": {"name": "Sony Group", "emoji": "SY", "is_prime": True, "ranking_metrics": {"changePct": 0.7, "surgeScore": 62, "volumeRatio": 1.1, "popularityScore": 90, "qualityScore": 80, "overheatRisk": 28}},
-    "8035.T": {"name": "Tokyo Electron", "emoji": "TE", "is_prime": True, "ranking_metrics": {"changePct": 2.1, "surgeScore": 75, "volumeRatio": 2.4, "popularityScore": 88, "qualityScore": 72, "overheatRisk": 68, "high20Breakout": True}},
-    "6857.T": {"name": "Advantest", "emoji": "AD", "is_prime": True, "ranking_metrics": {"changePct": 2.5, "surgeScore": 78, "volumeRatio": 2.8, "popularityScore": 86, "qualityScore": 70, "overheatRisk": 74}},
-    "6920.T": {"name": "Lasertec", "emoji": "LS", "is_prime": True, "ranking_metrics": {"changePct": 3.8, "surgeScore": 85, "volumeRatio": 3.2, "popularityScore": 89, "qualityScore": 64, "overheatRisk": 88}},
-    "6501.T": {"name": "Hitachi", "emoji": "HI", "is_prime": True, "ranking_metrics": {"changePct": 0.8, "surgeScore": 63, "volumeRatio": 1.4, "popularityScore": 83, "qualityScore": 88, "overheatRisk": 24}},
+    "7203.T": {"name": "トヨタ自動車", "emoji": "TY", "is_prime": True, "ranking_metrics": {"changePct": 0.4, "surgeScore": 55, "volumeRatio": 0.9, "popularityScore": 95, "qualityScore": 83, "overheatRisk": 20}},
+    "6758.T": {"name": "ソニーグループ", "emoji": "SY", "is_prime": True, "ranking_metrics": {"changePct": 0.7, "surgeScore": 62, "volumeRatio": 1.1, "popularityScore": 90, "qualityScore": 80, "overheatRisk": 28}},
+    "8035.T": {"name": "東京エレクトロン", "emoji": "TE", "is_prime": True, "ranking_metrics": {"changePct": 2.1, "surgeScore": 75, "volumeRatio": 2.4, "popularityScore": 88, "qualityScore": 72, "overheatRisk": 68, "high20Breakout": True}},
+    "6857.T": {"name": "アドバンテスト", "emoji": "AD", "is_prime": True, "ranking_metrics": {"changePct": 2.5, "surgeScore": 78, "volumeRatio": 2.8, "popularityScore": 86, "qualityScore": 70, "overheatRisk": 74}},
+    "6920.T": {"name": "レーザーテック", "emoji": "LS", "is_prime": True, "ranking_metrics": {"changePct": 3.8, "surgeScore": 85, "volumeRatio": 3.2, "popularityScore": 89, "qualityScore": 64, "overheatRisk": 88}},
+    "6501.T": {"name": "日立製作所", "emoji": "HI", "is_prime": True, "ranking_metrics": {"changePct": 0.8, "surgeScore": 63, "volumeRatio": 1.4, "popularityScore": 83, "qualityScore": 88, "overheatRisk": 24}},
     "7011.T": {"name": "\u4e09\u83f1\u91cd\u5de5\u696d", "emoji": "MH", "is_prime": True, "ranking_metrics": {"changePct": 1.8, "surgeScore": 76, "volumeRatio": 3.8, "popularityScore": 87, "qualityScore": 73, "overheatRisk": 62}},
-    "4063.T": {"name": "Shin-Etsu Chemical", "emoji": "SE", "is_prime": True, "ranking_metrics": {"changePct": 0.5, "surgeScore": 58, "volumeRatio": 1.0, "popularityScore": 81, "qualityScore": 90, "overheatRisk": 18}},
-    "7974.T": {"name": "Nintendo", "emoji": "ND", "is_prime": True, "ranking_metrics": {"changePct": 0.9, "surgeScore": 60, "volumeRatio": 1.2, "popularityScore": 92, "qualityScore": 86, "overheatRisk": 22}},
+    "4063.T": {"name": "信越化学工業", "emoji": "SE", "is_prime": True, "ranking_metrics": {"changePct": 0.5, "surgeScore": 58, "volumeRatio": 1.0, "popularityScore": 81, "qualityScore": 90, "overheatRisk": 18}},
+    "7974.T": {"name": "任天堂", "emoji": "ND", "is_prime": True, "ranking_metrics": {"changePct": 0.9, "surgeScore": 60, "volumeRatio": 1.2, "popularityScore": 92, "qualityScore": 86, "overheatRisk": 22}},
     "8306.T": {"name": "\u4e09\u83f1UFJ\u30d5\u30a3\u30ca\u30f3\u30b7\u30e3\u30eb\u30fb\u30b0\u30eb\u30fc\u30d7", "emoji": "BK", "is_prime": True, "ranking_metrics": {"changePct": 1.0, "surgeScore": 66, "volumeRatio": 2.5, "popularityScore": 85, "qualityScore": 82, "overheatRisk": 36}},
 }
 
@@ -4321,12 +4321,12 @@ def update_portfolio_position_lifecycle(ticker: str, request: PortfolioLifecycle
 
 @app.post("/api/buy")
 def buy_stock(request: TradeRequest) -> dict[str, Any]:
-    return {"success": False, "message": "Broker orders are disabled. Use simulator/manual workflow only.", "mode": "BROKER_DISABLED"}
+    return {"success": False, "message": "証券会社への注文送信は無効です。シミュレーター上の手動確認だけに使ってください。", "mode": "BROKER_DISABLED"}
 
 
 @app.post("/api/sell")
 def sell_stock(request: TradeRequest) -> dict[str, Any]:
-    return {"success": False, "message": "Broker orders are disabled. Use simulator/manual workflow only.", "mode": "BROKER_DISABLED"}
+    return {"success": False, "message": "証券会社への注文送信は無効です。シミュレーター上の手動確認だけに使ってください。", "mode": "BROKER_DISABLED"}
 
 
 @app.post("/api/reset")
@@ -4338,12 +4338,12 @@ def reset_portfolio() -> dict[str, Any]:
     conn.execute("DELETE FROM transactions")
     conn.commit()
     conn.close()
-    return {"success": True, "message": "Portfolio reset to initial simulator state."}
+    return {"success": True, "message": "保有台帳をシミュレーター初期状態へ戻しました。"}
 
 
 @app.post("/api/learn")
 def ai_learn() -> dict[str, Any]:
-    return {"success": True, "message": "Learning cycle recorded for simulator workflow."}
+    return {"success": True, "message": "シミュレーター用の学習サイクルを記録しました。"}
 
 
 @app.get("/api/daytrade/plan")
@@ -4561,7 +4561,7 @@ def scan_daytrade_signals(kind: str = Query("surge", pattern="^(surge|breakout|v
 
 @app.get("/api/daytrade/broker-status")
 def get_daytrade_broker_status() -> dict[str, Any]:
-    return {"mode": "BROKER_DISABLED", "workbookExists": False, "workbookOpen": False, "excelComAvailable": False, "csvTemplateReady": False, "message": "Broker integration is disabled; simulator-only mode."}
+    return {"mode": "BROKER_DISABLED", "workbookExists": False, "workbookOpen": False, "excelComAvailable": False, "csvTemplateReady": False, "message": "証券会社連携は無効です。シミュレーション専用モードです。"}
 
 
 @app.get("/api/daytrade/signal-log")
@@ -4571,7 +4571,7 @@ def get_daytrade_signal_log() -> list[dict[str, Any]]:
 
 @app.post("/api/daytrade/autopilot/start")
 def start_daytrade_autopilot() -> dict[str, Any]:
-    return {"mode": "BROKER_DISABLED", "workbookExists": False, "workbookOpen": False, "excelComAvailable": False, "csvTemplateReady": False, "running": False, "message": "Autopilot is disabled in simulator-only mode."}
+    return {"mode": "BROKER_DISABLED", "workbookExists": False, "workbookOpen": False, "excelComAvailable": False, "csvTemplateReady": False, "running": False, "message": "自動運用は無効です。シミュレーション専用モードです。"}
 
 
 @app.post("/api/daytrade/autopilot/stop")

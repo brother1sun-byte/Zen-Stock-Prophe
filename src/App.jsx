@@ -62,6 +62,8 @@ import { useDashboardViewModel } from './hooks/useDashboardViewModel';
 import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLedger';
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
+import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
+import { displayStockName } from './utils/stockNames';
 import './index.css';
 
 const COLORS = ['#16f1a4', '#38bdf8', '#f59e0b', '#fb7185', '#a78bfa', '#22c55e'];
@@ -191,7 +193,7 @@ const demo = {
     initialCash: 1000000,
     holdings: [
       { ticker: '4980.T', name: 'デクセリアルズ', emoji: 'DX', shares: 120, avgCost: 2310, currentPrice: 2481, value: 297720, pnl: 20520, pnlPct: 7.4 },
-      { ticker: '7203.T', name: 'Toyota', emoji: 'TY', shares: 80, avgCost: 2850, currentPrice: 3000, value: 240000, pnl: 12000, pnlPct: 5.3 },
+      { ticker: '7203.T', name: 'トヨタ自動車', emoji: 'TY', shares: 80, avgCost: 2850, currentPrice: 3000, value: 240000, pnl: 12000, pnlPct: 5.3 },
     ],
     history: Array.from({ length: 22 }, (_, i) => ({
       date: `${String(9 + Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`,
@@ -490,10 +492,11 @@ function crossEngineGateLabel(gate) {
 function sourceShortLabel(value) {
   if (!value) return '';
   const text = String(value);
-  if (text.includes('finance.yahoo.co.jp')) return 'Yahoo Finance';
-  if (text === 'yfinance') return 'yfinance';
-  if (text === 'yahoo_chart') return 'Yahooチャート';
-  if (text === 'stooq') return 'Stooq';
+  const lower = text.toLowerCase();
+  if (lower.includes('finance.yahoo.co.jp')) return 'Yahooファイナンス取得';
+  if (lower.includes('yfinance')) return 'yfinance取得';
+  if (lower.includes('yahoo_chart') || lower.includes('yahoo chart')) return 'Yahooチャート取得';
+  if (lower.includes('stooq')) return 'Stooq取得';
   if (text === 'JPX_MASTER') return 'JPX銘柄マスタ';
   return text.length > 36 ? `${text.slice(0, 34)}...` : text;
 }
@@ -573,6 +576,7 @@ export default function App() {
   const advancedAnalysisRef = useRef(null);
   const hydrateInFlightRef = useRef(null);
   const daytradeAnalysisRequestsRef = useRef(new Map());
+  const [chatGptPromptCopied, setChatGptPromptCopied] = useState(false);
   const cached = useMemo(() => {
     return readFreshCache();
   }, []);
@@ -1147,6 +1151,70 @@ export default function App() {
     yen,
   });
 
+  const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
+    topPickTickerLabel,
+    daytradeTopPick,
+    simpleTopPickAction,
+    topPickReason,
+    topPickMaterial,
+    topCandidateMetrics,
+    openingScenarioPlan,
+    selectedDetail,
+    selectedAdvancedReport,
+    crossEngineCheck,
+    selectedSourceEvidence,
+    tradeStrategyTitle,
+    tradeStrategyReason,
+    jobsVerdictHeadline,
+    marketStatusTopLabel: marketStatusView.topLabel,
+    marketFreshnessLabel: marketStatusView.freshnessLabel,
+    yen,
+    pct,
+  }), [
+    crossEngineCheck,
+    daytradeTopPick,
+    jobsVerdictHeadline,
+    marketStatusView.freshnessLabel,
+    marketStatusView.topLabel,
+    openingScenarioPlan,
+    selectedAdvancedReport,
+    selectedDetail,
+    selectedSourceEvidence,
+    simpleTopPickAction,
+    topCandidateMetrics,
+    topPickMaterial,
+    topPickReason,
+    topPickTickerLabel,
+    tradeStrategyReason,
+    tradeStrategyTitle,
+  ]);
+
+  const copyChatGptPrompt = useCallback(async () => {
+    if (!chatGptConsultationPrompt) return;
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = chatGptConsultationPrompt;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(chatGptConsultationPrompt);
+      } else {
+        fallbackCopy();
+      }
+    } catch {
+      fallbackCopy();
+    }
+    setChatGptPromptCopied(true);
+    window.setTimeout(() => setChatGptPromptCopied(false), 1800);
+  }, [chatGptConsultationPrompt]);
+
   function safeStageLabel(label) {
     if (!label) return '';
     if (label.includes('本命')) return '短期上昇シグナル強';
@@ -1346,6 +1414,9 @@ export default function App() {
           jobsVerdictHeadline={jobsVerdictHeadline}
           selectedDetail={selectedDetail}
           valueDisciplineLens={valueDisciplineLens}
+          chatGptPrompt={chatGptConsultationPrompt}
+          chatGptPromptCopied={chatGptPromptCopied}
+          onCopyChatGptPrompt={copyChatGptPrompt}
         />
 
         <PracticeDashboard>
@@ -1925,7 +1996,7 @@ export default function App() {
                     )}
                   </span>
                   <span className="stock-emoji">{stock.emoji || 'JP'}</span>
-                  <span className="stock-name">{stock.name || stock.ticker}</span>
+                  <span className="stock-name">{displayStockName(stock)}</span>
                   <span className="stock-meta">{stock.ticker}</span>
                   <span className="candidate-score">候補スコア {Math.round(stock.preopenScore ?? stock.candidateScore ?? stock.confidence)} / 100</span>
                   {candidateDataQuality(stock) && (
@@ -1948,7 +2019,7 @@ export default function App() {
             <div className="focus-head">
               <div>
                 <small>{selectedStock?.ticker}</small>
-                <h2>{selectedStock?.emoji || 'JP'} {selectedStock?.name || selectedTicker}</h2>
+                <h2>{selectedStock?.emoji || 'JP'} {displayStockName(selectedStock || selectedTicker)}</h2>
               </div>
               <div className="price-block">
                 <strong data-testid="selected-detail-price">{yen(selectedDetail?.price || selectedStock?.price)}</strong>
@@ -2139,7 +2210,7 @@ export default function App() {
           <div className="holdings-list">
             {(portfolio?.holdings || []).map((holding) => (
               <article key={holding.ticker} data-testid="holding-row" className="holding-card" onClick={() => chooseTicker(holding, { source: 'portfolio', note: '保有銘柄から選択' })}>
-                <div><strong>{holding.ticker}</strong><span>{holding.name}</span></div>
+                <div><strong>{holding.ticker}</strong><span>{displayStockName(holding)}</span></div>
                 <div><span>{holding.shares}株</span><strong>{yen(holding.currentPrice || holding.price)}</strong></div>
                 <small className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{yen(holding.pnl)} / {pct(holding.pnlPct)}</small>
                 <div className="holding-lifecycle-actions" aria-label={holding.ticker + ' 台帳操作'}>

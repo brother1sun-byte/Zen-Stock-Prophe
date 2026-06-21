@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  ClipboardCopy,
   ShieldCheck,
   Target,
   XCircle,
@@ -125,6 +126,9 @@ export default function TopCandidateCard({
   jobsVerdictHeadline,
   selectedDetail,
   valueDisciplineLens,
+  chatGptPrompt,
+  chatGptPromptCopied,
+  onCopyChatGptPrompt,
 }) {
   const StatusPillComponent = StatusPill;
   const metrics = topCandidateMetrics;
@@ -362,7 +366,7 @@ export default function TopCandidateCard({
           <div className="simple-reason-grid">
             <div>
               <span>{copy.whyCandidate}</span>
-              <strong>{copy.expectedPnl} {yen(daytradeTopPick.probabilityAdjustedProfit)} / RR {daytradeTopPick.rr}</strong>
+              <strong>{copy.expectedPnl} {yen(daytradeTopPick.probabilityAdjustedProfit)} / 損益比率 {daytradeTopPick.rr}</strong>
               {(daytradeTopPick.whyBuy?.length ? daytradeTopPick.whyBuy : [daytradeTopPick.candidateReason])
                 .slice(0, 2)
                 .map((item, index) => (
@@ -381,7 +385,7 @@ export default function TopCandidateCard({
               <span>{copy.memo}</span>
               <small>短期スコア {daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100, {copy.risk} {riskLevelLabel(daytradeTopPick.expertRiskLevel)}</small>
               <small>{copy.material}: {topPickMaterial}</small>
-              <button className="inline-action" type="button" onClick={focusTopPick}>
+              <button className="inline-action" type="button" onClick={focusTopPick} data-testid="top-candidate-detail-button">
                 <Target size={14} />
                 {copy.detail}
               </button>
@@ -401,6 +405,24 @@ export default function TopCandidateCard({
                 </article>
               ))}
             </div>
+          </div>
+        ) : null}
+
+        {chatGptPrompt ? (
+          <div className="chatgpt-consult-panel" data-testid="chatgpt-consult-panel">
+            <div>
+              <span>ChatGPT相談用メモ</span>
+              <strong>銘柄分析サマリーを自動整形</strong>
+              <small>投資助言ではなく、短期売買で確認すべき材料をChatGPTへ渡すためのコピーです。</small>
+            </div>
+            <button className="inline-action" type="button" onClick={onCopyChatGptPrompt} data-testid="chatgpt-copy-button">
+              <ClipboardCopy size={14} />
+              {chatGptPromptCopied ? 'コピー済み' : 'ChatGPT相談用にコピー'}
+            </button>
+            <details>
+              <summary>コピー内容を確認</summary>
+              <textarea data-testid="chatgpt-prompt-preview" readOnly value={chatGptPrompt} />
+            </details>
           </div>
         ) : null}
 

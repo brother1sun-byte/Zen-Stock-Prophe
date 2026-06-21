@@ -312,5 +312,5 @@ def risk_state() -> dict[str, Any]:
         "maxPositions": MAX_POSITIONS,
         "maxConsecutiveLosses": MAX_CONSECUTIVE_LOSSES,
         "liveOrderMode": "disabled",
-        "jobsVerdict": "Broker integration is disabled. Keep this as paper-review evidence only.",
+        "jobsVerdict": "証券会社連携は無効です。練習用の確認記録としてのみ扱います。",
     }

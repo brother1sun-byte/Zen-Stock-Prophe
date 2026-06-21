@@ -181,7 +181,7 @@ def record_manual_position(
     return {
         "success": True,
         "mode": "SIMULATOR_ONLY",
-        "message": f"Recorded {ticker} {shares} shares at {entry_price:.1f}. No broker order was sent.",
+        "message": f"{ticker} を {shares}株、{entry_price:.1f}円で練習台帳に記録しました。証券会社への注文送信は行っていません。",
         "ticker": ticker,
         "shares": next_shares,
         "avgCost": round(next_avg, 1),
@@ -261,7 +261,7 @@ def close_portfolio_position(
     )
     conn.execute(
         "INSERT INTO agent_logs (message) VALUES (?)",
-        (f"Closed portfolio holding {normalized} as {action}. Ledger retained; no broker order.",),
+        (f"保有銘柄 {normalized} を {action} として練習台帳に記録しました。証券会社への注文送信は行っていません。",),
     )
     conn.commit()
     conn.close()

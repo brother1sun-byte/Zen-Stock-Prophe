@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { priceSourcePayload, rankRankingItemsForKind, suppressSyntheticAction } from './useMarketDataHelpers';
+import { displayStockName, localizeVisibleMarketText, stockDisplayLabel } from '../utils/stockNames';
 
 const RANKING_METRIC_BY_KIND = {
   surge: 'surge',
@@ -126,7 +127,7 @@ function buildPracticeViewModel({
     ? selectedStock
     : (selectedStock?.ticker === daytradeTopPick?.ticker ? daytradeTopPick : selectedStock || daytradeTopPick);
   const practiceTicker = practiceCandidate?.ticker || selectedStock?.ticker || selectedTicker;
-  const practiceName = practiceCandidate?.name || selectedStock?.name || practiceTicker;
+  const practiceName = displayStockName(practiceCandidate || selectedStock || practiceTicker);
   const practicePrice = Number(practiceCandidate?.entry || practiceCandidate?.entryPrice || selectedDetail?.price || selectedStock?.price || 0);
   const practicePriceSource = priceSourcePayload(
     selectedSourceContext,
@@ -521,9 +522,9 @@ export function useDashboardViewModel({
     const simpleTopPickActionRaw = daytradeTopPick?.simpleAction
       || (daytradeTopPick?.tradeReadiness === 'ready' ? '買い候補' : daytradeTopPick ? '待つ' : 'スキャン中');
     const simpleTopPickAction = suppressSyntheticAction(simpleTopPickActionRaw, topPickSource);
-    const monitoredTickerLabel = jobsCandidate ? `${jobsCandidate.ticker} ${jobsCandidate.name}` : '国内市場スキャン中';
+    const monitoredTickerLabel = jobsCandidate ? stockDisplayLabel(jobsCandidate) : '国内市場スキャン中';
     const topPickTickerLabel = daytradeTopPick
-      ? `${daytradeTopPick.ticker} ${daytradeTopPick.name || ''}`
+      ? stockDisplayLabel(daytradeTopPick)
       : hasNoActionableTopPick
         ? '候補抽出待ち'
         : '全市場スキャン中';
@@ -618,7 +619,8 @@ export function useDashboardViewModel({
       : hasNoActionableTopPick
         ? `${isYahooGainersRanking ? 'Yahoo掲載順は表示していますが、' : ''}候補計算中です。ランキング行から確認できます。`
         : 'ランキング更新後に、今日見る候補をここへ表示します。';
-    const topPickMaterial = daytradeTopPick?.material?.summary || '決算・適時開示・重要ニュースは未確認です。取引前に無料確認リンクで必ず確認してください。';
+    const topPickMaterial = localizeVisibleMarketText(daytradeTopPick?.material?.summary)
+      || '決算・適時開示・重要ニュースは未確認です。取引前に無料確認リンクで必ず確認してください。';
     const topCandidateMetrics = buildTopCandidateMetrics(daytradeTopPick, compactNumber, rankingPayloadKind);
     const selectedRankingMetric = topCandidateMetrics.find((metric) => metric.active) || null;
     const openingScenarioPlan = buildOpeningScenarioPlan(daytradeTopPick, isReviewTopPick);
@@ -674,7 +676,7 @@ export function useDashboardViewModel({
       : rankedStocks.map((stock, index) => ({
         rank: index + 1,
         ticker: stock.ticker,
-        name: stock.name,
+        name: displayStockName(stock),
         price: stock.price,
         changePct: stock.entryGapPct || 0,
         volume: 0,

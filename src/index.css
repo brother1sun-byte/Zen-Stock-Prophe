@@ -1827,6 +1827,62 @@ h1 {
   line-height: 1.45;
 }
 
+.chatgpt-consult-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.chatgpt-consult-panel > div {
+  display: grid;
+  gap: 4px;
+}
+
+.chatgpt-consult-panel span,
+.chatgpt-consult-panel summary {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.chatgpt-consult-panel strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.chatgpt-consult-panel small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.chatgpt-consult-panel details {
+  grid-column: 1 / -1;
+}
+
+.chatgpt-consult-panel summary {
+  cursor: pointer;
+}
+
+.chatgpt-consult-panel textarea {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(6, 7, 11, 0.82);
+  font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
+  resize: vertical;
+}
+
 .scenario-tape > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
