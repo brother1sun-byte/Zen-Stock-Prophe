@@ -16,9 +16,12 @@ import os
 import re
 import sqlite3
 import sys
-import xml.etree.ElementTree as ET
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -68,6 +71,34 @@ try:
     import jquants_bridge
 except Exception:  # pragma: no cover - optional integration
     jquants_bridge = None
+
+from analysis_api_service import build_advanced_analysis_response, build_preopen_analysis_response
+from daytrade_context_service import (
+    build_daytrade_event_context,
+    build_daytrade_quote_context,
+    news_item_from_yfinance as service_news_item_from_yfinance,
+    parse_event_timestamp as service_parse_event_timestamp,
+    safe_float as service_safe_float,
+)
+from market_data_api import build_market_search_response, build_market_universe_response
+from material_event_service import (
+    MATERIAL_IMPORTANT_KEYWORDS,
+    MATERIAL_NEGATIVE_KEYWORDS,
+    MATERIAL_POSITIVE_KEYWORDS,
+    external_research_links as build_external_research_links,
+    material_age_days as service_material_age_days,
+    material_events_for_ticker as build_material_events_for_ticker,
+    parse_material_datetime as service_parse_material_datetime,
+    statement_material_item as service_statement_material_item,
+    tdnet_recent_items as service_tdnet_recent_items,
+)
+from market_ranking_api import build_market_rankings_response
+from portfolio_api_service import (
+    build_portfolio_response,
+    close_portfolio_position,
+    record_manual_position,
+)
+from price_history_service import fetch_price_history
 
 try:
     from local_env import load_local_env
@@ -122,8 +153,14 @@ DAYTRADE_ANALYSIS_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_ANALYSIS_CACH
 DAYTRADE_ANALYSIS_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
 DAYTRADE_CONTEXT_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_CONTEXT_CACHE_TTL_SEC", "900") or 900)
 DAYTRADE_CONTEXT_CACHE: dict[str, dict[str, Any]] = {}
+PRICE_HISTORY_CACHE_TTL_SEC = int(os.environ.get("ZEN_PRICE_HISTORY_CACHE_TTL_SEC", "180") or 180)
+PRICE_HISTORY_CACHE: dict[tuple[str, str, str], dict[str, Any]] = {}
+PRICE_HISTORY_INFLIGHT: dict[tuple[str, str, str], threading.Event] = {}
+PRICE_HISTORY_CACHE_LOCK = threading.Lock()
 MARKET_REVIEW_CACHE_TTL_SEC = int(os.environ.get("ZEN_MARKET_REVIEW_CACHE_TTL_SEC", "90") or 90)
 MARKET_REVIEW_CACHE: dict[str, dict[str, Any]] = {}
+MARKET_REVIEW_INFLIGHT: dict[str, threading.Event] = {}
+MARKET_REVIEW_CACHE_LOCK = threading.Lock()
 JST = dt.timezone(dt.timedelta(hours=9), "JST")
 TSE_MORNING_OPEN = dt.time(9, 0)
 TSE_MORNING_CLOSE = dt.time(11, 30)
@@ -135,18 +172,6 @@ TDNET_CODE_RSS_URL_TEMPLATE = os.environ.get(
     "https://webapi.yanoshin.jp/webapi/tdnet/list/{code}.rss",
 )
 STOOQ_API_KEY = os.environ.get("STOOQ_API_KEY", "").strip()
-MATERIAL_POSITIVE_KEYWORDS = (
-    "\u4e0a\u65b9\u4fee\u6b63", "\u5897\u76ca", "\u81ea\u5df1\u682a\u5f0f\u53d6\u5f97", "\u81ea\u793e\u682a\u8cb7\u3044", "\u516c\u958b\u8cb7\u4ed8\u3051", "TOB", "\u53d7\u6ce8", "\u696d\u7e3e\u4e88\u60f3\u306e\u4fee\u6b63",
-    "\u914d\u5f53\u4e88\u60f3\u306e\u4fee\u6b63", "\u682a\u5f0f\u5206\u5272", "\u8cc7\u672c\u696d\u52d9\u63d0\u643a", "\u6700\u9ad8\u5024", "\u4e0a\u5834\u6765\u9ad8\u5024", "\u65b0\u88fd\u54c1",
-)
-MATERIAL_NEGATIVE_KEYWORDS = (
-    "\u4e0b\u65b9\u4fee\u6b63", "\u6e1b\u76ca", "\u7121\u914d", "\u8d64\u5b57", "\u640d\u5931", "\u7279\u5225\u640d\u5931", "\u4e0d\u6b63", "\u8abf\u67fb", "\u8a02\u6b63", "\u9045\u5ef6",
-    "\u4e0a\u5834\u5ec3\u6b62", "\u76e3\u7406\u9298\u67c4", "\u6ce8\u610f\u559a\u8d77", "\u696d\u7e3e\u4e88\u60f3\u306e\u4e0b\u65b9\u4fee\u6b63", "\u884c\u653f\u51e6\u5206", "\u8a34\u8a1f",
-)
-MATERIAL_IMPORTANT_KEYWORDS = (
-    "\u6c7a\u7b97", "\u77ed\u4fe1", "\u56db\u534a\u671f", "\u9069\u6642\u958b\u793a", "\u696d\u7e3e", "\u914d\u5f53", "\u4fee\u6b63", "TOB", "\u516c\u958b\u8cb7\u4ed8\u3051",
-    "\u81ea\u5df1\u682a\u5f0f\u53d6\u5f97", "\u682a\u4e3b\u512a\u5f85", "\u65b0\u88fd\u54c1", "\u63d0\u643a", "\u8a34\u8a1f", "\u884c\u653f\u51e6\u5206", "\u6708\u6b21", "\u8aac\u660e\u8cc7\u6599",
-)
 _MISSING = object()
 
 
@@ -173,16 +198,16 @@ def tokyo_market_status(now: dt.datetime | None = None) -> dict[str, Any]:
     )
     if is_weekend:
         phase = "WEEKEND_CLOSED"
-        label = "Market closed"
-        message = "Tokyo market is closed for the weekend. Use prior daily bars for simulation only."
+        label = "休場"
+        message = "週末のため東京市場は休場です。過去の日足データをシミュレーション用途でのみ使用します。"
     elif not is_session:
         phase = "OUT_OF_SESSION"
-        label = "Out of session"
-        message = "Tokyo market is outside regular hours. Review candidates as off-hours analysis only."
+        label = "取引時間外"
+        message = "東京市場の取引時間外です。候補は時間外分析の参考情報として確認してください。"
     else:
         phase = "REGULAR_SESSION"
-        label = "Regular session"
-        message = "Tokyo market is in regular session. Still treat this app as simulation-only."
+        label = "取引時間中"
+        message = "東京市場の取引時間中です。このアプリの表示は引き続きシミュレーション用途として扱ってください。"
     return {
         "isOpen": (not is_weekend) and is_session,
         "phase": phase,
@@ -206,18 +231,18 @@ MUST_INCLUDE: dict[str, dict[str, Any]] = {
 }
 
 FALLBACK_CANDIDATE_POOL: dict[str, dict[str, Any]] = {
-    "6503.T": {"name": "\u4e09\u83f1\u96fb\u6a5f", "emoji": "ME", "is_prime": True},
-    "4980.T": {"name": "\u30c7\u30af\u30bb\u30ea\u30a2\u30eb\u30ba", "emoji": "DX", "is_prime": True},
-    "7203.T": {"name": "Toyota Motor", "emoji": "TY", "is_prime": True},
-    "6758.T": {"name": "Sony Group", "emoji": "SY", "is_prime": True},
-    "8035.T": {"name": "Tokyo Electron", "emoji": "TE", "is_prime": True},
-    "6857.T": {"name": "Advantest", "emoji": "AD", "is_prime": True},
-    "6920.T": {"name": "Lasertec", "emoji": "LS", "is_prime": True},
-    "6501.T": {"name": "Hitachi", "emoji": "HI", "is_prime": True},
-    "7011.T": {"name": "\u4e09\u83f1\u91cd\u5de5\u696d", "emoji": "MH", "is_prime": True},
-    "4063.T": {"name": "Shin-Etsu Chemical", "emoji": "SE", "is_prime": True},
-    "7974.T": {"name": "Nintendo", "emoji": "ND", "is_prime": True},
-    "8306.T": {"name": "\u4e09\u83f1UFJ\u30d5\u30a3\u30ca\u30f3\u30b7\u30e3\u30eb\u30fb\u30b0\u30eb\u30fc\u30d7", "emoji": "BK", "is_prime": True},
+    "6503.T": {"name": "\u4e09\u83f1\u96fb\u6a5f", "emoji": "ME", "is_prime": True, "ranking_metrics": {"changePct": 1.4, "surgeScore": 70, "volumeRatio": 1.9, "popularityScore": 82, "qualityScore": 78, "overheatRisk": 48}},
+    "4980.T": {"name": "\u30c7\u30af\u30bb\u30ea\u30a2\u30eb\u30ba", "emoji": "DX", "is_prime": True, "ranking_metrics": {"changePct": 1.2, "surgeScore": 82, "volumeRatio": 1.3, "popularityScore": 84, "qualityScore": 76, "overheatRisk": 42, "high20Breakout": True}},
+    "7203.T": {"name": "Toyota Motor", "emoji": "TY", "is_prime": True, "ranking_metrics": {"changePct": 0.4, "surgeScore": 55, "volumeRatio": 0.9, "popularityScore": 95, "qualityScore": 83, "overheatRisk": 20}},
+    "6758.T": {"name": "Sony Group", "emoji": "SY", "is_prime": True, "ranking_metrics": {"changePct": 0.7, "surgeScore": 62, "volumeRatio": 1.1, "popularityScore": 90, "qualityScore": 80, "overheatRisk": 28}},
+    "8035.T": {"name": "Tokyo Electron", "emoji": "TE", "is_prime": True, "ranking_metrics": {"changePct": 2.1, "surgeScore": 75, "volumeRatio": 2.4, "popularityScore": 88, "qualityScore": 72, "overheatRisk": 68, "high20Breakout": True}},
+    "6857.T": {"name": "Advantest", "emoji": "AD", "is_prime": True, "ranking_metrics": {"changePct": 2.5, "surgeScore": 78, "volumeRatio": 2.8, "popularityScore": 86, "qualityScore": 70, "overheatRisk": 74}},
+    "6920.T": {"name": "Lasertec", "emoji": "LS", "is_prime": True, "ranking_metrics": {"changePct": 3.8, "surgeScore": 85, "volumeRatio": 3.2, "popularityScore": 89, "qualityScore": 64, "overheatRisk": 88}},
+    "6501.T": {"name": "Hitachi", "emoji": "HI", "is_prime": True, "ranking_metrics": {"changePct": 0.8, "surgeScore": 63, "volumeRatio": 1.4, "popularityScore": 83, "qualityScore": 88, "overheatRisk": 24}},
+    "7011.T": {"name": "\u4e09\u83f1\u91cd\u5de5\u696d", "emoji": "MH", "is_prime": True, "ranking_metrics": {"changePct": 1.8, "surgeScore": 76, "volumeRatio": 3.8, "popularityScore": 87, "qualityScore": 73, "overheatRisk": 62}},
+    "4063.T": {"name": "Shin-Etsu Chemical", "emoji": "SE", "is_prime": True, "ranking_metrics": {"changePct": 0.5, "surgeScore": 58, "volumeRatio": 1.0, "popularityScore": 81, "qualityScore": 90, "overheatRisk": 18}},
+    "7974.T": {"name": "Nintendo", "emoji": "ND", "is_prime": True, "ranking_metrics": {"changePct": 0.9, "surgeScore": 60, "volumeRatio": 1.2, "popularityScore": 92, "qualityScore": 86, "overheatRisk": 22}},
+    "8306.T": {"name": "\u4e09\u83f1UFJ\u30d5\u30a3\u30ca\u30f3\u30b7\u30e3\u30eb\u30fb\u30b0\u30eb\u30fc\u30d7", "emoji": "BK", "is_prime": True, "ranking_metrics": {"changePct": 1.0, "surgeScore": 66, "volumeRatio": 2.5, "popularityScore": 85, "qualityScore": 82, "overheatRisk": 36}},
 }
 
 
@@ -594,15 +619,15 @@ def _surge_profile(
     if ytd_high_breakout:
         flags.append("\u5e74\u521d\u6765\u9ad8\u5024\u66f4\u65b0")
     if golden_cross:
-        flags.append("Golden cross")
+        flags.append("ゴールデンクロス")
     if volume_ratio >= 2:
-        flags.append("Volume expansion")
+        flags.append("出来高増加")
     if turnover >= 1_000_000_000:
-        flags.append("High turnover")
+        flags.append("売買代金が大きい")
     if overheat_risk >= 58:
         flags.append("\u904e\u71b1\u6ce8\u610f")
     if not volume_confirmed and change_pct > 2:
-        flags.append("Volume confirmation weak")
+        flags.append("出来高の裏付けが弱い")
     if thin_liquidity:
         flags.append("\u8584\u5546\u3044")
 
@@ -651,8 +676,8 @@ def _market_quality_overlay(item: dict[str, Any]) -> dict[str, Any]:
         else "thin"
     )
     flags = list(item.get("surgeFlags") or [])
-    if not volume_confirmed and change_pct > 2 and "Volume confirmation weak" not in flags:
-        flags.append("Volume confirmation weak")
+    if not volume_confirmed and change_pct > 2 and "出来高の裏付けが弱い" not in flags:
+        flags.append("出来高の裏付けが弱い")
     if thin_liquidity and "\u8584\u5546\u3044" not in flags:
         flags.append("\u8584\u5546\u3044")
 
@@ -739,9 +764,9 @@ def _market_item_from_history(
     )
     reasons = []
     if change_pct > 0:
-        reasons.append(f"Daily change {change_pct:+.2f}%")
+        reasons.append(f"前日比 {change_pct:+.2f}%")
     if volume_ratio:
-        reasons.append(f"Volume ratio {volume_ratio:.1f}x")
+        reasons.append(f"出来高倍率 {volume_ratio:.1f}倍")
     reasons.extend(surge_profile["surgeFlags"][:2])
     if preopen_report:
         reasons.extend(preopen_report.get("keyReasons", [])[:1])
@@ -778,7 +803,7 @@ def _market_item_from_history(
         "source": hist.attrs.get("source", "yfinance"),
         **source_flags,
         "externalLinks": external_research_links(ticker, info.get("name", ticker)),
-        "reason": " / ".join(reasons[:3]) or "Screening candidate from current market data.",
+        "reason": " / ".join(reasons[:3]) or "現在の市場データから抽出した監視候補です。",
     }
 
 
@@ -938,31 +963,42 @@ def _build_intraday_opportunity(item: dict[str, Any], budget_jpy: int = DEFAULT_
     overheat = _finite(item.get("overheatRisk"))
     why_buy = [
         f"\u6761\u4ef6\u4e00\u81f4\u30b9\u30b3\u30a2 {confidence:.1f}/100",
-        f"\u76ee\u6a19\u5229\u76ca {round(target_profit):,} JPY / \u671f\u5f85\u5229\u76ca {round(expected_profit):,} JPY",
+        f"目標利益 {round(target_profit):,}円 / 期待損益 {round(expected_profit):,}円",
         f"\u30ea\u30b9\u30af\u30fb\u30ea\u30ef\u30fc\u30c9 {target_profit / max_loss:.2f}" if max_loss > 0 else "\u30ea\u30b9\u30af\u30fb\u30ea\u30ef\u30fc\u30c9\u306f\u8a08\u7b97\u4e0d\u80fd",
     ]
     if volume_ratio:
         why_buy.append(f"\u51fa\u6765\u9ad8\u500d\u7387 {volume_ratio:.1f}x")
     if turnover:
-        why_buy.append(f"\u58f2\u8cb7\u4ee3\u91d1 {round(turnover):,} JPY")
-    source_note = "official material" if has_official_material else "news/source check"
-    why_buy.append(f"\u6750\u6599\u4fe1\u983c\u5ea6: {material_reliability_grade} via {source_note}")
+        why_buy.append(f"売買代金 {round(turnover):,}円")
+    material_grade_labels = {
+        "official_fresh": "新しい公式開示あり",
+        "positive": "好材料あり",
+        "news_only": "ニュースのみ",
+        "neutral": "中立",
+        "negative": "悪材料あり",
+        "unconfirmed": "未確認",
+        "stale": "情報が古い",
+    }
+    quality_grade_labels = {"strong": "十分", "moderate": "標準", "weak": "弱い", "insufficient": "不足"}
+    liquidity_grade_labels = {"deep": "十分", "tradable": "取引可能", "watchable": "要確認", "thin": "薄い"}
+    source_note = "公式開示" if has_official_material else "ニュース・出所確認"
+    why_buy.append(f"材料の確認状況: {material_grade_labels.get(material_reliability_grade, material_reliability_grade)}（{source_note}）")
     if backtest_samples >= 3:
-        why_buy.append(f"\u985e\u4f3c\u7fcc\u65e5\u691c\u8a3c sample {backtest_samples}, riskAdjusted {backtest_risk_adjusted:+.2f}%, PF {backtest_profit_factor:.2f}")
+        why_buy.append(f"類似翌日検証 {backtest_samples}件、リスク調整後 {backtest_risk_adjusted:+.2f}%、PF {backtest_profit_factor:.2f}")
 
     why_not_buy = []
     if max_loss <= 0:
-        why_not_buy.append("Stop-loss or max-loss cannot be calculated")
+        why_not_buy.append("損切り価格または最大損失を計算できません")
     if material_reliability_grade in {"negative", "unconfirmed", "stale"}:
         why_not_buy.append(f"\u60aa\u6750\u6599\u307e\u305f\u306f\u6750\u6599\u4fe1\u983c\u5ea6\u306e\u518d\u78ba\u8a8d\u304c\u5fc5\u8981\u3067\u3059: {material_reliability_grade}")
     if material_stale:
         why_not_buy.append("\u6750\u6599\u304c\u53e4\u304f\u3001\u516c\u5f0f\u958b\u793a\u306e\u518d\u78ba\u8a8d\u304c\u5fc5\u8981\u3067\u3059")
     if material_reliability_penalty > 0:
-        why_not_buy.append(f"\u6750\u6599\u4fe1\u983c\u5ea6\u306e\u63a7\u9664 {round(material_reliability_penalty):,} JPY")
+        why_not_buy.append(f"材料信頼度の控除 {round(material_reliability_penalty):,}円")
     if execution_risk_bps >= 25:
         why_not_buy.append(f"\u7d04\u5b9a\u30b3\u30b9\u30c8\u898b\u7a4d\u308a {execution_risk_bps:.1f} bps")
     if not item.get("liquidityOk"):
-        why_not_buy.append("Liquidity is not sufficient for a clean simulation")
+        why_not_buy.append("流動性が不足しており、安定した練習判定ができません")
     if latest_bar_age_days is None or latest_bar_age_days > 5:
         why_not_buy.append("\u6700\u65b0\u4fa1\u683c\u65e5\u4ed8\u304c\u78ba\u8a8d\u3067\u304d\u306a\u3044" if latest_bar_age_days is None else f"\u65e5\u8db3\u4fa1\u683c\u30c7\u30fc\u30bf\u304c\u53e4\u3044: {latest_bar_age_days} days")
     if market_context_blocked:
@@ -970,49 +1006,49 @@ def _build_intraday_opportunity(item: dict[str, Any], budget_jpy: int = DEFAULT_
     if market_relative.get("riskOff"):
         why_not_buy.append("\u5e02\u5834\u5730\u5408\u3044\u304c\u5f31\u3044\u305f\u3081\u898b\u9001\u308a\u512a\u5148")
     if overheat >= 70:
-        why_not_buy.append("Overheat risk is high")
+        why_not_buy.append("過熱リスクが高い状態です")
     if quality_reliability_grade in {"weak", "insufficient"}:
         why_not_buy.append(f"\u691c\u8a3c\u5f37\u5ea6\u304c{quality_reliability_grade}\u3067\u3059")
     if backtest_samples >= 3 and backtest_risk_adjusted <= 0:
         why_not_buy.append("\u985e\u4f3c\u30d1\u30bf\u30fc\u30f3\u306e\u7fcc\u65e5\u671f\u5f85\u5024\u304c\u5f31\u3044")
     if not why_not_buy:
-        why_not_buy.append("No major blocker, but this remains simulation-only")
+        why_not_buy.append("大きな阻害要因は見当たりませんが、学習用の参考判定です")
 
     invalid_conditions = [
-        f"Break below stop loss {round(stop_loss, 1):,} JPY",
-        f"Cannot reach target {round(target_price, 1):,} JPY with acceptable liquidity",
-        "Material/news source becomes negative or cannot be verified",
-        "Spread, board depth, or market context deteriorates before entry",
+        f"撤退ライン {round(stop_loss, 1):,}円を下回る",
+        f"十分な流動性を保ったまま利確目標 {round(target_price, 1):,}円へ届かない",
+        "材料・ニュースが悪化する、または出所を確認できない",
+        "エントリー前にスプレッド、板厚、または市場環境が悪化する",
     ]
 
     expert_checklist = [
-        {"label": "Price freshness", "ok": latest_bar_age_days is not None and latest_bar_age_days <= 5, "detail": latest_bar or "unknown"},
-        {"label": "Material reliability", "ok": material_reliability_grade not in {"negative", "unconfirmed", "stale"}, "detail": material_reliability_grade},
-        {"label": "\u6d41\u52d5\u6027", "ok": bool(item.get("liquidityOk")), "detail": liquidity_grade},
-        {"label": "Risk/reward", "ok": max_loss > 0 and target_profit / max_loss >= 1.5, "detail": f"RR {target_profit / max_loss:.2f}" if max_loss > 0 else "unavailable"},
-        {"label": "Evidence strength", "ok": quality_reliability_grade not in {"weak", "insufficient"}, "detail": quality_reliability_grade},
-        {"label": "Market context", "ok": not market_relative.get("riskOff") and not market_context_blocked, "detail": market_integrity.get("label") or market_relative.get("tone") or "neutral"},
+        {"label": "価格の鮮度", "ok": latest_bar_age_days is not None and latest_bar_age_days <= 5, "detail": latest_bar or "不明"},
+        {"label": "材料の信頼性", "ok": material_reliability_grade not in {"negative", "unconfirmed", "stale"}, "detail": material_grade_labels.get(material_reliability_grade, material_reliability_grade)},
+        {"label": "流動性", "ok": bool(item.get("liquidityOk")), "detail": liquidity_grade_labels.get(liquidity_grade, liquidity_grade)},
+        {"label": "損益比", "ok": max_loss > 0 and target_profit / max_loss >= 1.5, "detail": f"RR {target_profit / max_loss:.2f}" if max_loss > 0 else "計算不能"},
+        {"label": "根拠の強さ", "ok": quality_reliability_grade not in {"weak", "insufficient"}, "detail": quality_grade_labels.get(quality_reliability_grade, quality_reliability_grade)},
+        {"label": "市場環境", "ok": not market_relative.get("riskOff") and not market_context_blocked, "detail": market_integrity.get("label") or market_relative.get("tone") or "中立"},
     ]
 
     expert_warnings: list[str] = []
     if material_reliability_grade in {"negative", "unconfirmed", "stale"}:
-        expert_warnings.append(f"Material reliability issue: {material_reliability_grade}")
+        expert_warnings.append(f"材料の信頼性を再確認してください: {material_grade_labels.get(material_reliability_grade, material_reliability_grade)}")
     if not item.get("liquidityOk"):
-        expert_warnings.append("Liquidity risk: avoid manual entry without board confirmation")
+        expert_warnings.append("流動性リスクあり: 板を確認せずに手入力しないでください")
     if market_relative.get("riskOff"):
-        expert_warnings.append("Market risk-off context")
+        expert_warnings.append("市場全体がリスク回避傾向です")
     elif market_relative.get("sectorHeadwind"):
-        expert_warnings.append("Sector headwind context")
+        expert_warnings.append("業種全体に逆風があります")
     if market_context_blocked:
-        expert_warnings.append(f"Full-market context requires review: {market_integrity.get('reason', 'unknown')}")
+        expert_warnings.append(f"市場全体の状況を再確認してください: {market_integrity.get('reason', '理由不明')}")
     if execution_risk_bps >= 35:
-        expert_warnings.append(f"Execution risk {execution_risk_bps:.1f} bps")
+        expert_warnings.append(f"約定コストのリスク {execution_risk_bps:.1f} bps")
     if latest_bar_age_days is None or latest_bar_age_days > 5:
-        expert_warnings.append("Price data is stale or unavailable")
+        expert_warnings.append("価格データが古いか取得できません")
     if backtest_samples >= 3 and backtest_risk_adjusted <= 0:
         expert_warnings.append("\u985e\u4f3c\u30d1\u30bf\u30fc\u30f3\u306e\u7fcc\u65e5\u671f\u5f85\u5024\u304c\u5f31\u3044\u3067\u3059\u3002")
     if quality_reliability_grade in {"weak", "insufficient"}:
-        expert_warnings.append(f"Evidence strength is {quality_reliability_grade}")
+        expert_warnings.append(f"根拠の強さが{quality_grade_labels.get(quality_reliability_grade, quality_reliability_grade)}状態です")
 
     decision_audit = _candidate_decision_audit(
         item=item,
@@ -1211,12 +1247,12 @@ def _build_intraday_opportunity(item: dict[str, Any], budget_jpy: int = DEFAULT_
             "rankingSource": item.get("source"),
             "sourceFetchedAt": item.get("sourceFetchedAt"),
             "sourceFetchedDate": item.get("sourceFetchedDate"),
-            "provider": "J-Quants/yfinance daily data. Not realtime board data.",
+        "provider": "J-Quantsまたはyfinanceの日足データです。リアルタイムの板情報ではありません。",
         },
         "decisionAudit": decision_audit,
         "material": material,
         "marketRelative": market_relative,
-        "disclaimer": "Simulator analysis only. This is not investment advice or an order instruction. Verify realtime prices, liquidity, disclosures, and risk before any manual trade.",
+        "disclaimer": "シミュレーション専用の分析です。投資助言や注文指示ではありません。手動で判断する前に、リアルタイム価格、流動性、開示情報、リスクを確認してください。",
     }
 
 
@@ -1311,6 +1347,11 @@ def _select_best_ranked_opportunity(
         opportunity = item.get("intradayOpportunity")
         if not opportunity:
             continue
+        if str(opportunity.get("tradeReadiness") or "").lower() != "ready":
+            continue
+        audit_verdict = str((opportunity.get("decisionAudit") or {}).get("verdict") or "").upper()
+        if audit_verdict != "PASS":
+            continue
         if _opportunity_tradeability_weight(opportunity) <= 0:
             continue
         if not _opportunity_has_actionable_size(opportunity):
@@ -1322,7 +1363,7 @@ def _select_best_ranked_opportunity(
             or {}
         )
         cross_status = str(cross_check.get("status") or "").lower()
-        if require_cross_engine_check and cross_status not in {"aligned", "review"}:
+        if require_cross_engine_check and cross_status != "aligned":
             continue
         if _opportunity_cross_engine_weight(item, opportunity) <= 0:
             continue
@@ -1411,20 +1452,33 @@ def _rank_with_material_refresh(
     if refresh_limit <= 0:
         return prelim_ranked
 
+    refresh_targets = [
+        (index, _strip_intraday_opportunity(item))
+        for index, item in enumerate(prelim_ranked)
+        if index < refresh_limit
+        and not (item.get("material") or (item.get("intradayOpportunity") or {}).get("material"))
+    ]
+    refreshed_by_index: dict[int, dict[str, Any]] = {}
+    if refresh_targets:
+        bases = [base_item for _, base_item in refresh_targets]
+        try:
+            material_items = _attach_material_events(bases)
+        except Exception:
+            material_items = bases
+        refreshed_by_index = {
+            index: material_item
+            for (index, _), material_item in zip(refresh_targets, material_items)
+            if material_item.get("material")
+        }
+
     refreshed_items: list[dict[str, Any]] = []
     changed = False
     for index, item in enumerate(prelim_ranked):
-        opportunity = item.get("intradayOpportunity") or {}
-        if index < refresh_limit and not (item.get("material") or opportunity.get("material")):
-            base_item = _strip_intraday_opportunity(item)
-            try:
-                material_item = _attach_material_events([base_item])[0]
-            except Exception:
-                material_item = base_item
-            if material_item.get("material"):
-                changed = True
-                refreshed_items.append({**material_item, "intradayOpportunity": _build_intraday_opportunity(material_item, budget_jpy)})
-                continue
+        material_item = refreshed_by_index.get(index)
+        if material_item:
+            changed = True
+            refreshed_items.append({**material_item, "intradayOpportunity": _build_intraday_opportunity(material_item, budget_jpy)})
+            continue
         refreshed_items.append(item)
 
     if not changed:
@@ -1433,11 +1487,10 @@ def _rank_with_material_refresh(
 
 
 def _attach_candidate_quality(items: list[dict[str, Any]], limit: int = 8) -> list[dict[str, Any]]:
-    enriched: list[dict[str, Any]] = []
-    for index, item in enumerate(items):
+    def enrich(entry: tuple[int, dict[str, Any]]) -> dict[str, Any]:
+        index, item = entry
         if item.get("candidateQuality") or index >= limit:
-            enriched.append(item)
-            continue
+            return item
         quality = quality_for_ticker(item.get("ticker", ""))
         if quality:
             data_quality = quality.get("dataQuality") or {}
@@ -1464,18 +1517,20 @@ def _attach_candidate_quality(items: list[dict[str, Any]], limit: int = 8) -> li
                         enriched_item.pop(stale_level_key, None)
                 if quality_price > 0 and enriched_item.get("intradayOpportunity"):
                     enriched_item["intradayOpportunity"] = _build_intraday_opportunity(enriched_item, DEFAULT_INTRADAY_BUDGET_JPY)
-            enriched.append(enriched_item)
-        else:
-            enriched.append(item)
-    return enriched
+            return enriched_item
+        return item
+
+    entries = list(enumerate(items))
+    if len(entries) <= 1:
+        return [enrich(entry) for entry in entries]
+    with ThreadPoolExecutor(max_workers=min(8, len(entries))) as pool:
+        return list(pool.map(enrich, entries))
 
 
 def _attach_material_events(items: list[dict[str, Any]], include_jquants: bool = False) -> list[dict[str, Any]]:
-    enriched = []
-    for item in items:
+    def enrich(item: dict[str, Any]) -> dict[str, Any]:
         if item.get("material"):
-            enriched.append(item)
-            continue
+            return item
         try:
             material = material_events_for_ticker(
                 item.get("ticker", ""),
@@ -1491,8 +1546,12 @@ def _attach_material_events(items: list[dict[str, Any]], include_jquants: bool =
                 "summary": "Material event lookup failed; treat this signal as unconfirmed.",
                 "items": [],
             }
-        enriched.append({**item, "material": material})
-    return enriched
+        return {**item, "material": material}
+
+    if len(items) <= 1:
+        return [enrich(item) for item in items]
+    with ThreadPoolExecutor(max_workers=min(8, len(items))) as pool:
+        return list(pool.map(enrich, items))
 
 
 def _best_intraday_opportunity(items: list[dict[str, Any]], budget_jpy: int) -> dict[str, Any] | None:
@@ -1559,49 +1618,49 @@ def _ai_fund_desk_payload(
             "takeProfit": best_opportunity.get("targetPrice"),
             "stopLoss": best_opportunity.get("stopLoss"),
             "budgetUsedJpy": best_opportunity.get("budgetUsedJpy"),
-            "expiresAt": "Review against current intraday data before manual entry.",
+            "expiresAt": "手入力前に当日の値動きと板情報を再確認してください。",
             "brokerInstruction": "\u6ce8\u6587\u306f\u4f5c\u6210\u3057\u307e\u305b\u3093\u3002\u624b\u5165\u529b\u524d\u306e\u78ba\u8a8d\u30c1\u30a7\u30c3\u30af\u30ea\u30b9\u30c8\u3068\u3057\u3066\u306e\u307f\u4f7f\u7528\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
         }
 
     lanes = [
         {
             "id": "research",
-            "label": "Universe and signal research",
+            "label": "候補とシグナルの調査",
             "status": "COMPLETE" if ranked_items else "WAIT",
-            "summary": f"Reviewed {len(ranked_items)} ranked candidates from market data.",
+            "summary": f"市場データからランキング候補 {len(ranked_items)}件を確認しました。",
             "evidence": [
-                "JPX listed issue master is the screening universe.",
-                "Daily price, volume, turnover, momentum, and quality signals are attached.",
-                "Candidate order is based on audited opportunity metrics.",
+                "JPX上場銘柄一覧をスクリーニング対象にしています。",
+                "日足価格、出来高、売買代金、モメンタム、品質指標を確認しています。",
+                "監査済みの機会評価に基づいて候補順を決めています。",
             ],
         },
         {
             "id": "plan",
-            "label": "Manual trade plan draft",
+            "label": "手入力計画の下書き",
             "status": "READY" if best_opportunity else "WAIT",
             "summary": (
-                f"{best_ticker} {best_name} selected for manual review. Expected profit {expected_profit:.0f} JPY; max loss {max_loss:.0f} JPY."
+                f"{best_ticker} {best_name} を手入力前の確認候補に選びました。期待損益 {expected_profit:.0f}円、最大損失 {max_loss:.0f}円です。"
                 if best_opportunity
-                else "No candidate passes the current review threshold."
+                else "現在の確認基準を満たす候補はありません。"
             ),
             "evidence": (best_opportunity.get("whyBuy") or [])[:3] if best_opportunity else [],
         },
         {
             "id": "approval",
-            "label": "Human approval gate",
+            "label": "人による承認確認",
             "status": watch_state,
-            "summary": "Manual approval is required before any external action. The system never sends broker orders.",
+            "summary": "外部操作の前には必ず人による確認が必要です。このシステムは証券会社へ注文を送りません。",
             "evidence": [
-                "Live broker order execution is disabled.",
-                "Draft order is informational only.",
-                "Realtime board data and disclosures must be checked manually.",
+                "実注文の執行機能は無効です。",
+                "注文下書きは確認用の参考情報です。",
+                "リアルタイムの板情報と適時開示は手作業で確認してください。",
             ],
         },
         {
             "id": "audit",
-            "label": "Risk audit log",
+            "label": "リスク監査記録",
             "status": "LOGGED",
-            "summary": "Risk, freshness, material-event, and invalidation checks are recorded for review.",
+            "summary": "リスク、データ鮮度、材料、判定無効条件を確認記録として残します。",
             "evidence": (best_opportunity.get("invalidConditions") or [])[:3] if best_opportunity else [],
         },
     ]
@@ -1620,39 +1679,39 @@ def _ai_fund_desk_payload(
 
     guardrails = [
         {
-            "label": "Broker execution disabled",
+            "label": "実注文機能は無効",
             "ok": not LIVE_BROKER_ORDERS_ENABLED,
-            "detail": "The application can only prepare local review data; it cannot place live orders.",
+            "detail": "このアプリはローカルの確認データのみを作成し、実注文は行いません。",
         },
         {
-            "label": "Human approval required",
+            "label": "人による承認が必要",
             "ok": draft_order is not None and watch_state == "APPROVAL_REQUIRED",
-            "detail": "A draft exists only when a candidate is strong enough for manual review.",
+            "detail": "手入力前の確認に値する候補がある場合だけ下書きを表示します。",
         },
         {
-            "label": "Position concentration check",
+            "label": "保有集中の確認",
             "ok": active_holding_count <= 5,
-            "detail": f"Active holdings: {active_holding_count}; review concentration before adding risk.",
+            "detail": f"保有中 {active_holding_count}銘柄。新たなリスクを加える前に集中度を確認してください。",
         },
         {
-            "label": "Loss estimate available",
+            "label": "最大損失の試算",
             "ok": max_loss > 0,
-            "detail": f"Estimated max loss: {max_loss:.0f} JPY.",
+            "detail": f"試算上の最大損失は {max_loss:.0f}円です。",
         },
     ]
 
     return {
         "mode": "LOCAL_AI_HEDGE_FUND_DESK",
-        "licenseNote": "Simulator mode only. No broker connection or investment advisory service is provided.",
+        "licenseNote": "学習・検証用のシミュレーターです。証券会社接続や投資助言は提供しません。",
         "generatedAt": generated_at or dt.datetime.now(dt.timezone.utc).isoformat(),
         "budgetJpy": budget_jpy,
         "liveBrokerOrdersEnabled": LIVE_BROKER_ORDERS_ENABLED,
         "summary": {
             "state": watch_state,
             "headline": (
-                f"{best_ticker} {best_name}: manual review candidate. Expected profit {expected_profit:.0f} JPY / max loss {max_loss:.0f} JPY."
+                f"{best_ticker} {best_name}: 手入力前の確認候補です。期待損益 {expected_profit:.0f}円 / 最大損失 {max_loss:.0f}円。"
                 if best_opportunity
-                else "No candidate is ready for manual review."
+                else "手入力前の確認に進める候補はありません。"
             ),
             "expectedProfitJpy": round(expected_profit, 1),
             "maxLossJpy": round(max_loss, 1),
@@ -1672,7 +1731,7 @@ def _ai_fund_desk_payload(
             "dataFreshness": best_opportunity.get("dataFreshness") if best_opportunity else {},
             "material": best_opportunity.get("material") if best_opportunity else {},
         },
-        "disclaimer": "Local simulation and research workflow only. Do not trade without independent verification and risk review.",
+        "disclaimer": "学習・検証用のローカルシミュレーションです。独自の確認とリスク検討なしに売買判断へ使用しないでください。",
     }
 
 
@@ -1682,64 +1741,13 @@ def _market_review_candidates_for_budget(
     kind: str = "surge",
     limit: int = 30,
 ) -> tuple[list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None, str | None]:
-    cache_key = f"{kind}:{budget_jpy}:{limit}"
-    now = dt.datetime.now(dt.timezone.utc)
-    cached = MARKET_REVIEW_CACHE.get(cache_key)
-    if cached:
-        cached_at = cached.get("cachedAt")
-        age_sec = (now - cached_at).total_seconds() if isinstance(cached_at, dt.datetime) else MARKET_REVIEW_CACHE_TTL_SEC + 1
-        if age_sec <= MARKET_REVIEW_CACHE_TTL_SEC:
-            payload = cached.get("payload") or {}
-            return (
-                payload.get("items") or [],
-                payload.get("bestOpportunity"),
-                payload.get("bestAvailableOpportunity"),
-                payload.get("generatedAt"),
-            )
-
     ranking_payload = market_rankings(kind=kind, budget=budget_jpy, limit=limit)
-    MARKET_REVIEW_CACHE[cache_key] = {"cachedAt": now, "payload": ranking_payload}
     return (
         ranking_payload.get("items") or [],
         ranking_payload.get("bestOpportunity"),
         ranking_payload.get("bestAvailableOpportunity"),
         ranking_payload.get("generatedAt"),
     )
-
-    snapshot = _load_market_snapshot()
-    if not snapshot:
-        fallback_universe = {**FALLBACK_CANDIDATE_POOL, **STOCKS}
-        live_items = [_market_item_from_stock_payload(_stock_payload(ticker, info)) for ticker, info in fallback_universe.items()]
-        universe = load_market_universe()
-        snapshot = _snapshot_payload(live_items, len(universe), "live_watchlist_fallback")
-
-    ranked_items = (snapshot.get("rankings") or {}).get("surge") or _rank_market_items(_market_snapshot_items(snapshot), "surge")
-    visible_items = ranked_items[:limit]
-    material_count = min(6, len(visible_items))
-    material_items = _attach_material_events(visible_items[:material_count]) + visible_items[material_count:]
-    material_items = _attach_candidate_quality(material_items)
-    material_items = _attach_market_relative_context(material_items, _market_snapshot_items(snapshot))
-    ranked_enriched_items = _rank_with_material_refresh(
-        material_items,
-        budget_jpy,
-        refresh_limit=min(limit, 12),
-    )
-    ranked_enriched_items = _attach_advanced_cross_engine_checks(
-        ranked_enriched_items,
-        limit=min(limit, 3),
-        budget_jpy=budget_jpy,
-    )
-    ranked_enriched_items = _rank_by_audited_opportunity(ranked_enriched_items)
-    require_cross_engine_best = any(
-        item.get("advancedCrossEngineCheck") or (item.get("intradayOpportunity") or {}).get("advancedCrossEngineCheck")
-        for item in ranked_enriched_items
-    )
-    strict_best = _select_best_ranked_opportunity(
-        ranked_enriched_items,
-        require_cross_engine_check=require_cross_engine_best,
-    )
-    best_available = _select_best_available_opportunity(ranked_enriched_items, strict_best)
-    return ranked_enriched_items, strict_best, best_available, snapshot.get("generatedAt")
 
 
 def _rank_market_items(items: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
@@ -1765,7 +1773,7 @@ def _rank_market_items(items: list[dict[str, Any]], kind: str) -> list[dict[str,
 def _market_relative_context(item: dict[str, Any], universe_items: list[dict[str, Any]]) -> dict[str, Any]:
     changes = [_finite(candidate.get("changePct")) for candidate in universe_items if candidate.get("changePct") is not None]
     if not changes:
-        return {"available": False, "tone": "UNKNOWN", "summary": "Market context unavailable."}
+        return {"available": False, "tone": "UNKNOWN", "summary": "市場全体の状況を取得できません。"}
     market_avg = float(np.mean(changes))
     advancer_pct = sum(1 for value in changes if value > 0) / len(changes) * 100
     sector = str(item.get("sector") or "").strip()
@@ -1804,8 +1812,8 @@ def _market_relative_context(item: dict[str, Any], universe_items: list[dict[str
         "relativeToMarketPct": round(relative, 2),
         "relativeToSectorPct": round(sector_relative, 2),
         "summary": (
-            f"Market avg {market_avg:+.2f}% / advancers {advancer_pct:.1f}%; "
-            f"{sector or 'sector'} avg {sector_avg:+.2f}% / relative {relative:+.2f}%"
+            f"市場平均 {market_avg:+.2f}% / 値上がり銘柄 {advancer_pct:.1f}%; "
+            f"{sector or '業種'}平均 {sector_avg:+.2f}% / 市場比 {relative:+.2f}%"
         ),
     }
 
@@ -1890,26 +1898,26 @@ def _market_context_integrity(
     if not snapshot:
         usable = False
         reason = "missing_snapshot"
-        label = "Full-market context unavailable"
-        detail = "No full-market snapshot is available; regime scoring is neutral and requires manual review."
+        label = "市場全体の状況を取得できません"
+        detail = "市場全体のスナップショットがないため、地合い判定は中立として手作業で確認してください。"
     elif stale:
         usable = False
         reason = "stale_snapshot"
-        label = "Full-market context stale"
+        label = "市場全体のデータが古い状態です"
         detail = (
-            f"Full-market snapshot is stale at {freshness.get('ageDays')} days old; "
-            "do not infer market regime from the visible ranking subset."
+            f"市場全体のスナップショットは {freshness.get('ageDays')}日前のものです。"
+            "表示中のランキングだけで地合いを判断しないでください。"
         )
     elif context_count <= 0:
         usable = False
         reason = "empty_context"
-        label = "Full-market context empty"
-        detail = "Full-market snapshot has no usable daily change data; regime scoring requires manual review."
+        label = "市場全体のデータが空です"
+        detail = "市場全体の日次変動データを利用できないため、地合いは手作業で確認してください。"
     else:
         usable = True
         reason = "fresh_full_market_context"
-        label = "Full-market context usable"
-        detail = f"{context_count} full-market issues are available for market and sector regime scoring."
+        label = "市場全体のデータを利用できます"
+        detail = f"市場と業種の地合い判定に {context_count}銘柄のデータを使用できます。"
     return {
         "required": bool(required),
         "usable": bool(usable),
@@ -1972,45 +1980,45 @@ def _candidate_decision_audit(
     market_detail = (
         market_integrity.get("detail")
         if market_context_blocked
-        else market_relative.get("summary") or "Market regime context unavailable."
+        else market_relative.get("summary") or "市場の地合いを取得できません。"
     )
     market_value = market_integrity.get("verdict") if market_context_blocked else market_relative.get("tone")
     gates = [
         _audit_gate(
             "price_freshness",
-            "Price freshness",
+            "価格の鮮度",
             latest_bar_age_days is not None and latest_bar_age_days <= 5,
             "high",
-            "Latest daily bar is within the allowed freshness window.",
+            "最新の日足は許容する鮮度範囲内です。",
             latest_bar_age_days,
         ),
         _audit_gate(
             "liquidity",
-            "Liquidity",
+            "流動性",
             bool(item.get("liquidityOk")),
             "high",
-            f"Liquidity grade {item.get('liquidityGrade', 'unknown')}",
+            f"流動性区分 {item.get('liquidityGrade', '不明')}",
             item.get("liquidityGrade"),
         ),
         _audit_gate(
             "material",
-            "Material events",
+            "材料イベント",
             material_ok,
             "high" if material_tone in {"negative", "unconfirmed"} else "medium",
-            f"{material_tone} / {material.get('freshnessVerdict', 'unknown')}",
+            f"材料区分 {material_tone} / 鮮度 {material.get('freshnessVerdict', '不明')}",
             material_tone,
         ),
         _audit_gate(
             "pattern_backtest",
-            "Pattern backtest",
+            "類似パターン検証",
             backtest_ok,
             "medium",
-            f"sample {backtest_samples}, riskAdjusted {backtest_risk_adjusted:+.2f}%, PF {backtest_profit_factor:.2f}",
+            f"検証件数 {backtest_samples}、リスク調整後 {backtest_risk_adjusted:+.2f}%、PF {backtest_profit_factor:.2f}",
             backtest_risk_adjusted,
         ),
         _audit_gate(
             "market_regime",
-            "Market regime",
+            "市場の地合い",
             market_ok,
             "medium",
             market_detail,
@@ -2018,18 +2026,18 @@ def _candidate_decision_audit(
         ),
         _audit_gate(
             "risk_reward",
-            "Risk reward",
+            "損益比",
             rr >= 1.3 and target_profit > 0 and max_loss > 0,
             "high",
-            f"RR {rr:.2f} / target {target_profit:.2f} / max loss {max_loss:.2f}",
+            f"RR {rr:.2f} / 目標利益 {target_profit:.2f} / 最大損失 {max_loss:.2f}",
             round(rr, 2),
         ),
         _audit_gate(
             "overheat",
-            "Overheat",
+            "過熱度",
             _finite(item.get("overheatRisk")) < 58,
             "medium",
-            f"Overheat risk {item.get('overheatRisk', 0)}",
+            f"過熱リスク {item.get('overheatRisk', 0)}",
             item.get("overheatRisk"),
         ),
     ]
@@ -2107,9 +2115,9 @@ def _cross_engine_consistency(
     if not candidate or not advanced_report:
         missing = []
         if not candidate:
-            missing.append("candidate")
+            missing.append("ランキング候補")
         if not advanced_report:
-            missing.append("advanced")
+            missing.append("高度分析")
         return {
             "source": "backend-cross-engine",
             "ticker": expected_ticker,
@@ -2144,39 +2152,39 @@ def _cross_engine_consistency(
     gates = [
         _audit_gate(
             "ticker_match",
-            "Ticker alignment",
+            "銘柄コードの一致",
             ticker_match,
             "high",
-            f"Expected {expected_ticker}; sources {', '.join(map(str, source_tickers)) or 'none'}",
+            f"対象 {expected_ticker}、各分析の銘柄 {', '.join(map(str, source_tickers)) or 'なし'}",
             source_tickers,
         ),
         _audit_gate(
             "candidate_strength",
-            "Candidate strength",
+            "候補の強さ",
             candidate_score >= 55,
             "high" if candidate_score < 45 else "medium",
-            f"Candidate score {candidate_score:.1f}/100",
+            f"候補スコア {candidate_score:.1f}/100",
             candidate_score,
         ),
         _audit_gate(
             "price_data_quality",
-            "Price data quality",
+            "価格データの品質",
             data_quality_ok,
             "high",
-            f"{(data_quality or {}).get('source', 'unknown')} / score {(data_quality or {}).get('score', '-')}",
+            f"{(data_quality or {}).get('source', '出所不明')} / 品質スコア {(data_quality or {}).get('score', '-')}",
             data_quality,
         ),
         _audit_gate(
             "opportunity_readiness",
-            "Short-term readiness",
+            "短期判断の準備状況",
             opportunity_ok,
             "high" if trade_readiness == "avoid" or audit_verdict == "REJECT" else "medium",
-            f"readiness {trade_readiness or 'unknown'} / audit {audit_verdict}",
+            f"準備状況 {trade_readiness or '不明'} / 監査 {audit_verdict}",
             {"tradeReadiness": trade_readiness, "decisionAuditVerdict": audit_verdict},
         ),
         _audit_gate(
             "advanced_verdict",
-            "Advanced verdict",
+            "高度分析の判定",
             advanced_ready,
             "high" if advanced_verdict in {"DEFENSIVE", "UNKNOWN"} else "medium",
             advanced_report.get("actionLabel") or advanced_verdict,
@@ -2184,7 +2192,7 @@ def _cross_engine_consistency(
         ),
         _audit_gate(
             "analysis_reliability",
-            "Analysis reliability",
+            "分析の信頼性",
             reliability_ok,
             "high" if reliability_grade == "insufficient" else "medium",
             reliability.get("label") or reliability_grade,
@@ -2192,10 +2200,10 @@ def _cross_engine_consistency(
         ),
         _audit_gate(
             "advanced_guardrails",
-            "Advanced guardrails",
+            "高度分析の安全条件",
             guardrails_ok,
             "medium",
-            f"{sum(1 for item in guardrails if item.get('ok'))}/{len(guardrails)} passed",
+            f"{len(guardrails)}件中 {sum(1 for item in guardrails if item.get('ok'))}件が通過",
             guardrails,
         ),
     ]
@@ -2441,6 +2449,34 @@ def _number_from_yahoo_text(value: str, default: float = 0.0) -> float:
         return default
 
 
+def _decode_http_text(response: Any) -> str:
+    raw_content = getattr(response, "content", None)
+    if raw_content is None:
+        return str(getattr(response, "text", "") or "")
+    if isinstance(raw_content, str):
+        return raw_content
+
+    candidates = [
+        "utf-8-sig",
+        getattr(response, "apparent_encoding", None),
+        getattr(response, "encoding", None),
+        "cp932",
+        "shift_jis",
+    ]
+    attempted: set[str] = set()
+    for candidate in candidates:
+        encoding = str(candidate or "").strip()
+        normalized = encoding.lower().replace("_", "-")
+        if not encoding or normalized in attempted:
+            continue
+        attempted.add(normalized)
+        try:
+            return raw_content.decode(encoding, errors="strict")
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw_content.decode("utf-8", errors="replace")
+
+
 def _yahoo_finance_gainers(limit: int = MARKET_RANKING_LIMIT) -> list[dict[str, Any]]:
     response = requests.get(
         YAHOO_FINANCE_GAINERS_URL,
@@ -2448,11 +2484,7 @@ def _yahoo_finance_gainers(limit: int = MARKET_RANKING_LIMIT) -> list[dict[str, 
         headers={"User-Agent": "Mozilla/5.0"},
     )
     response.raise_for_status()
-    raw_content = getattr(response, "content", None)
-    html = raw_content.decode("utf-8", errors="replace") if raw_content is not None else getattr(response, "text", "")
-    if ("?" in html[:2000] or "?" in html[:2000]) and raw_content is not None:
-        fallback_encoding = getattr(response, "apparent_encoding", None) or getattr(response, "encoding", None) or "utf-8"
-        html = raw_content.decode(fallback_encoding, errors="replace")
+    html = _decode_http_text(response)
     rows = re.findall(r'<tr class="RankingTable__row__1Gwp">.*?</tr>', html, re.S)
     items: list[dict[str, Any]] = []
     fetched_at = dt.datetime.now(JST)
@@ -2493,8 +2525,8 @@ def _yahoo_finance_gainers(limit: int = MARKET_RANKING_LIMIT) -> list[dict[str, 
                 "popularityScore": round(min(100, max(0, math.log10(max(turnover, 1)) * 8 + max(change_pct, 0))), 1),
                 "surgeScore": round(max(0, min(100, change_pct * 2 + math.log10(max(turnover, 1)) * 3)), 1),
                 "overheatRisk": round(max(0, min(100, max(change_pct - 15, 0) * 2)), 1),
-                "surgeStage": "Yahoo Finance gainers",
-                "surgeFlags": ["Yahoo Finance gainers"],
+                "surgeStage": "Yahoo Finance 値上がりランキング",
+                "surgeFlags": ["Yahoo Finance 値上がりランキング"],
                 "latestBarDate": None,
                 "latestBarAgeDays": None,
                 "priceAsOfDate": None,
@@ -2503,7 +2535,7 @@ def _yahoo_finance_gainers(limit: int = MARKET_RANKING_LIMIT) -> list[dict[str, 
                 "sourceFetchedDate": fetched_date,
                 "source": YAHOO_FINANCE_GAINERS_URL,
                 "externalLinks": external_research_links(ticker, name),
-                "reason": f"Yahoo Finance gainers {change_pct:+.2f}%",
+                "reason": f"Yahoo Finance 値上がり率 {change_pct:+.2f}%",
                 "rank": int(rank_match.group(1)) if rank_match else len(items) + 1,
             }
         )
@@ -2641,10 +2673,12 @@ def _market_item_from_stock_payload(stock: dict[str, Any]) -> dict[str, Any]:
     metrics = quality.get("metrics") or {}
     data_quality = stock.get("dataQuality") or quality.get("dataQuality")
     source_flags = _data_source_flags(stock.get("priceSource") or stock.get("source"), data_quality, cached=bool(stock.get("isCached") or stock.get("is_cached") or stock.get("cache")))
-    change_pct = _finite(metrics.get("momentum5", 0))
+    change_pct = _finite(stock.get("changePct", metrics.get("momentum5", 0)))
     candidate_score = _finite(stock.get("candidateScore", 0))
-    overheat_risk = 65 if change_pct >= 12 and candidate_score < 45 else 20 if change_pct >= 5 else 5
-    surge_score = round(max(0, min(100, candidate_score + max(change_pct, 0) * 2 - overheat_risk * 0.25)), 1)
+    fallback_overheat = 65 if change_pct >= 12 and candidate_score < 45 else 20 if change_pct >= 5 else 5
+    overheat_risk = _finite(stock.get("overheatRisk", fallback_overheat))
+    fallback_surge = round(max(0, min(100, candidate_score + max(change_pct, 0) * 2 - overheat_risk * 0.25)), 1)
+    surge_score = _finite(stock.get("surgeScore", fallback_surge))
     return {
         "ticker": stock.get("ticker"),
         "name": stock.get("name"),
@@ -2653,22 +2687,22 @@ def _market_item_from_stock_payload(stock: dict[str, Any]) -> dict[str, Any]:
         "price": stock.get("price", 0),
         "changeJpy": 0,
         "changePct": change_pct,
-        "volume": 0,
-        "turnoverJpy": 0,
-        "volumeRatio": metrics.get("volumeRatio", 0),
+        "volume": _finite(stock.get("volume", 0)),
+        "turnoverJpy": _finite(stock.get("turnoverJpy", 0)),
+        "volumeRatio": _finite(stock.get("volumeRatio", metrics.get("volumeRatio", 0))),
         "momentum5Pct": metrics.get("momentum5", 0),
         "momentum20Pct": metrics.get("momentum20", 0),
         "candidateScore": candidate_score,
         "preopenScore": stock.get("preopenScore"),
-        "popularityScore": candidate_score,
+        "popularityScore": _finite(stock.get("popularityScore", candidate_score)),
         "surgeScore": surge_score,
-        "surgeStage": "Short-term momentum",
-        "surgeFlags": ["Daily price momentum"],
+        "surgeStage": "短期モメンタム",
+        "surgeFlags": ["日次価格モメンタム"],
         "overheatRisk": overheat_risk,
         "divergence25Pct": 0,
         "divergence75Pct": 0,
-        "high20Breakout": False,
-        "ytdHighBreakout": False,
+        "high20Breakout": bool(stock.get("high20Breakout", False)),
+        "ytdHighBreakout": bool(stock.get("ytdHighBreakout", False)),
         "goldenCross": False,
         "trendOk": True,
         "liquidityOk": True,
@@ -2804,16 +2838,16 @@ def _backtest_evidence_strength(sample_count: int, match_quality: str) -> dict[s
     score = max(0, min(100, sample_count * 9 + quality_bonus))
     if score >= 75:
         grade = "strong"
-        label = "Strong evidence"
+        label = "検証根拠: 強"
     elif score >= 50:
         grade = "moderate"
-        label = "Moderate evidence"
+        label = "検証根拠: 中"
     elif score >= 25:
         grade = "weak"
-        label = "Weak evidence"
+        label = "検証根拠: 弱"
     else:
         grade = "insufficient"
-        label = "Insufficient evidence"
+        label = "検証根拠: 不足"
     return {
         "score": round(score, 1),
         "grade": grade,
@@ -2930,13 +2964,13 @@ def build_candidate_quality(
     evidence_ok = evidence_strength.get("grade") in {"strong", "moderate"}
     data_quality_ok = _candidate_data_quality_ok(data_quality)
     gates = [
-        {"id": "momentum", "label": "5-day and 20-day momentum", "passed": mom5 > 0 and mom20 > 0, "ok": mom5 > 0 and mom20 > 0},
-        {"id": "rsi", "label": "RSI in tradable range", "passed": 40 <= rsi <= 78, "ok": 40 <= rsi <= 78},
-        {"id": "liquidity", "label": "Liquidity is sufficient", "passed": vol_ratio >= 0.8, "ok": vol_ratio >= 0.8},
-        {"id": "rr", "label": "Risk reward is acceptable", "passed": _finite(rr.get("rr_ratio")) >= 1.6, "ok": _finite(rr.get("rr_ratio")) >= 1.6},
+        {"id": "momentum", "label": "5日・20日モメンタム", "passed": mom5 > 0 and mom20 > 0, "ok": mom5 > 0 and mom20 > 0},
+        {"id": "rsi", "label": "RSIが取引可能域", "passed": 40 <= rsi <= 78, "ok": 40 <= rsi <= 78},
+        {"id": "liquidity", "label": "流動性が十分", "passed": vol_ratio >= 0.8, "ok": vol_ratio >= 0.8},
+        {"id": "rr", "label": "損益比が基準内", "passed": _finite(rr.get("rr_ratio")) >= 1.6, "ok": _finite(rr.get("rr_ratio")) >= 1.6},
         {
             "id": "backtest",
-            "label": "Backtest edge",
+            "label": "バックテスト優位性",
             "passed": bool(
                 backtest["sampleCount"] >= 3
                 and backtest["winRate"] >= 52
@@ -2962,9 +2996,9 @@ def build_candidate_quality(
             }
         )
     if vcp_ok:
-        gates.append({"id": "vcp", "label": "VCP structure", "passed": True, "ok": True})
+        gates.append({"id": "vcp", "label": "VCP構造", "passed": True, "ok": True})
     if accum_ok:
-        gates.append({"id": "accumulation", "label": "Accumulation pattern", "passed": True, "ok": True})
+        gates.append({"id": "accumulation", "label": "買い集めパターン", "passed": True, "ok": True})
 
     score = 45
     score += min(max(mom5, -4) * 2.2, 16)
@@ -2994,19 +3028,19 @@ def build_candidate_quality(
 
     warnings = []
     if rsi > 78:
-        warnings.append("RSI is elevated; avoid chasing strength.")
+        warnings.append("RSIが高いため、高値追いを避けてください。")
     if vol_ratio < 0.8:
-        warnings.append("Volume support is weak; confirm liquidity before action.")
+        warnings.append("出来高の裏付けが弱いため、判断前に流動性を確認してください。")
     if _finite(rr.get("rr_ratio")) < 1.6:
-        warnings.append("Risk reward is below the preferred threshold.")
+        warnings.append("損益比が推奨基準を下回っています。")
     if backtest["sampleCount"] >= 3 and backtest["riskAdjustedReturnPct"] <= 0:
         warnings.append("\u985e\u4f3c\u30d1\u30bf\u30fc\u30f3\u306e\u7fcc\u65e5\u671f\u5f85\u5024\u304c\u5f31\u3044\u3067\u3059\u3002")
     if evidence_strength["grade"] in {"weak", "insufficient"}:
-        warnings.append(f"{evidence_strength['label']}: evidence is not strong enough.")
+        warnings.append(f"{evidence_strength['label']}: 判断に使う根拠が十分ではありません。")
     if data_quality and not data_quality_ok:
         warnings.append(
-            f"{data_quality['label']}: source={data_quality.get('source')}, "
-            f"latest={data_quality.get('latestBarDate') or '-'}, age={data_quality.get('latestBarAgeDays')}"
+            f"{data_quality['label']}: 出所={data_quality.get('source')}、"
+            f"最新日={data_quality.get('latestBarDate') or '-'}、経過日数={data_quality.get('latestBarAgeDays')}"
         )
 
     return {
@@ -3115,27 +3149,56 @@ def _history_from_stooq(ticker: str) -> pd.DataFrame | None:
 
 
 def get_stock_data(ticker: str, period: str = "6mo", interval: str = "1d") -> pd.DataFrame | None:
-    try:
-        hist = yf.Ticker(ticker).history(period=period, interval=interval, timeout=6, auto_adjust=False)
-        hist = clean_price_history(hist)
-        if hist is not None and not hist.empty:
-            hist.attrs["source"] = "yfinance"
-            hist.attrs["synthetic"] = False
-            return hist
-    except Exception:
-        pass
-    hist = _history_from_yahoo_chart(ticker)
-    if hist is not None and not hist.empty:
-        hist.attrs["source"] = hist.attrs.get("source") or "yahoo_chart"
-        hist.attrs["synthetic"] = False
-        return hist
-    hist = _history_from_stooq(ticker)
-    if hist is not None and not hist.empty:
-        return hist
-    hist = _synthetic_history(ticker)
-    hist.attrs["source"] = "synthetic"
-    hist.attrs["synthetic"] = True
-    return hist
+    cache_key = (ticker, period, interval)
+
+    while True:
+        now = time.monotonic()
+        with PRICE_HISTORY_CACHE_LOCK:
+            cached = PRICE_HISTORY_CACHE.get(cache_key)
+            if cached and now - float(cached.get("cachedAt") or 0) <= PRICE_HISTORY_CACHE_TTL_SEC:
+                frame = cached.get("frame")
+                return frame.copy(deep=True) if frame is not None else None
+
+            in_flight = PRICE_HISTORY_INFLIGHT.get(cache_key)
+            if in_flight is None:
+                in_flight = threading.Event()
+                PRICE_HISTORY_INFLIGHT[cache_key] = in_flight
+                is_owner = True
+            else:
+                is_owner = False
+
+        if not is_owner:
+            in_flight.wait()
+            continue
+
+        try:
+            frame = fetch_price_history(
+                ticker=ticker,
+                period=period,
+                interval=interval,
+                yfinance_history=lambda symbol, request_period, request_interval: yf.Ticker(symbol).history(
+                    period=request_period,
+                    interval=request_interval,
+                    timeout=6,
+                    auto_adjust=False,
+                ),
+                yahoo_chart_history=_history_from_yahoo_chart,
+                stooq_history=_history_from_stooq,
+                synthetic_history=_synthetic_history,
+                clean_price_history=clean_price_history,
+            )
+        except BaseException:
+            with PRICE_HISTORY_CACHE_LOCK:
+                PRICE_HISTORY_INFLIGHT.pop(cache_key, None)
+                in_flight.set()
+            raise
+
+        cached_frame = frame.copy(deep=True) if frame is not None else None
+        with PRICE_HISTORY_CACHE_LOCK:
+            PRICE_HISTORY_CACHE[cache_key] = {"cachedAt": time.monotonic(), "frame": cached_frame}
+            PRICE_HISTORY_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
+        return frame.copy(deep=True) if frame is not None else None
 
 
 def normalize_portfolio_ticker(value: Any) -> str:
@@ -3157,253 +3220,51 @@ def validate_market_ticker(value: Any) -> str:
 
 
 def external_research_links(ticker: str, company_name: str = "") -> list[dict[str, str]]:
-    normalized = normalize_portfolio_ticker(ticker)
-    code = normalized.replace(".T", "")
-    label_name = company_name or normalized
-    if not code:
-        return []
-    return [
-        {
-            "label": "Yahoo Finance Japan",
-            "url": f"https://finance.yahoo.co.jp/quote/{code}.T",
-            "kind": "price",
-            "note": "Price, chart, and quote reference for manual verification.",
-        },
-        {
-            "label": "Kabutan",
-            "url": f"https://kabutan.jp/stock/?code={code}",
-            "kind": "fundamental",
-            "note": "Fundamental and disclosure reference for manual verification.",
-        },
-        {
-            "label": "Minkabu",
-            "url": f"https://minkabu.jp/stock/{code}",
-            "kind": "sentiment",
-            "note": "Market sentiment reference for manual verification.",
-        },
-        {
-            "label": "TDnet\u7121\u6599RSS",
-            "url": TDNET_CODE_RSS_URL_TEMPLATE.format(code=code),
-            "kind": "disclosure",
-            "note": "Official disclosure feed for material event checks.",
-        },
-        {
-            "label": "EDINET\u691c\u7d22",
-            "url": f"https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx?searchWord={code}%20{label_name}",
-            "kind": "filing",
-            "note": "Official filing search for longer-form disclosure checks.",
-        },
-    ]
+    return build_external_research_links(
+        ticker,
+        company_name,
+        normalize_ticker=normalize_portfolio_ticker,
+        tdnet_code_url_template=TDNET_CODE_RSS_URL_TEMPLATE,
+    )
 
 
 def _parse_material_datetime(value: Any) -> str | None:
-    if not value:
-        return None
-    text = str(value)
-    try:
-        parsed = email.utils.parsedate_to_datetime(text)
-        if parsed.tzinfo:
-            parsed = parsed.astimezone(dt.timezone(dt.timedelta(hours=9))).replace(tzinfo=None)
-        return parsed.isoformat(timespec="minutes")
-    except Exception:
-        pass
-    try:
-        parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
-        if parsed.tzinfo:
-            parsed = parsed.astimezone(dt.timezone(dt.timedelta(hours=9))).replace(tzinfo=None)
-        return parsed.isoformat(timespec="minutes")
-    except Exception:
-        return text[:19]
+    return service_parse_material_datetime(value)
 
 
 def _material_age_days(published_at: str | None) -> int | None:
-    if not published_at:
-        return None
-    try:
-        parsed = dt.datetime.fromisoformat(published_at[:19])
-        return (dt.datetime.now() - parsed).days
-    except Exception:
-        return None
-
-
-def _material_tone(title: str) -> str:
-    if any(keyword.lower() in title.lower() for keyword in MATERIAL_NEGATIVE_KEYWORDS):
-        return "negative"
-    if any(keyword.lower() in title.lower() for keyword in MATERIAL_POSITIVE_KEYWORDS):
-        return "positive"
-    if any(keyword.lower() in title.lower() for keyword in MATERIAL_IMPORTANT_KEYWORDS):
-        return "important"
-    return "neutral"
-
-
-def _material_item(title: str, *, source: str, url: str = "", published_at: Any = None, kind: str = "news") -> dict[str, Any] | None:
-    title = str(title or "").strip()
-    if not title:
-        return None
-    published = _parse_material_datetime(published_at)
-    return {
-        "title": title,
-        "source": source,
-        "url": str(url or ""),
-        "publishedAt": published,
-        "ageDays": _material_age_days(published),
-        "tone": _material_tone(title),
-        "kind": kind,
-    }
-
-
-def _news_items_from_yfinance(ticker: str, limit: int = 6) -> list[dict[str, Any]]:
-    try:
-        raw_news = yf.Ticker(ticker).news or []
-    except Exception:
-        return []
-    items: list[dict[str, Any]] = []
-    for raw in raw_news:
-        content = raw.get("content", raw) if isinstance(raw, dict) else {}
-        title = content.get("title") or raw.get("title")
-        provider = (content.get("provider") or {}).get("displayName") or raw.get("publisher") or "Yahoo Finance"
-        url = (content.get("canonicalUrl") or {}).get("url") or (content.get("clickThroughUrl") or {}).get("url") or raw.get("link") or ""
-        published = content.get("pubDate") or raw.get("providerPublishTime") or ""
-        if isinstance(published, (int, float)):
-            published = dt.datetime.fromtimestamp(published).isoformat(timespec="minutes")
-        item = _material_item(title, source=provider, url=url, published_at=published, kind="news")
-        if item:
-            items.append(item)
-        if len(items) >= limit:
-            break
-    return items
+    return service_material_age_days(published_at)
 
 
 def _tdnet_recent_items(ticker: str, company_name: str = "", limit: int = 6) -> list[dict[str, Any]]:
-    code = normalize_portfolio_ticker(ticker).replace(".T", "")
-    if not code:
-        return []
-    company_key = (company_name or "").split()[0][:5]
-
-    def parse_feed(url: str, *, source: str, require_match: bool) -> list[dict[str, Any]]:
-        try:
-            response = requests.get(url, timeout=8)
-            response.raise_for_status()
-            root = ET.fromstring(response.content)
-        except Exception:
-            return []
-        parsed: list[dict[str, Any]] = []
-        for node in root.findall(".//item"):
-            title = (node.findtext("title") or "").strip()
-            description = (node.findtext("description") or "").strip()
-            haystack = f"{title} {description}"
-            if require_match and code not in haystack and (not company_key or company_key not in haystack):
-                continue
-            item = _material_item(
-                title or description,
-                source=source,
-                url=node.findtext("link") or "",
-                published_at=node.findtext("pubDate") or "",
-                kind="disclosure",
-            )
-            if item:
-                parsed.append(item)
-            if len(parsed) >= limit:
-                break
-        return parsed
-
-    code_items = parse_feed(
-        TDNET_CODE_RSS_URL_TEMPLATE.format(code=code),
-        source="TDnet\u7121\u6599RSS",
-        require_match=False,
+    return service_tdnet_recent_items(
+        ticker,
+        company_name,
+        normalize_ticker=normalize_portfolio_ticker,
+        http_get=requests.get,
+        tdnet_recent_rss_url=TDNET_RECENT_RSS_URL,
+        tdnet_code_url_template=TDNET_CODE_RSS_URL_TEMPLATE,
+        limit=limit,
     )
-    if code_items:
-        return code_items[:limit]
-    recent_items = parse_feed(
-        TDNET_RECENT_RSS_URL,
-        source="TDnet\u7121\u6599RSS",
-        require_match=True,
-    )
-    return recent_items[:limit]
 
 
 def _statement_material_item(packet: dict[str, Any] | None) -> dict[str, Any] | None:
-    statement = (packet or {}).get("latestStatement") or (packet or {}).get("statement") or (packet or {})
-    disclosed = statement.get("disclosedDate")
-    if not disclosed:
-        return None
-    doc_type = statement.get("type") or "\u8ca1\u52d9\u60c5\u5831"
-    eps = statement.get("earningsPerShare") or statement.get("forecastEarningsPerShare")
-    dividend = statement.get("forecastDividendPerShareAnnual")
-    extras = []
-    if eps not in (None, ""):
-        extras.append(f"EPS {eps}")
-    if dividend not in (None, ""):
-        extras.append(f"\u5e74\u9593\u914d\u5f53\u4e88\u60f3 {dividend}")
-    suffix = f" / {' / '.join(extras)}" if extras else ""
-    return _material_item(
-        f"J-Quants\u8ca1\u52d9 \u8ca1\u52d9\u958b\u793a: {doc_type}{suffix}",
-        source="J-Quants fins/statements",
-        published_at=disclosed,
-        kind="earnings",
-    )
+    return service_statement_material_item(packet)
 
 
 def material_events_for_ticker(ticker: str, company_name: str = "", *, include_jquants: bool = False) -> dict[str, Any]:
-    news_items = _news_items_from_yfinance(ticker)
-    disclosure_items = _tdnet_recent_items(ticker, company_name)
-    earnings_items: list[dict[str, Any]] = []
-    official_note = "TDnet\u7121\u6599RSS\u3068\u516c\u958b\u30cb\u30e5\u30fc\u30b9\u3092\u78ba\u8a8d\u3057\u307e\u3059\u3002\u6709\u6599API\u306f\u4f7f\u7528\u3057\u307e\u305b\u3093\u3002J-Quants\u8a2d\u5b9a\u6642\u306e\u307f\u88dc\u52a9\u60c5\u5831\u3092\u8ffd\u52a0\u3057\u307e\u3059\u3002"
-    if include_jquants and jquants_bridge is not None:
-        try:
-            statement_item = _statement_material_item(jquants_bridge.research_packet(ticker))
-            if statement_item:
-                earnings_items.append(statement_item)
-        except Exception:
-            pass
-    all_items = sorted(
-        [*disclosure_items, *earnings_items, *news_items],
-        key=lambda item: item.get("publishedAt") or "",
-        reverse=True,
+    research_packet = jquants_bridge.research_packet if include_jquants and jquants_bridge is not None else None
+    return build_material_events_for_ticker(
+        ticker,
+        company_name,
+        include_jquants=include_jquants,
+        normalize_ticker=normalize_portfolio_ticker,
+        yahoo_news_provider=lambda symbol: yf.Ticker(symbol).news or [],
+        http_get=requests.get,
+        tdnet_recent_rss_url=TDNET_RECENT_RSS_URL,
+        tdnet_code_url_template=TDNET_CODE_RSS_URL_TEMPLATE,
+        research_packet=research_packet,
     )
-    recent_items = [item for item in all_items if item.get("ageDays") is not None and item["ageDays"] <= 14]
-    negative = [item for item in recent_items if item.get("tone") == "negative"]
-    positive = [item for item in recent_items if item.get("tone") == "positive"]
-    important = [item for item in recent_items if item.get("tone") in {"positive", "negative", "important"}]
-    official_items = [item for item in all_items if item.get("kind") in {"disclosure", "earnings"}]
-    recent_official_items = [item for item in official_items if item.get("ageDays") is not None and item["ageDays"] <= 14]
-    if negative:
-        tone = "negative"
-        material_score = 0.0
-    elif positive:
-        tone = "positive"
-        material_score = min(1.0, 0.55 + len(positive) * 0.15 + len(disclosure_items) * 0.1)
-    elif important:
-        tone = "important"
-        material_score = 0.45
-    elif recent_items:
-        tone = "neutral"
-        material_score = 0.25
-    else:
-        tone = "unconfirmed"
-        material_score = 0.0
-    latest = all_items[0] if all_items else None
-    latest_age = latest.get("ageDays") if latest else None
-    stale_material = bool(latest_age is not None and latest_age > 14)
-    freshness_verdict = "fresh" if recent_items else "stale" if stale_material else "missing"
-    return {
-        "available": bool(all_items),
-        "materialAvailable": bool(important or positive or negative),
-        "materialScore": round(material_score, 2),
-        "tone": tone,
-        "summary": latest["title"] if latest else "No recent material event found.",
-        "latestPublishedAt": latest.get("publishedAt") if latest else None,
-        "latestAgeDays": latest_age,
-        "freshnessVerdict": freshness_verdict,
-        "recentImportantCount": len(important),
-        "officialDisclosureCount": len(official_items),
-        "recentOfficialDisclosureCount": len(recent_official_items),
-        "hasRecentImportant": bool(important or positive or negative),
-        "hasNegative": bool(negative),
-        "items": all_items[:8],
-        "sources": sorted({item["source"] for item in all_items}),
-        "officialNote": official_note,
-    }
 
 
 def _round_review_price(price: float) -> float:
@@ -3460,11 +3321,11 @@ def _portfolio_market_context() -> dict[str, Any]:
     risk_on = bool(equity_changes) and all(change >= 0.8 for change in equity_changes)
     tone = "RISK_OFF" if risk_off else "RISK_ON" if risk_on else "NORMAL"
     summary = (
-        "Nikkei/TOPIX are both weak; tighten exits and avoid averaging down."
+        "日経平均とTOPIXがともに弱いため、撤退基準を厳格にし、安易な買い増しを避けてください。"
         if risk_off
-        else "Nikkei/TOPIX are supportive; winners can be trailed while stops stay fixed."
+        else "日経平均とTOPIXがともに支えとなっています。損切り基準を維持しながら、含み益銘柄は追随管理できます。"
         if risk_on
-        else "Market tone is mixed; use stock-specific trend and risk lines."
+        else "市場全体の方向感が混在しています。銘柄固有のトレンドと撤退ラインを優先してください。"
     )
     return {"tone": tone, "riskOff": risk_off, "riskOn": risk_on, "summary": summary, "items": items}
 
@@ -3511,38 +3372,38 @@ def build_exit_plan(
     hold_allowed = True
     if current_price <= avg_cost * 0.95 or (sma25 and current_price < sma25 and mom5 < -2):
         action = "RISK_EXIT"
-        label = "Risk exit"
-        timing = "Exit review: price has breached risk controls."
+        label = "リスク撤退検討"
+        timing = "価格がリスク管理基準を下回ったため、撤退を検討します。"
         review_price = _round_review_price(current_price * 0.995)
         sell_review_shares = shares
         hold_allowed = False
     elif pnl_pct >= 8 and (current_price >= first_target * 0.985 or rsi >= 74 or market_context.get("riskOff")):
         action = "SCALE_OUT"
-        label = "Scale out"
-        timing = "Partial profit-taking review after gains or market risk."
+        label = "一部利確検討"
+        timing = "含み益または市場リスクを踏まえ、一部利確を検討します。"
         review_price = _round_review_price(max(current_price * 0.998, first_target))
     elif pnl_pct >= 14 or rsi >= 80:
         action = "TAKE_PROFIT"
-        label = "Take profit"
-        timing = "Profit-taking review after extended move."
+        label = "利確検討"
+        timing = "上昇が進んだため、利確を検討します。"
         review_price = _round_review_price(current_price * 0.998)
         sell_review_shares = shares
     elif pnl_pct > 0 and current_price <= protective_stop:
         action = "TRAIL_STOP_HIT"
-        label = "Trailing stop hit"
-        timing = "Exit review because protective stop was reached."
+        label = "追随型損切り到達"
+        timing = "保護用の損切り水準に到達したため、撤退を検討します。"
         review_price = _round_review_price(current_price * 0.995)
         sell_review_shares = shares
         hold_allowed = False
     elif mom20 > 3 and (not sma25 or current_price > sma25) and 45 <= rsi <= 76 and not market_context.get("riskOff"):
         action = "HOLD_RIDE_TREND"
         label = "\u4fdd\u6709\u7d99\u7d9a"
-        timing = "Hold while trend remains intact; review near target."
+        timing = "トレンドが維持される間は保有し、目標価格付近で見直します。"
         review_price = _round_review_price(first_target)
     else:
         action = "HOLD_WITH_STOP"
         label = "\u4fdd\u6709\u7d99\u7d9a"
-        timing = "Hold with stop discipline and review at target."
+        timing = "損切り基準を守って保有し、目標価格で見直します。"
         review_price = _round_review_price(first_target)
 
     confidence = 50
@@ -3571,19 +3432,19 @@ def build_exit_plan(
         "marketSummary": market_context.get("summary", ""),
         "marketResearch": [
             {"label": "5\u65e5\u77ed\u671f\u30c8\u30ec\u30f3\u30c9", "value": round(mom5, 2), "unit": "%"},
-            {"label": "20-day momentum", "value": round(mom20, 2), "unit": "%"},
+            {"label": "20日モメンタム", "value": round(mom20, 2), "unit": "%"},
             {"label": "RSI", "value": round(rsi, 1), "unit": ""},
-            {"label": "ATR", "value": round(atr, 1), "unit": "JPY"},
-            {"label": "Profit/loss", "value": round(pnl_pct, 2), "unit": "%"},
-            {"label": "25-day SMA", "value": round(sma25 or 0, 1), "unit": "JPY"},
+            {"label": "ATR", "value": round(atr, 1), "unit": "円"},
+            {"label": "損益率", "value": round(pnl_pct, 2), "unit": "%"},
+            {"label": "25日移動平均", "value": round(sma25 or 0, 1), "unit": "円"},
         ],
         "rules": [
-            "8%+ gain or elevated RSI triggers scale-out review.",
-            "Weak momentum or stop breach triggers exit review.",
-            "25-day SMA and trailing stop are risk controls.",
-            "RISK_OFF market context reduces hold confidence.",
+            "含み益が8%以上、またはRSIが高い場合は一部利確を検討します。",
+            "モメンタム低下や損切り水準割れでは撤退を検討します。",
+            "25日移動平均と追随型損切りをリスク管理に使用します。",
+            "市場がリスク回避局面の場合は、保有継続の信頼度を下げます。",
         ],
-        "disclaimer": "Simulator-only exit plan. No broker order is sent.",
+        "disclaimer": "シミュレーション専用の撤退計画です。証券会社へ注文は送信されません。",
     }
 
 def build_history_context(hist: pd.DataFrame | None, material: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -3695,11 +3556,11 @@ class TechnicalAnalyzer:
         if not current_price or not buy_limit or not stop_loss:
             return {
                 "decision": "WATCH",
-                "label": "Watch",
-                "headline": "Insufficient technical data",
-                "plainReason": "Price data is insufficient for an execution plan.",
-                "entryCondition": "Wait for valid price, stop, and target levels.",
-                "avoidCondition": "Avoid action until data is complete.",
+                "label": "監視継続",
+                "headline": "テクニカルデータが不足しています",
+                "plainReason": "実行計画を作るための価格データが不足しています。",
+                "entryCondition": "有効な価格、損切り、利確目標がそろうまで待ちます。",
+                "avoidCondition": "データがそろうまでは判断を見送ります。",
                 "entryGapPct": 0,
                 "maxChasePrice": 0,
                 "riskPerShare": 0,
@@ -3717,34 +3578,34 @@ class TechnicalAnalyzer:
 
         if raw_is_sell:
             decision = "AVOID"
-            label = "Avoid"
-            headline = "Technical sell signal"
-            plain_reason = "The technical signal is negative, so no entry is allowed."
-            entry_condition = "No entry; wait for a new setup."
+            label = "見送り"
+            headline = "テクニカルは売り方向"
+            plain_reason = "テクニカルが弱いため、新規エントリーは見送ります。"
+            entry_condition = "エントリーせず、新しい条件が整うまで待ちます。"
         elif raw_is_buy and confidence >= 68 and -1.5 <= entry_gap_pct <= 0.35:
             decision = "DAYTRADE_ENTRY_OK"
-            label = "Daytrade entry review"
-            headline = "Entry setup is close to the limit price"
-            plain_reason = "Momentum and confidence are high enough for manual daytrade review."
-            entry_condition = f"Entry near {buy_limit:,.0f} after manual confirmation."
+            label = "デイトレ候補を確認"
+            headline = "参考指値に近い状態です"
+            plain_reason = "勢いと信頼度が一定水準にあり、手入力前の確認候補です。"
+            entry_condition = f"手作業で確認後、{buy_limit:,.0f}円付近を参考にします。"
         elif raw_is_buy and entry_gap_pct < -1.5:
             decision = "REPRICE_FOR_DAYTRADE"
-            label = "Reprice for daytrade"
-            headline = "Limit price is too far from current price"
-            plain_reason = f"Entry gap is {entry_gap_pct:+.2f}%, so the setup needs repricing."
-            entry_condition = "Recalculate the limit after the price stabilizes."
+            label = "参考指値を再計算"
+            headline = "参考指値が現在値から離れています"
+            plain_reason = f"現在値との差が {entry_gap_pct:+.2f}% あるため、参考指値の見直しが必要です。"
+            entry_condition = "値動きが落ち着いてから参考指値を再計算します。"
         elif raw_is_buy and confidence >= 60:
             decision = "BUY_LIMIT_OK"
-            label = "Buy limit review"
-            headline = "Buy setup requires limit-only review"
-            plain_reason = "The signal is constructive but not strong enough for aggressive entry."
-            entry_condition = f"Use a limit around {buy_limit:,.0f} after manual confirmation."
+            label = "指値候補を確認"
+            headline = "指値を前提に確認します"
+            plain_reason = "方向性は良好ですが、積極的なエントリーを裏付けるほど強くありません。"
+            entry_condition = f"手作業で確認後、{buy_limit:,.0f}円付近の指値を参考にします。"
         else:
             decision = "WATCH"
-            label = "Watch"
-            headline = "No actionable entry"
-            plain_reason = "The setup does not meet the confidence or entry-gap requirements."
-            entry_condition = "Wait for stronger evidence or a better price."
+            label = "監視継続"
+            headline = "現時点ではエントリー条件未達"
+            plain_reason = "信頼度または現在値との差が基準を満たしていません。"
+            entry_condition = "より強い根拠または条件の良い価格を待ちます。"
 
         return {
             "decision": decision,
@@ -3752,7 +3613,7 @@ class TechnicalAnalyzer:
             "headline": headline,
             "plainReason": plain_reason,
             "entryCondition": entry_condition,
-            "avoidCondition": f"Cut the idea if stop {stop_loss:,.0f} is breached or liquidity deteriorates.",
+            "avoidCondition": f"撤退ライン {stop_loss:,.0f}円を下回る、または流動性が悪化した場合は見送ります。",
             "entryGapPct": round(entry_gap_pct, 2),
             "maxChasePrice": round(float(buy_limit * 1.015), 1),
             "riskPerShare": round(float(max(buy_limit - stop_loss, 0)), 1),
@@ -3764,7 +3625,7 @@ class TechnicalAnalyzer:
     @classmethod
     def analyze(cls, prices: list[float], current_price: float) -> dict[str, Any]:
         if len(prices) < 5 or not math.isfinite(current_price):
-            return {"signal": "HOLD", "confidence": 30, "reason": "Insufficient price history.", "technicalSummary": "Insufficient price history.", "indicators": {}, "strategy": {}, "execution": cls.build_execution_plan("HOLD", 30, current_price, current_price, current_price, current_price)}
+            return {"signal": "HOLD", "confidence": 30, "reason": "価格履歴が不足しています。", "technicalSummary": "価格履歴が不足しています。", "indicators": {}, "strategy": {}, "execution": cls.build_execution_plan("HOLD", 30, current_price, current_price, current_price, current_price)}
         sma5 = cls.calculate_sma(prices, 5)
         sma25 = cls.calculate_sma(prices, 25)
         sma75 = cls.calculate_sma(prices, 75)
@@ -3776,19 +3637,19 @@ class TechnicalAnalyzer:
         reasons = []
         if sma5 and sma25 and current_price > sma5 > sma25:
             score += 3
-            reasons.append("Price is above short and medium moving averages.")
+            reasons.append("現在値が短期・中期移動平均線を上回っています。")
         if sma75 and current_price > sma75:
             score += 1
-            reasons.append("Price is above the long moving average.")
+            reasons.append("現在値が長期移動平均線を上回っています。")
         if mom5 > 1 and mom20 > 5 and 45 <= rsi <= 75:
             score += 4
-            reasons.append(f"Momentum is positive: 5d {mom5:+.2f}%, 20d {mom20:+.2f}%.")
+            reasons.append(f"モメンタムは強めです: 5日 {mom5:+.2f}%、20日 {mom20:+.2f}%。")
         elif mom5 > 0 and mom20 > 0 and rsi < 78:
             score += 2
-            reasons.append(f"Momentum is mildly positive: 5d {mom5:+.2f}%, 20d {mom20:+.2f}%.")
+            reasons.append(f"モメンタムはやや上向きです: 5日 {mom5:+.2f}%、20日 {mom20:+.2f}%。")
         if rsi > 80:
             score -= 3
-            reasons.append("RSI is overheated; reduce conviction.")
+            reasons.append("RSIが過熱圏にあるため、判断の確度を下げます。")
 
         if score >= 6:
             signal, confidence = "STRONG_BUY", min(95, 62 + score * 4)
@@ -3811,7 +3672,7 @@ class TechnicalAnalyzer:
 
         rr = (sell_limit - buy_limit) / max(buy_limit - stop_loss, 0.01)
         execution = cls.build_execution_plan(signal, confidence, current_price, buy_limit, sell_limit, stop_loss)
-        no_signal = "No decisive technical signal."
+        no_signal = "明確なテクニカルシグナルは確認できません。"
         return {
             "signal": signal,
             "confidence": round(confidence, 1),
@@ -3828,6 +3689,7 @@ class TechnicalAnalyzer:
         }
 
 def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
+    ranking_metrics = info.get("ranking_metrics") or {}
     hist = get_stock_data(ticker, period="6mo", interval="1d")
     if hist is None or hist.empty:
         price = 0
@@ -3848,6 +3710,8 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
     source_flags = _data_source_flags(hist.attrs.get("source", "unknown") if hist is not None else "unknown", quality.get("dataQuality") if quality else None)
     preopen_report = preopen_for_ticker(ticker, info, hist if hist is not None and not hist.empty else None)
     live_score = preopen_report["score"] if preopen_report else (quality["qualityScore"] if quality else analysis["confidence"])
+    if ranking_metrics and not quality:
+        live_score = max(live_score, _finite(ranking_metrics.get("qualityScore", ranking_metrics.get("surgeScore", 0))))
     if quality and not _candidate_data_quality_ok(quality.get("dataQuality")):
         live_score = min(live_score, quality["qualityScore"])
     live_reason = " / ".join(preopen_report["keyReasons"][:2]) if preopen_report else analysis["reason"]
@@ -3870,12 +3734,22 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
         "rrRatio": analysis["strategy"]["rr_ratio"],
         "entryGapPct": analysis["execution"]["entryGapPct"],
         "candidateScore": live_score,
+        "changePct": _finite(ranking_metrics.get("changePct", analysis["execution"]["entryGapPct"])),
+        "surgeScore": _finite(ranking_metrics.get("surgeScore", live_score)),
+        "volumeRatio": _finite(ranking_metrics.get("volumeRatio", 0)),
+        "volume": int(_finite(ranking_metrics.get("volume", ranking_metrics.get("volumeRatio", 0) * 100000))),
+        "turnoverJpy": int(_finite(ranking_metrics.get("turnoverJpy", ranking_metrics.get("volumeRatio", 0) * max(price, 1) * 100000))),
+        "popularityScore": _finite(ranking_metrics.get("popularityScore", live_score)),
+        "overheatRisk": _finite(ranking_metrics.get("overheatRisk", 0)),
+        "high20Breakout": bool(ranking_metrics.get("high20Breakout", False)),
+        "ytdHighBreakout": bool(ranking_metrics.get("ytdHighBreakout", False)),
+        "surgeFlags": ["20日高値更新"] if ranking_metrics.get("high20Breakout") else [],
         "candidateReason": live_reason,
         "publishedCandidateScore": info.get("candidate_score"),
         "publishedCandidateReason": info.get("candidate_reason"),
         "candidateRank": info.get("candidate_rank"),
         "mustInclude": bool(info.get("must_include")),
-        "candidateQuality": quality,
+        "candidateQuality": quality or ({"qualityScore": _finite(ranking_metrics.get("qualityScore", 0))} if ranking_metrics else None),
         "dataQuality": quality.get("dataQuality") if quality else None,
         **source_flags,
         "externalLinks": external_research_links(ticker, info.get("name", ticker)),
@@ -3913,7 +3787,13 @@ def get_db() -> sqlite3.Connection:
     return conn
 
 
-app = FastAPI(title="Zen Stock Prophet Pro", version="1.0.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Zen Stock Prophet Pro", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_CORS_ORIGINS,
@@ -3922,12 +3802,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
-
 
 @app.get("/api/stocks")
 def get_stocks() -> list[dict[str, Any]]:
@@ -3938,43 +3812,13 @@ def get_stocks() -> list[dict[str, Any]]:
 
 @app.get("/api/market/universe")
 def market_universe() -> dict[str, Any]:
-    universe = load_market_universe()
-    market_counts: dict[str, int] = {}
-    sector_counts: dict[str, int] = {}
-    for info in universe.values():
-        market = info.get("market_section") or "Unknown"
-        sector = info.get("sector") or "Unknown"
-        market_counts[market] = market_counts.get(market, 0) + 1
-        sector_counts[sector] = sector_counts.get(sector, 0) + 1
-    snapshot = _load_market_snapshot()
-    snapshot_items = _market_snapshot_items(snapshot)
-    sample = [
-        _market_search_item(
-            item["ticker"],
-            universe.get(item["ticker"], {"name": item.get("name", item["ticker"]), "market_section": item.get("marketSection", ""), "sector": item.get("sector", "")}),
-            item,
-        )
-        for item in snapshot_items[:12]
-        if item.get("ticker")
-    ]
-    if not sample:
-        sample = [
-            _market_search_item(ticker, info)
-            for ticker, info in list(universe.items())[:12]
-        ]
-    return {
-        "count": len(universe),
-        "source": JPX_UNIVERSE_PATH or JPX_LISTED_ISSUES_URL,
-        "provider": "JPX listed issue master",
-        "markets": sorted(market_counts.items(), key=lambda item: item[1], reverse=True)[:12],
-        "sectors": sorted(sector_counts.items(), key=lambda item: item[1], reverse=True)[:24],
-        "sample": sample,
-        "snapshot": {
-            "generatedAt": snapshot.get("generatedAt") if snapshot else None,
-            "analyzedCount": snapshot.get("analyzedCount") if snapshot else 0,
-            "provider": snapshot.get("provider") if snapshot else None,
-        },
-    }
+    return build_market_universe_response(
+        load_market_universe=load_market_universe,
+        load_market_snapshot=_load_market_snapshot,
+        market_snapshot_items=_market_snapshot_items,
+        market_search_item=_market_search_item,
+        universe_source=JPX_UNIVERSE_PATH or JPX_LISTED_ISSUES_URL,
+    )
 
 
 @app.get("/api/market/search")
@@ -3984,47 +3828,69 @@ def market_search(
     sector: str = Query("", max_length=80),
     limit: int = Query(50, ge=1, le=150),
 ) -> dict[str, Any]:
-    universe = load_market_universe()
-    query = q.strip().lower()
-    market_filter = market.strip().lower()
-    sector_filter = sector.strip().lower()
-    snapshot = _load_market_snapshot() or {}
-    snapshot_list = _market_snapshot_items(snapshot)
-    snapshot_items = {item["ticker"]: item for item in snapshot_list if item.get("ticker")}
-    ordered_tickers = [item["ticker"] for item in snapshot_list if item.get("ticker")]
-    if not query and not market_filter and not sector_filter and ordered_tickers:
-        seen = set(ordered_tickers)
-        universe_entries = [
-            (ticker, universe[ticker])
-            for ticker in ordered_tickers
-            if ticker in universe
-        ] + [
-            (ticker, info)
-            for ticker, info in universe.items()
-            if ticker not in seen
-        ]
-    else:
-        universe_entries = list(universe.items())
-    matched_entries = []
-    for ticker, info in universe_entries:
-        haystack = " ".join([
-            ticker,
-            ticker.replace(".T", ""),
-            str(info.get("name", "")),
-            str(info.get("market_section", "")),
-            str(info.get("sector", "")),
-        ]).lower()
-        if query and query not in haystack:
+    return build_market_search_response(
+        query=q,
+        market=market,
+        sector=sector,
+        limit=limit,
+        load_market_universe=load_market_universe,
+        load_market_snapshot=_load_market_snapshot,
+        market_snapshot_items=_market_snapshot_items,
+        hydrate_market_search_prices=_hydrate_market_search_prices,
+    )
+
+
+def _get_or_build_market_rankings(
+    *,
+    kind: str,
+    budget: int,
+    limit: int,
+    build: Callable[[], dict[str, Any]],
+) -> dict[str, Any]:
+    cache_key = f"{kind}:{budget}:{limit}"
+
+    while True:
+        now = dt.datetime.now(dt.timezone.utc)
+        with MARKET_REVIEW_CACHE_LOCK:
+            cached = MARKET_REVIEW_CACHE.get(cache_key)
+            if cached:
+                cached_at = cached.get("cachedAt")
+                age_sec = (
+                    (now - cached_at).total_seconds()
+                    if isinstance(cached_at, dt.datetime)
+                    else MARKET_REVIEW_CACHE_TTL_SEC + 1
+                )
+                if age_sec <= MARKET_REVIEW_CACHE_TTL_SEC:
+                    return cached.get("payload") or {}
+
+            in_flight = MARKET_REVIEW_INFLIGHT.get(cache_key)
+            if in_flight is None:
+                in_flight = threading.Event()
+                MARKET_REVIEW_INFLIGHT[cache_key] = in_flight
+                is_owner = True
+            else:
+                is_owner = False
+
+        if not is_owner:
+            in_flight.wait()
             continue
-        if market_filter and market_filter not in str(info.get("market_section", "")).lower():
-            continue
-        if sector_filter and sector_filter not in str(info.get("sector", "")).lower():
-            continue
-        matched_entries.append((ticker, info))
-        if len(matched_entries) >= limit:
-            break
-    results = _hydrate_market_search_prices(matched_entries, snapshot_items)
-    return {"query": q, "count": len(results), "items": results}
+
+        try:
+            payload = build()
+        except BaseException:
+            with MARKET_REVIEW_CACHE_LOCK:
+                MARKET_REVIEW_INFLIGHT.pop(cache_key, None)
+                in_flight.set()
+            raise
+
+        with MARKET_REVIEW_CACHE_LOCK:
+            MARKET_REVIEW_CACHE[cache_key] = {
+                "cachedAt": dt.datetime.now(dt.timezone.utc),
+                "payload": payload,
+            }
+            MARKET_REVIEW_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
+        return payload
 
 
 @app.get("/api/market/rankings")
@@ -4033,126 +3899,43 @@ def market_rankings(
     limit: int = Query(30, ge=1, le=100),
     budget: int = Query(DEFAULT_INTRADAY_BUDGET_JPY, ge=100_000, le=10_000_000),
 ) -> dict[str, Any]:
-    market_status = tokyo_market_status()
-    if kind == "gainers":
-        try:
-            yahoo_items = _yahoo_finance_gainers(limit)
-        except Exception:
-            yahoo_items = []
-        if yahoo_items:
-            context_snapshot = _load_market_snapshot()
-            context_freshness = _market_context_freshness(context_snapshot)
-            context_items = _market_context_items_from_snapshot(context_snapshot, context_freshness)
-            context_integrity = _market_context_integrity(
-                context_snapshot,
-                context_freshness,
-                context_items,
-                required=True,
-                source_policy="yahoo_order_full_market_regime",
-            )
-            material_count = min(6, len(yahoo_items))
-            yahoo_items = _attach_market_master_metadata(yahoo_items)
-            visible_items = [_market_quality_overlay(item) for item in (_attach_material_events(yahoo_items[:material_count]) + yahoo_items[material_count:])]
-            visible_items = _attach_candidate_quality(visible_items)
-            visible_items = _attach_market_relative_context(
-                visible_items,
-                context_items,
-                fallback_to_items=False,
-                context_integrity=context_integrity,
-            )
-            candidate_ranked = _rank_with_material_refresh(
-                visible_items,
-                budget,
-                preserve_rank=True,
-                refresh_limit=min(limit, 12),
-            )
-            candidate_ranked = _attach_advanced_cross_engine_checks(
-                candidate_ranked,
-                limit=min(limit, 3),
-                budget_jpy=budget,
-            )
-            candidate_ranked = _rank_by_audited_opportunity(candidate_ranked, preserve_rank=True)
-            require_cross_engine_best = any(
-                item.get("advancedCrossEngineCheck") or (item.get("intradayOpportunity") or {}).get("advancedCrossEngineCheck")
-                for item in candidate_ranked
-            )
-            best_source = _select_best_ranked_opportunity(
-                candidate_ranked,
-                require_cross_engine_check=require_cross_engine_best,
-            )
-            best_available = _select_best_available_opportunity(candidate_ranked, best_source)
-            yahoo_ordered_items = sorted(candidate_ranked, key=lambda item: _finite(item.get("siteRank") or item.get("rank") or 999999))
-            return _json_safe({
-                "kind": kind,
-                "budgetJpy": budget,
-                "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
-                "source": YAHOO_FINANCE_GAINERS_URL,
-                "provider": "Yahoo Finance Japan gainers ranking",
-                "universeCount": 0,
-                "analyzedCount": len(yahoo_items),
-                "marketContextProvider": context_snapshot.get("provider") if context_snapshot else None,
-                "marketContextCount": len(context_items),
-                "marketContextGeneratedAt": context_freshness.get("generatedAt"),
-                "marketContextAgeDays": context_freshness.get("ageDays"),
-                "marketContextStale": context_freshness.get("stale"),
-                "marketContextIntegrity": context_integrity,
-                "marketStatus": market_status,
-                "bestOpportunity": best_source,
-                "bestAvailableOpportunity": best_available,
-                "items": yahoo_ordered_items,
-            })
-    snapshot = _load_market_snapshot()
-    if not snapshot:
-        fallback_universe = {**FALLBACK_CANDIDATE_POOL, **STOCKS}
-        live_items = [_market_item_from_stock_payload(_stock_payload(ticker, info)) for ticker, info in fallback_universe.items()]
-        universe = load_market_universe()
-        snapshot = _snapshot_payload(live_items, len(universe), "live_watchlist_fallback")
-    rankings = snapshot.get("rankings") or {}
-    items = [_market_quality_overlay(item) for item in (rankings.get(kind) or [])]
-    if kind in {"surge", "breakout", "popular", "volume", "quality", "overheat"}:
-        items = _rank_market_items(items, kind)
-    context_source = _market_snapshot_items(snapshot)
-    candidate_pool = items[: min(len(items), max(limit * 3, limit, 30))]
-    visible_raw = candidate_pool
-    material_count = min(6, len(visible_raw))
-    visible_items = _attach_material_events(visible_raw[:material_count]) + visible_raw[material_count:]
-    visible_items = _attach_candidate_quality(visible_items)
-    visible_items = _attach_market_relative_context(visible_items, context_source)
-    ranked_enriched_items = _rank_with_material_refresh(
-        visible_items,
-        budget,
-        refresh_limit=min(limit, 12),
+    return _get_or_build_market_rankings(
+        kind=kind,
+        budget=budget,
+        limit=limit,
+        build=lambda: build_market_rankings_response(
+            kind=kind,
+            limit=limit,
+            budget=budget,
+            market_status=tokyo_market_status(),
+            load_market_snapshot=_load_market_snapshot,
+            load_market_universe=load_market_universe,
+            market_snapshot_items=_market_snapshot_items,
+            market_context_freshness=_market_context_freshness,
+            market_context_items_from_snapshot=_market_context_items_from_snapshot,
+            market_context_integrity=_market_context_integrity,
+            attach_market_master_metadata=_attach_market_master_metadata,
+            market_quality_overlay=_market_quality_overlay,
+            attach_material_events=_attach_material_events,
+            attach_candidate_quality=_attach_candidate_quality,
+            attach_market_relative_context=_attach_market_relative_context,
+            rank_with_material_refresh=_rank_with_material_refresh,
+            attach_advanced_cross_engine_checks=_attach_advanced_cross_engine_checks,
+            rank_by_audited_opportunity=_rank_by_audited_opportunity,
+            rank_market_items=_rank_market_items,
+            select_best_ranked_opportunity=_select_best_ranked_opportunity,
+            select_best_available_opportunity=_select_best_available_opportunity,
+            yahoo_finance_gainers=_yahoo_finance_gainers,
+            data_source_flags=_data_source_flags,
+            json_safe=_json_safe,
+            fallback_candidate_pool=FALLBACK_CANDIDATE_POOL,
+            stocks=STOCKS,
+            market_item_from_stock_payload=_market_item_from_stock_payload,
+            stock_payload=_stock_payload,
+            snapshot_payload=_snapshot_payload,
+            yahoo_finance_gainers_url=YAHOO_FINANCE_GAINERS_URL,
+        ),
     )
-    ranked_enriched_items = _attach_advanced_cross_engine_checks(
-        ranked_enriched_items,
-        limit=min(limit, 3),
-        budget_jpy=budget,
-    )
-    ranked_enriched_items = _rank_by_audited_opportunity(ranked_enriched_items)
-    visible_ranked_items = ranked_enriched_items[:limit]
-    require_cross_engine_best = any(
-        item.get("advancedCrossEngineCheck") or (item.get("intradayOpportunity") or {}).get("advancedCrossEngineCheck")
-        for item in ranked_enriched_items
-    )
-    best_source = _select_best_ranked_opportunity(
-        ranked_enriched_items,
-        require_cross_engine_check=require_cross_engine_best,
-    )
-    best_available = _select_best_available_opportunity(ranked_enriched_items, best_source)
-    return _json_safe({
-        "kind": kind,
-        "budgetJpy": budget,
-        "generatedAt": snapshot.get("generatedAt"),
-        "source": snapshot.get("source"),
-        "provider": snapshot.get("provider"),
-        **_data_source_flags(snapshot.get("source"), cached=bool(snapshot.get("isCached") or snapshot.get("is_cached") or snapshot.get("cache"))),
-        "universeCount": snapshot.get("universeCount", 0),
-        "analyzedCount": snapshot.get("analyzedCount", 0),
-        "marketStatus": market_status,
-        "bestOpportunity": best_source,
-        "bestAvailableOpportunity": best_available,
-        "items": visible_ranked_items,
-    })
 
 
 @app.get("/api/ai-fund/desk")
@@ -4160,8 +3943,8 @@ def ai_fund_desk(
     budget: int = Query(DEFAULT_INTRADAY_BUDGET_JPY, ge=100_000, le=10_000_000),
     kind: str = Query("surge", pattern="^(surge|breakout|volume|quality|popular|overheat|gainers)$"),
 ) -> dict[str, Any]:
-    ranked_items, strict_best, best_available, generated_at = _market_review_candidates_for_budget(budget, kind=kind)
-    best_opportunity = best_available or strict_best
+    ranked_items, strict_best, _best_available, generated_at = _market_review_candidates_for_budget(budget, kind=kind)
+    best_opportunity = strict_best
     portfolio = get_portfolio()
     return _ai_fund_desk_payload(
         best_opportunity=best_opportunity,
@@ -4294,132 +4077,42 @@ def get_stock_detail(ticker: str) -> dict[str, Any]:
 def get_preopen_analysis(ticker: str) -> dict[str, Any]:
     ticker = validate_market_ticker(ticker)
     info = STOCKS.get(ticker) or FALLBACK_CANDIDATE_POOL.get(ticker) or {"name": ticker, "emoji": "STK"}
-    material = material_events_for_ticker(ticker, info.get("name", ticker), include_jquants=True)
-    report = preopen_for_ticker(
-        ticker,
-        info,
-        optional_feeds={
-            "materialAvailable": material.get("materialAvailable"),
-            "materialScore": material.get("materialScore"),
-        },
+    return build_preopen_analysis_response(
+        ticker=ticker,
+        info=info,
+        material_events_for_ticker=material_events_for_ticker,
+        preopen_for_ticker=preopen_for_ticker,
     )
-    if report is None:
-        raise HTTPException(status_code=503, detail="Pre-open scoring engine unavailable")
-    report["material"] = material
-    return report
 
 
 @app.get("/api/analysis/advanced/{ticker}")
 def get_advanced_analysis(ticker: str) -> dict[str, Any]:
     ticker = validate_market_ticker(ticker)
-    if build_advanced_report is None:
-        raise HTTPException(status_code=503, detail="Advanced analysis engine unavailable")
-    hist = get_stock_data(ticker, period="1y", interval="1d")
-    if hist is None or hist.empty:
-        raise HTTPException(status_code=404, detail="No stock data")
-    try:
-        return build_advanced_report(ticker, hist, capital_jpy=INITIAL_CASH, risk_pct=1.0)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return build_advanced_analysis_response(
+        ticker=ticker,
+        get_stock_data=get_stock_data,
+        build_advanced_report=build_advanced_report,
+        initial_cash=INITIAL_CASH,
+    )
 
 
 @app.get("/api/portfolio")
 def get_portfolio() -> dict[str, Any]:
-    init_db()
-    conn = get_db()
-    row = conn.execute("SELECT cash FROM portfolio ORDER BY id DESC LIMIT 1").fetchone()
-    holdings = conn.execute("SELECT * FROM holdings WHERE shares > 0 AND status = ? ORDER BY updated_at DESC", (PORTFOLIO_ACTIVE,)).fetchall()
-    archived_holdings = conn.execute(
-        """
-        SELECT * FROM holdings
-        WHERE status IN (?, ?, ?)
-        ORDER BY COALESCE(closed_at, updated_at) DESC, ticker ASC
-        LIMIT 20
-        """,
-        (PORTFOLIO_SOLD, PORTFOLIO_VOIDED, PORTFOLIO_ARCHIVED),
-    ).fetchall()
-    conn.close()
-    cash = float(row["cash"]) if row else INITIAL_CASH
-    holding_items = []
-    total_value = 0.0
-    total_cost = 0.0
-    market_context = _portfolio_market_context()
-    for holding in holdings:
-        ticker = holding["ticker"]
-        info = STOCKS.get(ticker) or FALLBACK_CANDIDATE_POOL.get(ticker) or {"name": ticker}
-        hist = get_stock_data(ticker, period="6mo", interval="1d")
-        if hist is not None and not hist.empty:
-            price = _finite(hist["Close"].iloc[-1])
-            data_quality = _candidate_data_quality(hist, hist["Close"].tolist(), hist["Volume"].tolist())
-        else:
-            price = _finite(holding["avg_cost"])
-            data_quality = _candidate_data_quality(None)
-        source_flags = _data_source_flags(hist.attrs.get("source", "unknown") if hist is not None else "unknown", data_quality)
-        shares = int(holding["shares"])
-        avg_cost = _finite(holding["avg_cost"])
-        value = price * holding["shares"]
-        entry_notional = avg_cost * shares
-        pnl = value - entry_notional
-        pnl_pct = (pnl / entry_notional * 100) if entry_notional else 0
-        total_value += value
-        total_cost += entry_notional
-        name = holding["manual_name"] or info.get("name", ticker)
-        holding_items.append({
-            "ticker": ticker,
-            "name": name,
-            "emoji": info.get("emoji", "JP"),
-            "shares": shares,
-            "status": holding["status"],
-            "avgCost": round(avg_cost, 1),
-            "entryNotional": round(entry_notional, 1),
-            "price": round(price, 1),
-            "currentPrice": round(price, 1),
-            "dataQuality": data_quality,
-            **source_flags,
-            "value": round(value, 1),
-            "pnl": round(pnl, 1),
-            "pnlPct": round(pnl_pct, 2),
-            "updatedAt": holding["updated_at"],
-            "closedAt": holding["closed_at"],
-            "lifecycleReason": holding["lifecycle_reason"],
-            "exitPlan": build_exit_plan(
-                ticker=ticker,
-                shares=shares,
-                avg_cost=avg_cost,
-                hist=hist,
-                market_context=market_context,
-            ),
-        })
-    archived_items = []
-    for holding in archived_holdings:
-        ticker = holding["ticker"]
-        info = STOCKS.get(ticker) or FALLBACK_CANDIDATE_POOL.get(ticker) or {"name": ticker}
-        archived_items.append({
-            "ticker": ticker,
-            "name": holding["manual_name"] or info.get("name", ticker),
-            "emoji": info.get("emoji", "JP"),
-            "shares": int(holding["shares"] or 0),
-            "avgCost": round(_finite(holding["avg_cost"]), 1),
-            "status": holding["status"],
-            "updatedAt": holding["updated_at"],
-            "closedAt": holding["closed_at"],
-            "lifecycleReason": holding["lifecycle_reason"],
-        })
-    history = [{"date": str((dt.date.today() - dt.timedelta(days=idx)).isoformat()), "value": INITIAL_CASH + idx * 1500} for idx in range(30, 0, -1)]
-    total_assets = cash + total_value
-    total_pnl = total_value - total_cost
-    total_pnl_pct = (total_pnl / total_cost * 100) if total_cost else 0
-    return {
-        "cash": round(cash, 1),
-        "holdings": holding_items,
-        "archivedHoldings": archived_items,
-        "totalAssets": round(total_assets, 1),
-        "totalPnl": round(total_pnl, 1),
-        "totalPnlPct": round(total_pnl_pct, 2),
-        "initialCash": INITIAL_CASH,
-        "marketContext": market_context,
-        "history": history,
-    }
+    return build_portfolio_response(
+        init_db=init_db,
+        get_db=get_db,
+        get_stock_data=get_stock_data,
+        candidate_data_quality=_candidate_data_quality,
+        data_source_flags=_data_source_flags,
+        portfolio_market_context=_portfolio_market_context,
+        build_exit_plan=build_exit_plan,
+        finite=_finite,
+        stocks=STOCKS,
+        fallback_candidate_pool=FALLBACK_CANDIDATE_POOL,
+        portfolio_active=PORTFOLIO_ACTIVE,
+        portfolio_closed_statuses=(PORTFOLIO_SOLD, PORTFOLIO_VOIDED, PORTFOLIO_ARCHIVED),
+        initial_cash=INITIAL_CASH,
+    )
 
 
 @app.get("/api/transactions")
@@ -4593,61 +4286,14 @@ class PortfolioLifecycleRequest(BaseModel):
 
 
 def _record_manual_position(request: PortfolioPositionRequest) -> dict[str, Any]:
-    ticker = normalize_portfolio_ticker(request.ticker)
-    shares = int(request.shares or 0)
-    entry_price = _finite(request.entryPrice)
-    if not ticker:
-        raise HTTPException(status_code=400, detail="ticker is required")
-    if shares <= 0:
-        raise HTTPException(status_code=400, detail="shares must be positive")
-    if entry_price <= 0:
-        raise HTTPException(status_code=400, detail="entryPrice must be positive")
-
-    init_db()
-    conn = get_db()
-    existing = conn.execute("SELECT shares, avg_cost FROM holdings WHERE ticker = ?", (ticker,)).fetchone()
-    current_shares = int(existing["shares"]) if existing else 0
-    current_avg = _finite(existing["avg_cost"]) if existing else 0
-    next_shares = current_shares + shares
-    next_avg = ((current_shares * current_avg) + (shares * entry_price)) / next_shares
-    now = dt.datetime.now(dt.timezone.utc).isoformat()
-    conn.execute(
-        """
-        INSERT INTO holdings (ticker, shares, avg_cost, manual_name, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(ticker) DO UPDATE SET
-            shares = excluded.shares,
-            avg_cost = excluded.avg_cost,
-            manual_name = COALESCE(excluded.manual_name, holdings.manual_name),
-            status = 'ACTIVE',
-            lifecycle_reason = NULL,
-            closed_at = NULL,
-            updated_at = excluded.updated_at
-        """,
-        (ticker, next_shares, next_avg, request.name, now),
+    return record_manual_position(
+        request,
+        normalize_portfolio_ticker=normalize_portfolio_ticker,
+        finite=_finite,
+        init_db=init_db,
+        get_db=get_db,
+        initial_cash=INITIAL_CASH,
     )
-    row = conn.execute("SELECT cash FROM portfolio ORDER BY id DESC LIMIT 1").fetchone()
-    cash = float(row["cash"]) if row else INITIAL_CASH
-    total = shares * entry_price
-    conn.execute("UPDATE portfolio SET cash = ?", (max(cash - total, 0),))
-    conn.execute(
-        "INSERT INTO transactions (ticker, action, shares, price, total, reason) VALUES (?, ?, ?, ?, ?, ?)",
-        (ticker, "MANUAL_BUY", shares, entry_price, total, request.note or "manual portfolio entry"),
-    )
-    conn.execute(
-        "INSERT INTO agent_logs (message) VALUES (?)",
-        (f"Recorded manual holding {ticker} {shares} shares at {entry_price:.1f}. Simulator-only; no broker order.",),
-    )
-    conn.commit()
-    conn.close()
-    return {
-        "success": True,
-        "mode": "SIMULATOR_ONLY",
-        "message": f"Recorded {ticker} {shares} shares at {entry_price:.1f}. No broker order was sent.",
-        "ticker": ticker,
-        "shares": next_shares,
-        "avgCost": round(next_avg, 1),
-    }
 
 
 @app.post("/api/portfolio/positions")
@@ -4657,75 +4303,20 @@ def save_portfolio_position(request: PortfolioPositionRequest) -> dict[str, Any]
 
 @app.post("/api/portfolio/positions/{ticker}/lifecycle")
 def update_portfolio_position_lifecycle(ticker: str, request: PortfolioLifecycleRequest) -> dict[str, Any]:
-    normalized = normalize_portfolio_ticker(ticker)
-    action = (request.action or "").strip().upper()
-    if action not in PORTFOLIO_CLOSED_STATUSES:
-        raise HTTPException(status_code=400, detail="action must be SOLD, VOIDED, or ARCHIVED")
-
-    init_db()
-    conn = get_db()
-    holding = conn.execute("SELECT * FROM holdings WHERE ticker = ?", (normalized,)).fetchone()
-    if not holding or int(holding["shares"] or 0) <= 0:
-        conn.close()
-        raise HTTPException(status_code=404, detail="active holding not found")
-    if holding["status"] != PORTFOLIO_ACTIVE:
-        conn.close()
-        raise HTTPException(status_code=409, detail="holding is already closed")
-
-    shares = int(holding["shares"])
-    avg_cost = _finite(holding["avg_cost"])
-    close_price = _finite(request.price) if request.price is not None else avg_cost
-    now = dt.datetime.now(dt.timezone.utc).isoformat()
-    reason = (request.reason or "").strip()
-    if not reason:
-        reason = {
-            PORTFOLIO_SOLD: "sold outside simulator; retained as ledger history",
-            PORTFOLIO_VOIDED: "mistaken manual entry; retained as correction history",
-            PORTFOLIO_ARCHIVED: "no longer needed in active portfolio; retained as ledger history",
-        }[action]
-
-    if action == PORTFOLIO_SOLD:
-        sale_total = max(close_price, 0) * shares
-        row = conn.execute("SELECT cash FROM portfolio ORDER BY id DESC LIMIT 1").fetchone()
-        cash = float(row["cash"]) if row else INITIAL_CASH
-        conn.execute("UPDATE portfolio SET cash = ?", (cash + sale_total,))
-        tx_action = "MANUAL_SELL"
-        tx_price = close_price
-        tx_total = sale_total
-    elif action == PORTFOLIO_VOIDED:
-        tx_action = "MANUAL_VOID"
-        tx_price = avg_cost
-        tx_total = avg_cost * shares
-    else:
-        tx_action = "MANUAL_ARCHIVE"
-        tx_price = avg_cost
-        tx_total = avg_cost * shares
-
-    conn.execute(
-        """
-        UPDATE holdings
-        SET status = ?, shares = 0, lifecycle_reason = ?, closed_at = ?, updated_at = ?
-        WHERE ticker = ?
-        """,
-        (action, reason, now, now, normalized),
+    return close_portfolio_position(
+        ticker,
+        request,
+        normalize_portfolio_ticker=normalize_portfolio_ticker,
+        finite=_finite,
+        init_db=init_db,
+        get_db=get_db,
+        portfolio_closed_statuses=PORTFOLIO_CLOSED_STATUSES,
+        portfolio_active=PORTFOLIO_ACTIVE,
+        portfolio_sold=PORTFOLIO_SOLD,
+        portfolio_voided=PORTFOLIO_VOIDED,
+        portfolio_archived=PORTFOLIO_ARCHIVED,
+        initial_cash=INITIAL_CASH,
     )
-    conn.execute(
-        "INSERT INTO transactions (ticker, action, shares, price, total, reason) VALUES (?, ?, ?, ?, ?, ?)",
-        (normalized, tx_action, shares, tx_price, tx_total, reason),
-    )
-    conn.execute(
-        "INSERT INTO agent_logs (message) VALUES (?)",
-        (f"Closed portfolio holding {normalized} as {action}. Ledger retained; no broker order.",),
-    )
-    conn.commit()
-    conn.close()
-    return {
-        "success": True,
-        "mode": "SIMULATOR_ONLY",
-        "message": f"{normalized} position closed in local simulator only.",
-        "ticker": normalized,
-        "status": action,
-    }
 
 
 @app.post("/api/buy")
@@ -4762,18 +4353,24 @@ def get_daytrade_plan() -> dict[str, Any]:
 
 
 def _ranking_aligned_daytrade_signal_payload(kind: str = "surge") -> dict[str, Any]:
-    from daytrade_engine import BoardSnapshot, build_signal_ticket, sample_signals
+    from daytrade_engine import BoardSnapshot, build_signal_ticket
 
-    ranked_items, _strict_best, best_available, _generated_at = _market_review_candidates_for_budget(DEFAULT_INTRADAY_BUDGET_JPY, kind=kind, limit=30)
+    ranked_items, strict_best, _best_available, _generated_at = _market_review_candidates_for_budget(DEFAULT_INTRADAY_BUDGET_JPY, kind=kind, limit=30)
     signal_items = []
-    if best_available:
-        signal_items.append({"intradayOpportunity": best_available, "ticker": best_available.get("ticker"), "name": best_available.get("name")})
+    if strict_best:
+        signal_items.append({"intradayOpportunity": strict_best, "ticker": strict_best.get("ticker"), "name": strict_best.get("name")})
     for item in ranked_items:
         if len(signal_items) >= 3:
             break
         opportunity = item.get("intradayOpportunity") or {}
         ticker = opportunity.get("ticker") or item.get("ticker")
         if not ticker or any((existing.get("intradayOpportunity") or {}).get("ticker") == ticker for existing in signal_items):
+            continue
+        if str(opportunity.get("tradeReadiness") or "").lower() != "ready":
+            continue
+        if str((opportunity.get("decisionAudit") or {}).get("verdict") or "").upper() != "PASS":
+            continue
+        if not _opportunity_has_actionable_size(opportunity):
             continue
         signal_items.append(item)
 
@@ -4823,8 +4420,8 @@ def _ranking_aligned_daytrade_signal_payload(kind: str = "surge") -> dict[str, A
 
     if not signals:
         return {
-            "source": "LOCAL_PAPER_SIMULATION_SAMPLE",
-            "signals": sample_signals(),
+            "source": "NO_VERIFIED_RANKING_SIGNAL",
+            "signals": [],
         }
     return {
         "source": "LOCAL_PAPER_SIMULATION_RANKING_ALIGNED",
@@ -4855,60 +4452,20 @@ def _daytrade_cache_set(key: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
-    try:
-        number = float(value)
-        return number if math.isfinite(number) else default
-    except Exception:
-        return default
+    return service_safe_float(value, default)
 
 
 def _parse_event_timestamp(value: Any) -> dt.datetime | None:
-    if value in (None, ""):
-        return None
-    if isinstance(value, dt.datetime):
-        return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
-    if isinstance(value, (int, float)):
-        try:
-            return dt.datetime.fromtimestamp(float(value), tz=dt.timezone.utc)
-        except Exception:
-            return None
-    text = str(value).strip()
-    if not text:
-        return None
-    try:
-        parsed = email.utils.parsedate_to_datetime(text)
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=dt.timezone.utc)
-    except Exception:
-        pass
-    try:
-        parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=dt.timezone.utc)
-    except Exception:
-        return None
+    return service_parse_event_timestamp(value)
 
 
 def _news_item_from_yfinance(raw: dict[str, Any]) -> dict[str, Any] | None:
-    content = raw.get("content", raw)
-    title = content.get("title") or raw.get("title")
-    if not title:
-        return None
-    publisher = content.get("provider", {}).get("displayName") or raw.get("publisher") or ""
-    url = content.get("canonicalUrl", {}).get("url") or content.get("clickThroughUrl", {}).get("url") or raw.get("link") or ""
-    published = content.get("pubDate") or raw.get("providerPublishTime") or raw.get("publishedAt") or ""
-    parsed = _parse_event_timestamp(published)
-    title_text = str(title)
-    positive = any(keyword in title_text for keyword in MATERIAL_POSITIVE_KEYWORDS)
-    negative = any(keyword in title_text for keyword in MATERIAL_NEGATIVE_KEYWORDS)
-    important = positive or negative or any(keyword in title_text for keyword in MATERIAL_IMPORTANT_KEYWORDS)
-    return {
-        "title": title_text,
-        "publisher": str(publisher),
-        "url": str(url),
-        "publishedAt": parsed.isoformat() if parsed else str(published),
-        "important": bool(important),
-        "positive": bool(positive),
-        "negative": bool(negative),
-    }
+    return service_news_item_from_yfinance(
+        raw,
+        positive_keywords=MATERIAL_POSITIVE_KEYWORDS,
+        negative_keywords=MATERIAL_NEGATIVE_KEYWORDS,
+        important_keywords=MATERIAL_IMPORTANT_KEYWORDS,
+    )
 
 
 def _fetch_daytrade_quote_context(ticker: str) -> dict[str, Any]:
@@ -4916,17 +4473,7 @@ def _fetch_daytrade_quote_context(ticker: str) -> dict[str, Any]:
     cached = _daytrade_cache_get(cache_key)
     if cached is not None:
         return cached
-    payload = {"source": "UNAVAILABLE", "bid": None, "ask": None, "quoteAgeSec": 999}
-    try:
-        symbol = yf.Ticker(ticker)
-        fast_info = getattr(symbol, "fast_info", {}) or {}
-        bid = _safe_float(getattr(fast_info, "bid", None) or fast_info.get("bid"))
-        ask = _safe_float(getattr(fast_info, "ask", None) or fast_info.get("ask"))
-        last_price = _safe_float(getattr(fast_info, "last_price", None) or fast_info.get("lastPrice") or fast_info.get("last_price"))
-        if bid > 0 and ask > bid:
-            payload.update({"source": "YFINANCE_FAST_INFO", "bid": bid, "ask": ask, "lastPrice": last_price or None, "quoteAgeSec": 60})
-    except Exception as exc:
-        payload.update({"source": "UNAVAILABLE", "error": str(exc)[:160]})
+    payload = build_daytrade_quote_context(ticker, symbol_provider=yf.Ticker)
     return _daytrade_cache_set(cache_key, payload)
 
 
@@ -4935,64 +4482,13 @@ def _fetch_daytrade_event_context(ticker: str) -> dict[str, Any]:
     cached = _daytrade_cache_get(cache_key)
     if cached is not None:
         return cached
-    now = dt.datetime.now(dt.timezone.utc)
-    items: list[dict[str, Any]] = []
-    upcoming_earnings = False
-    source = "YFINANCE"
-    try:
-        symbol = yf.Ticker(ticker)
-        for raw in (symbol.news or [])[:8]:
-            item = _news_item_from_yfinance(raw)
-            if item:
-                items.append(item)
-        try:
-            calendar = symbol.calendar
-            if isinstance(calendar, pd.DataFrame) and not calendar.empty:
-                raw_values = calendar.values.flatten().tolist()
-            elif isinstance(calendar, dict):
-                raw_values = list(calendar.values())
-            else:
-                raw_values = []
-            for raw_value in raw_values:
-                values = raw_value if isinstance(raw_value, (list, tuple, set)) else [raw_value]
-                for value in values:
-                    parsed = _parse_event_timestamp(value)
-                    if parsed and -1 <= (parsed - now).days <= 5:
-                        upcoming_earnings = True
-                        break
-                if upcoming_earnings:
-                    break
-        except Exception:
-            pass
-    except Exception as exc:
-        source = "UNAVAILABLE"
-        items = [{"title": f"event fetch failed: {str(exc)[:120]}", "important": False, "positive": False, "negative": False}]
-    recent_items = []
-    for item in items:
-        published = _parse_event_timestamp(item.get("publishedAt"))
-        if published and (now - published).total_seconds() <= 3 * 24 * 3600:
-            recent_items.append(item)
-    material_recent = [item for item in recent_items if item.get("important")]
-    positives = sum(1 for item in material_recent if item.get("positive"))
-    negatives = sum(1 for item in material_recent if item.get("negative"))
-    if positives and negatives:
-        tone = "mixed"
-    elif negatives:
-        tone = "negative"
-    elif positives:
-        tone = "positive"
-    else:
-        tone = "neutral" if recent_items else "unknown"
-    latest = recent_items[0] if recent_items else items[0] if items else {}
-    payload = {
-        "source": source,
-        "tone": tone,
-        "hasRecentMaterial": bool(material_recent),
-        "hasUpcomingEarnings": bool(upcoming_earnings),
-        "latestTitle": latest.get("title", ""),
-        "latestPublishedAt": latest.get("publishedAt", ""),
-        "items": items[:3],
-    }
+    payload = build_daytrade_event_context(
+        ticker,
+        symbol_provider=yf.Ticker,
+        positive_keywords=MATERIAL_POSITIVE_KEYWORDS,
+        negative_keywords=MATERIAL_NEGATIVE_KEYWORDS,
+        important_keywords=MATERIAL_IMPORTANT_KEYWORDS,
+    )
     return _daytrade_cache_set(cache_key, payload)
 
 

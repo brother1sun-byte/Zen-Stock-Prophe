@@ -227,8 +227,18 @@ export function usePracticeOrder({ initialForm }) {
       await onSaved?.(response, filledOrder);
       return { ok: true, order: filledOrder, response, validation };
     } catch (error) {
+      const failedAt = new Date().toISOString();
+      const failedOrder = {
+        ...order,
+        practiceStatus: PRACTICE_ORDER_STATUS.REFERENCE_ONLY,
+        status: PRACTICE_ORDER_STATUS.REFERENCE_ONLY,
+        statusLabel: practiceOrderStatusLabel(PRACTICE_ORDER_STATUS.REFERENCE_ONLY),
+        saveError: error?.message || '練習台帳への保存に失敗しました。',
+        updatedAt: failedAt,
+      };
+      setPracticeOrders((current) => current.map((item) => (item.id === order.id ? failedOrder : item)));
       onError?.(error, order);
-      return { ok: false, error, order, validation };
+      return { ok: false, error, order: failedOrder, validation };
     }
   }, [positionForm]);
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 function clamp(value, min = 0, max = 100) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -57,6 +57,8 @@ export function usePortfolioLedger({
   setBusy,
   setStatus,
 }) {
+  const [lifecycleEvents, setLifecycleEvents] = useState([]);
+  const [pendingLifecycle, setPendingLifecycle] = useState(null);
   const holdings = useMemo(() => portfolio?.holdings || [], [portfolio]);
   const archivedHoldings = useMemo(() => portfolio?.archivedHoldings || [], [portfolio]);
 
@@ -106,33 +108,102 @@ export function usePortfolioLedger({
     };
   }, [chartData, holdings, portfolio, selectedDetail]);
 
+  const latestLifecycleByTicker = useMemo(() => lifecycleEvents.reduce((acc, event) => {
+    if (event?.ticker && !acc[event.ticker]) acc[event.ticker] = event;
+    return acc;
+  }, {}), [lifecycleEvents]);
+
+  const lifecycleFeed = useMemo(() => lifecycleEvents.map((event) => ({
+    ...event,
+    title: event.ok ? '台帳更新完了' : '台帳更新失敗',
+    subtitle: event.ok ? `${event.actionLabel}完了` : event.actionLabel,
+  })), [lifecycleEvents]);
+
+  const riskMetrics = useMemo(() => ([
+    ['年率変動', `${portfolioHealth.volatility.toFixed(1)}%`],
+    ['最大下落', `${portfolioHealth.drawdown.toFixed(1)}%`],
+    ['集中度', `${portfolioHealth.maxHoldingPct.toFixed(1)}%`],
+    ['現金比率', `${portfolioHealth.cashPct.toFixed(1)}%`],
+  ]), [portfolioHealth]);
+
+  const verdictRows = useMemo(() => ([
+    { label: '健全性', value: `${portfolioHealth.score}/100` },
+    { label: '最大集中', value: `${portfolioHealth.maxHoldingPct.toFixed(1)}%` },
+    { label: '現金比率', value: `${portfolioHealth.cashPct.toFixed(1)}%` },
+  ]), [portfolioHealth]);
+
+  const recordLifecycleEvent = useCallback((event) => {
+    setLifecycleEvents((current) => [{
+      id: `${event.ticker}-${event.action}-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      ...event,
+    }, ...current].slice(0, 8));
+  }, []);
+
   const closePortfolioPosition = useCallback(async (holding, action) => {
     const actionLabel = lifecycleLabel(action);
     const reason = lifecycleReason(action);
+    const ticker = holding?.ticker;
+    if (!ticker) {
+      const error = new Error('銘柄コードが不明なため台帳状態を更新できません。');
+      recordLifecycleEvent({
+        ok: false,
+        ticker: 'UNKNOWN',
+        action,
+        actionLabel,
+        message: error.message,
+      });
+      setStatus?.({ tone: 'bad', text: `${actionLabel}失敗` });
+      return { ok: false, error };
+    }
 
-    setBusy?.(`position-${holding.ticker}-${action}`);
+    setPendingLifecycle({ ticker, action, actionLabel });
+    setBusy?.(`position-${ticker}-${action}`);
     setStatus?.({ tone: 'warn', text: `${actionLabel}処理中` });
-    addLog?.('Jobs', `${holding.ticker} を${actionLabel}として台帳に残します。削除も実注文もしません。`);
+    addLog?.('Jobs', `${ticker} を${actionLabel}として台帳に残します。削除も実注文もしません。`);
     try {
       const result = await persistLifecycle?.(holding, action, reason);
-      addLog?.('PORT', result?.message || `${holding.ticker} を${actionLabel}にしました。`);
+      const message = result?.message || `${ticker} を${actionLabel}にしました。`;
+      addLog?.('PORT', message);
+      recordLifecycleEvent({
+        ok: true,
+        ticker,
+        action,
+        actionLabel,
+        message,
+      });
       await hydrate?.(true);
       setStatus?.({ tone: 'good', text: `${actionLabel}完了` });
       return { ok: true, result };
     } catch (error) {
-      addLog?.('SYS', `${holding.ticker} の台帳状態更新に失敗しました: ${error.message}`);
+      const message = `${ticker} の台帳状態更新に失敗しました: ${error.message}`;
+      addLog?.('SYS', message);
+      recordLifecycleEvent({
+        ok: false,
+        ticker,
+        action,
+        actionLabel,
+        message,
+      });
       setStatus?.({ tone: 'bad', text: `${actionLabel}失敗` });
       return { ok: false, error };
     } finally {
+      setPendingLifecycle(null);
       setBusy?.('');
     }
-  }, [addLog, hydrate, persistLifecycle, setBusy, setStatus]);
+  }, [addLog, hydrate, persistLifecycle, recordLifecycleEvent, setBusy, setStatus]);
 
   return {
     holdings,
     archivedHoldings,
     allocation,
     portfolioHealth,
+    lifecycleEvents,
+    lifecycleFeed,
+    riskMetrics,
+    verdictRows,
+    latestLifecycleByTicker,
+    pendingLifecycle,
     closePortfolioPosition,
   };
 }

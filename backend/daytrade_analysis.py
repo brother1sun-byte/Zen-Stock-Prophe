@@ -245,11 +245,11 @@ def _event_risk(event_context: dict[str, Any] | None = None) -> dict[str, Any]:
     tone = str(event_context.get("tone") or "unknown")
     risk_reasons: list[str] = []
     if has_earnings:
-        risk_reasons.append("Upcoming earnings/calendar event is near.")
+        risk_reasons.append("決算または予定イベントが近づいています。")
     if has_recent_material and tone == "negative":
-        risk_reasons.append("Recent negative material news was detected.")
+        risk_reasons.append("直近に悪材料となるニュースが確認されました。")
     if has_recent_material and tone == "mixed":
-        risk_reasons.append("Recent material news is mixed.")
+        risk_reasons.append("直近材料の方向性が混在しています。")
     verdict = "BLOCK" if has_earnings or tone == "negative" else "CAUTION" if risk_reasons or has_recent_material else "CLEAR_OR_UNCONFIRMED"
     return {
         "verdict": verdict,
@@ -338,44 +338,44 @@ def _score_snapshot(snapshot: dict[str, Any]) -> tuple[float, list[dict[str, Any
     trend_ok = bool(sma9 and sma20 and close > sma9 > sma20 and (not sma50 or sma20 >= sma50 * 0.995))
     trend_bad = bool(sma9 and sma20 and close < sma9 < sma20)
     score += 16 if trend_ok else -14 if trend_bad else 0
-    evidence.append({"id": "trend", "label": "Trend alignment", "ok": bool(trend_ok), "detail": f"Close {close:.1f}, SMA9 {sma9 or 0:.1f}, SMA20 {sma20 or 0:.1f}"})
+    evidence.append({"id": "trend", "label": "トレンド整合", "ok": bool(trend_ok), "detail": f"終値 {close:.1f}、SMA9 {sma9 or 0:.1f}、SMA20 {sma20 or 0:.1f}"})
 
     vwap_ok = close >= vwap * 0.998 if vwap else False
     score += 11 if vwap_ok else -9
-    evidence.append({"id": "vwap", "label": "VWAP support", "ok": bool(vwap_ok), "detail": f"VWAP {vwap:.1f}, deviation {((close / vwap - 1) * 100) if vwap else 0:+.2f}%"})
+    evidence.append({"id": "vwap", "label": "VWAP支持", "ok": bool(vwap_ok), "detail": f"VWAP {vwap:.1f}、乖離 {((close / vwap - 1) * 100) if vwap else 0:+.2f}%"})
 
     rsi_ok = 45 <= rsi <= 68
     score += 10 if rsi_ok else -8 if rsi > 76 or rsi < 35 else 1
-    evidence.append({"id": "rsi", "label": "RSI tradable zone", "ok": bool(rsi_ok), "detail": f"RSI {rsi:.1f}"})
+    evidence.append({"id": "rsi", "label": "RSIの取引可能域", "ok": bool(rsi_ok), "detail": f"RSI {rsi:.1f}"})
 
     macd_ok = macd_hist > 0
     score += 9 if macd_ok else -6
-    evidence.append({"id": "macd", "label": "MACD momentum", "ok": bool(macd_ok), "detail": f"Histogram {macd_hist:+.2f}"})
+    evidence.append({"id": "macd", "label": "MACDモメンタム", "ok": bool(macd_ok), "detail": f"ヒストグラム {macd_hist:+.2f}"})
 
     volume_ok = volume_ratio >= 1.15
     score += min(volume_ratio * 5, 14) if volume_ok else -5
-    evidence.append({"id": "volume", "label": "Volume expansion", "ok": bool(volume_ok), "detail": f"{volume_ratio:.2f}x vs recent average"})
+    evidence.append({"id": "volume", "label": "出来高増加", "ok": bool(volume_ok), "detail": f"直近平均比 {volume_ratio:.2f}倍"})
 
     volatility_ok = 0.25 <= atr_pct <= 3.8
     score += 7 if volatility_ok else -8
-    evidence.append({"id": "volatility", "label": "Volatility range", "ok": bool(volatility_ok), "detail": f"ATR {atr_pct:.2f}% of price"})
+    evidence.append({"id": "volatility", "label": "ボラティリティ範囲", "ok": bool(volatility_ok), "detail": f"ATRは価格の {atr_pct:.2f}%"})
 
     near_breakout = bool(resistance and close >= resistance * 0.995)
     above_support = bool(support and close > support * 1.003)
     score += 7 if near_breakout else 4 if above_support else -5
-    evidence.append({"id": "support_resistance", "label": "Support / resistance", "ok": bool(near_breakout or above_support), "detail": f"Support {support:.1f}, resistance {resistance:.1f}"})
+    evidence.append({"id": "support_resistance", "label": "支持線・抵抗線", "ok": bool(near_breakout or above_support), "detail": f"支持線 {support:.1f}、抵抗線 {resistance:.1f}"})
 
     if close > bollinger["upper"] and rsi > 72:
-        fakeouts.append("Price is extended above the upper Bollinger band while RSI is hot.")
+        fakeouts.append("価格がボリンジャーバンド上限を上回り、RSIも過熱しています。")
         score -= 9
     if volume_ratio >= 2.0 and not vwap_ok:
-        fakeouts.append("Volume expanded, but price failed to hold VWAP.")
+        fakeouts.append("出来高は増えていますが、価格がVWAPを維持できていません。")
         score -= 10
     if resistance and snapshot["highs"][-1] > resistance and close < resistance:
-        fakeouts.append("Intrabar breakout faded back below resistance.")
+        fakeouts.append("足中の上抜け後、再び抵抗線を下回っています。")
         score -= 9
     if snapshot["gapPct"] >= 2.5 and close < snapshot["open"]:
-        fakeouts.append("Gap-up is fading below the opening price.")
+        fakeouts.append("ギャップアップ後に失速し、始値を下回っています。")
         score -= 8
 
     return max(0, min(100, round(score, 1))), evidence, fakeouts
@@ -529,33 +529,38 @@ def build_daytrade_analysis(
         score = max(0, score - 7)
     if volume_seasonality["verdict"] == "SEASONALLY_STRONG":
         score = min(100, score + 5)
-        evidence.append({"id": "volume_seasonality", "label": "Session volume seasonality", "ok": True, "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} is {volume_seasonality['seasonalRatio']}x normal"})
+        evidence.append({"id": "volume_seasonality", "label": "時間帯別出来高季節性", "ok": True, "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} は通常比 {volume_seasonality['seasonalRatio']}倍"})
     elif volume_seasonality["verdict"] == "SEASONALLY_WEAK":
         score = max(0, score - 7)
-        fakeouts.append("Latest volume is weak versus the same session/time bucket.")
-        evidence.append({"id": "volume_seasonality", "label": "Session volume seasonality", "ok": False, "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} is {volume_seasonality['seasonalRatio']}x normal"})
+        fakeouts.append("直近の出来高が、同じ市場区分・時間帯の通常水準を下回っています。")
+        evidence.append({"id": "volume_seasonality", "label": "時間帯別出来高季節性", "ok": False, "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} は通常比 {volume_seasonality['seasonalRatio']}倍"})
     else:
-        evidence.append({"id": "volume_seasonality", "label": "Session volume seasonality", "ok": volume_seasonality["verdict"] != "INSUFFICIENT_HISTORY", "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} sample {volume_seasonality['sampleCount']}"})
+        evidence.append({"id": "volume_seasonality", "label": "時間帯別出来高季節性", "ok": volume_seasonality["verdict"] != "INSUFFICIENT_HISTORY", "detail": f"{volume_seasonality['session']} {volume_seasonality['bucket']} の標本数 {volume_seasonality['sampleCount']}"})
     if microstructure["verdict"] == "WIDE":
         score = max(0, score - 9)
-        fakeouts.append(f"Estimated/quoted spread is wide at {microstructure['spreadPct']}%.")
-    evidence.append({"id": "spread", "label": "Ticker spread estimate", "ok": microstructure["verdict"] != "WIDE", "detail": f"{microstructure['spreadPct']}% via {microstructure['source']}"})
+        fakeouts.append(f"推定または気配値スプレッドが {microstructure['spreadPct']}% と広がっています。")
+    evidence.append({"id": "spread", "label": "銘柄別スプレッド推定", "ok": microstructure["verdict"] != "WIDE", "detail": f"{microstructure['source']} による推定 {microstructure['spreadPct']}%"})
     if microstructure["depthSource"] == "QUOTE" and microstructure["bookRatio"] < 0.8:
         score = max(0, score - 6)
-        fakeouts.append("Visible bid depth is thin versus ask depth.")
+        fakeouts.append("表示されている買い板が売り板に比べて薄い状態です。")
     if event_risk["verdict"] == "BLOCK":
         score = max(0, score - 18)
         fakeouts.extend(event_risk["reasons"])
     elif event_risk["verdict"] == "CAUTION":
         score = max(0, score - 6)
         fakeouts.extend(event_risk["reasons"][:1])
-    evidence.append({"id": "event_risk", "label": "News / earnings exclusion", "ok": event_risk["verdict"] not in {"BLOCK"}, "detail": event_risk["verdict"]})
+    event_verdict_labels = {
+        "BLOCK": "除外対象",
+        "CAUTION": "注意",
+        "CLEAR_OR_UNCONFIRMED": "明確な懸念なし・未確認を含む",
+    }
+    evidence.append({"id": "event_risk", "label": "ニュース・決算イベント除外", "ok": event_risk["verdict"] not in {"BLOCK"}, "detail": event_verdict_labels.get(event_risk["verdict"], "未確認")})
     if score >= 75 and len(fakeouts) == 0 and rr >= 1.4:
         signal = "STRONG_LONG_REVIEW"
-        label = "強い買い検討"
+        label = "強い監視候補"
     elif score >= 62 and len(fakeouts) <= 1:
         signal = "LONG_REVIEW"
-        label = "買い検討"
+        label = "監視候補"
     elif score >= 45:
         signal = "WAIT"
         label = "待機"
@@ -566,13 +571,13 @@ def build_daytrade_analysis(
     backtest = _backtest(frame)
     walk_forward = _walk_forward(frame)
     explanations = [
-        f"Score {score}/100 from trend, VWAP, RSI, MACD, volume seasonality, spread, events, volatility, and support/resistance.",
-        f"Entry {entry:.1f}, target {target:.1f}, stop {stop:.1f}, risk/reward {rr:.2f}.",
+        f"トレンド、VWAP、RSI、MACD、出来高季節性、スプレッド、イベント、ボラティリティ、支持線・抵抗線から算出したスコアは {score}/100 です。",
+        f"参考エントリー {entry:.1f}、利確目安 {target:.1f}、損切り目安 {stop:.1f}、損益比 {rr:.2f} です。",
     ]
     if fakeouts:
-        explanations.append("Fakeout filters: " + " / ".join(fakeouts[:3]))
+        explanations.append("騙しシグナル除外: " + " / ".join(fakeouts[:3]))
     else:
-        explanations.append("No major fakeout filter was triggered on the latest bar.")
+        explanations.append("直近の足では、主要な騙しシグナル除外条件に該当していません。")
 
     latest_index = frame.index[-1]
     latest_bar = latest_index.isoformat() if hasattr(latest_index, "isoformat") else str(latest_index)
@@ -615,5 +620,5 @@ def build_daytrade_analysis(
         "backtest": backtest,
         "walkForward": walk_forward,
         "explanations": explanations,
-        "disclaimer": "Simulator-only analysis. This is not investment advice and no broker order is sent.",
+        "disclaimer": "シミュレーション専用の分析です。投資助言ではありません。証券会社へ注文を送信することもありません。",
     }

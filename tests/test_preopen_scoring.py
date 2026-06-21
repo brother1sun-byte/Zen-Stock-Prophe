@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 import sys
+import unittest
 
 import pandas as pd
 
@@ -43,8 +44,20 @@ def test_preopen_report_excludes_missing_pts_and_news_boosts():
     assert report["decisionLabel"] in {"高騰候補", "監視候補", "リスク確認"}
 
 
+def test_preopen_report_does_not_promote_hot_chart_when_material_feeds_missing():
+    report = build_preopen_report("6503.T", _history(hot=True), company_name="テスト銘柄")
+
+    assert report["decision"] != "SURGE_CANDIDATE"
+    assert report["decisionLabel"] in {"監視候補", "リスク確認"}
+    assert "news_disclosure" in report["dataLeakGuard"]["unavailableInputs"]
+    assert "pts_or_preopen_board" in report["dataLeakGuard"]["unavailableInputs"]
+    assert any("寄り付き後" in item for item in report["watchPoints"])
+    assert "投資助言ではなく" in report["disclaimer"]
+
+
 def test_preopen_report_adds_explicit_risk_deduction():
     low_liquidity = _history(volume=5_000)
+    low_liquidity["Volume"] = 5_000
     report = build_preopen_report("9999.T", low_liquidity)
 
     labels = {flag["label"] for flag in report["riskFlags"]}
@@ -63,3 +76,17 @@ def test_preopen_report_flags_synthetic_history():
     assert report["dataLeakGuard"]["usesSyntheticHistory"] is True
     assert any(flag["id"] == "synthetic_history" for flag in report["riskFlags"])
     assert report["decision"] != "SURGE_CANDIDATE"
+
+
+class PreopenScoringUnittest(unittest.TestCase):
+    def test_missing_pts_and_news_boosts_are_excluded(self):
+        test_preopen_report_excludes_missing_pts_and_news_boosts()
+
+    def test_hot_chart_without_material_feeds_is_not_promoted(self):
+        test_preopen_report_does_not_promote_hot_chart_when_material_feeds_missing()
+
+    def test_explicit_risk_deduction_is_reported(self):
+        test_preopen_report_adds_explicit_risk_deduction()
+
+    def test_synthetic_history_is_reference_only(self):
+        test_preopen_report_flags_synthetic_history()

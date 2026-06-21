@@ -40,6 +40,7 @@ export function useSelectedStock({
   marketUniverse,
   detail,
   advancedReport,
+  advancedReportsByTicker,
   setDetail,
   setAdvancedReport,
   setDaytradeAnalysis,
@@ -119,7 +120,8 @@ export function useSelectedStock({
   }, [detail, selectedMarketItem, selectedTicker, stocks]);
 
   const selectedDetail = detail?.ticker === selectedTicker ? detail : null;
-  const selectedAdvancedReport = advancedReport?.ticker === selectedTicker ? advancedReport : null;
+  const selectedAdvancedReport = advancedReportsByTicker?.[selectedTicker]
+    || (advancedReport?.ticker === selectedTicker ? advancedReport : null);
 
   const chooseTicker = useCallback((tickerOrCandidate, options = {}) => {
     syncSelection(tickerOrCandidate, {

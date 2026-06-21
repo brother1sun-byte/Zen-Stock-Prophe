@@ -1,6 +1,9 @@
 import sys
 import unittest
 import math
+import asyncio
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +16,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 import server  # noqa: E402
 from daytrade_engine import BoardSnapshot, build_signal_ticket, validate_entry  # noqa: E402
+from market_fallbacks import choose_best_opportunities, ensure_market_snapshot  # noqa: E402
 
 
 def fresh_business_index(periods: int) -> pd.DatetimeIndex:
@@ -23,6 +27,125 @@ def fresh_business_index(periods: int) -> pd.DatetimeIndex:
 
 
 class ScreeningEngineTests(unittest.TestCase):
+    def setUp(self):
+        server.MARKET_REVIEW_CACHE.clear()
+        server.MARKET_REVIEW_INFLIGHT.clear()
+        server.PRICE_HISTORY_CACHE.clear()
+        server.PRICE_HISTORY_INFLIGHT.clear()
+
+    def test_fastapi_uses_lifespan_and_initializes_database(self):
+        self.assertEqual(server.app.router.on_startup, [])
+
+        async def run_lifespan():
+            with patch.object(server, "init_db") as init_db:
+                async with server.app.router.lifespan_context(server.app):
+                    init_db.assert_called_once_with()
+
+        asyncio.run(run_lifespan())
+
+    def test_market_rankings_reuses_shared_cache_for_identical_requests(self):
+        payload = {
+            "kind": "surge",
+            "generatedAt": "2026-06-20T00:00:00+00:00",
+            "items": [{"ticker": "7203.T"}],
+        }
+
+        with patch.object(server, "build_market_rankings_response", return_value=payload) as build:
+            first = server.market_rankings(kind="surge", limit=30, budget=500_000)
+            second = server.market_rankings(kind="surge", limit=30, budget=500_000)
+
+        self.assertIs(first, second)
+        self.assertEqual(build.call_count, 1)
+
+    def test_market_rankings_singleflights_concurrent_identical_requests(self):
+        build_started = threading.Event()
+        release_build = threading.Event()
+        payload = {
+            "kind": "surge",
+            "generatedAt": "2026-06-20T00:00:00+00:00",
+            "items": [{"ticker": "7203.T"}],
+        }
+
+        def slow_build(**_kwargs):
+            build_started.set()
+            self.assertTrue(release_build.wait(timeout=2))
+            return payload
+
+        with patch.object(server, "build_market_rankings_response", side_effect=slow_build) as build:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                first_future = pool.submit(server.market_rankings, "surge", 30, 500_000)
+                self.assertTrue(build_started.wait(timeout=1))
+                second_future = pool.submit(server.market_rankings, "surge", 30, 500_000)
+                release_build.set()
+                first = first_future.result(timeout=3)
+                second = second_future.result(timeout=3)
+
+        self.assertIs(first, second)
+        self.assertEqual(build.call_count, 1)
+
+    def test_material_enrichment_runs_independent_tickers_concurrently_and_keeps_order(self):
+        second_started = threading.Event()
+        first_observed_overlap = []
+
+        def material_lookup(ticker, _name, include_jquants=False):
+            if ticker == "1111.T":
+                first_observed_overlap.append(second_started.wait(timeout=0.5))
+            else:
+                second_started.set()
+            return {"available": True, "ticker": ticker, "includeJquants": include_jquants}
+
+        items = [
+            {"ticker": "1111.T", "name": "First"},
+            {"ticker": "2222.T", "name": "Second"},
+        ]
+        with patch.object(server, "material_events_for_ticker", side_effect=material_lookup):
+            enriched = server._attach_material_events(items)
+
+        self.assertEqual([item["ticker"] for item in enriched], ["1111.T", "2222.T"])
+        self.assertEqual([item["material"]["ticker"] for item in enriched], ["1111.T", "2222.T"])
+        self.assertEqual(first_observed_overlap, [True])
+
+    def test_quality_enrichment_runs_independent_tickers_concurrently_and_keeps_order(self):
+        second_started = threading.Event()
+        first_observed_overlap = []
+
+        def quality_lookup(ticker):
+            if ticker == "1111.T":
+                first_observed_overlap.append(second_started.wait(timeout=0.5))
+            else:
+                second_started.set()
+            return {"ticker": ticker, "dataQuality": {"source": "test"}}
+
+        items = [
+            {"ticker": "1111.T", "name": "First"},
+            {"ticker": "2222.T", "name": "Second"},
+        ]
+        with patch.object(server, "quality_for_ticker", side_effect=quality_lookup):
+            enriched = server._attach_candidate_quality(items, limit=2)
+
+        self.assertEqual([item["ticker"] for item in enriched], ["1111.T", "2222.T"])
+        self.assertEqual([item["candidateQuality"]["ticker"] for item in enriched], ["1111.T", "2222.T"])
+        self.assertEqual(first_observed_overlap, [True])
+
+    def test_stock_history_reuses_short_lived_cache_for_identical_requests(self):
+        history = pd.DataFrame(
+            {
+                "Open": [100.0, 101.0],
+                "High": [102.0, 103.0],
+                "Low": [99.0, 100.0],
+                "Close": [101.0, 102.0],
+                "Volume": [1000, 1200],
+            }
+        )
+
+        with patch.object(server, "fetch_price_history", return_value=history) as fetch:
+            first = server.get_stock_data("7203.T", period="1y", interval="1d")
+            second = server.get_stock_data("7203.T", period="1y", interval="1d")
+
+        self.assertEqual(fetch.call_count, 1)
+        self.assertIsNot(first, second)
+        pd.testing.assert_frame_equal(first, second)
+
     def test_normalize_jpx_code_handles_excel_numeric_codes(self):
         self.assertEqual(server._normalize_jpx_code(7203.0), "7203")
         self.assertEqual(server._normalize_jpx_code("4980.0"), "4980")
@@ -189,6 +312,56 @@ class ScreeningEngineTests(unittest.TestCase):
 
         self.assertEqual(snapshot["items"], items)
         self.assertEqual(server._market_snapshot_items(snapshot)[0]["ticker"], "1301.T")
+
+    def test_ensure_market_snapshot_preserves_existing_snapshot(self):
+        snapshot = {"generatedAt": "2026-06-17T00:00:00+09:00", "items": [{"ticker": "4980.T"}]}
+
+        result = ensure_market_snapshot(
+            snapshot,
+            fallback_candidate_pool={},
+            stocks={},
+            load_market_universe=lambda: {"4980.T": {"name": "Dexerials"}},
+            market_item_from_stock_payload=lambda payload: payload,
+            stock_payload=lambda ticker, info: {"ticker": ticker, **info},
+            snapshot_payload=lambda items, count, source: {"items": items, "universeCount": count, "source": source},
+        )
+
+        self.assertIs(result, snapshot)
+
+    def test_ensure_market_snapshot_builds_watchlist_fallback_when_missing(self):
+        result = ensure_market_snapshot(
+            None,
+            fallback_candidate_pool={"4980.T": {"name": "Dexerials"}},
+            stocks={"7203.T": {"name": "Toyota"}},
+            load_market_universe=lambda: {"4980.T": {"name": "Dexerials"}, "7203.T": {"name": "Toyota"}},
+            market_item_from_stock_payload=lambda payload: {"ticker": payload["ticker"], "name": payload["name"]},
+            stock_payload=lambda ticker, info: {"ticker": ticker, "name": info["name"]},
+            snapshot_payload=lambda items, count, source: {"items": items, "universeCount": count, "source": source},
+        )
+
+        self.assertEqual(result["source"], "live_watchlist_fallback")
+        self.assertEqual(result["universeCount"], 2)
+        self.assertEqual([item["ticker"] for item in result["items"]], ["4980.T", "7203.T"])
+
+    def test_choose_best_opportunities_requires_cross_engine_when_any_candidate_has_it(self):
+        observed = {}
+
+        def fake_select_best_ranked(items, require_cross_engine_check=False):
+            observed["require_cross_engine_check"] = require_cross_engine_check
+            return items[0]
+
+        best_source, best_available = choose_best_opportunities(
+            [
+                {"ticker": "4980.T", "advancedCrossEngineCheck": {"status": "aligned"}},
+                {"ticker": "7203.T"},
+            ],
+            select_best_ranked_opportunity=fake_select_best_ranked,
+            select_best_available_opportunity=lambda items, selected: items[1] if selected else None,
+        )
+
+        self.assertTrue(observed["require_cross_engine_check"])
+        self.assertEqual(best_source["ticker"], "4980.T")
+        self.assertEqual(best_available["ticker"], "7203.T")
 
     def test_market_universe_sample_uses_priced_snapshot_items(self):
         original_load_universe = server.load_market_universe
@@ -369,6 +542,30 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertIn("dataFreshness", opportunity)
         self.assertIn("decisionAudit", opportunity)
         self.assertTrue(opportunity["decisionAudit"]["gates"])
+
+        visible_copy = [
+            *opportunity["whyBuy"],
+            *opportunity["whyNotBuy"],
+            *opportunity["invalidConditions"],
+            *opportunity["expertWarnings"],
+            *(item["label"] for item in opportunity["expertChecklist"]),
+        ]
+        english_fragments = (
+            "official material",
+            "Stop-loss",
+            "Liquidity is",
+            "Overheat risk",
+            "No major blocker",
+            "Break below",
+            "Cannot reach target",
+            "Material/news source",
+            "Spread, board depth",
+            "Price freshness",
+            "Material reliability",
+            "Evidence strength",
+            "Market context",
+        )
+        self.assertFalse(any(fragment in text for text in visible_copy for fragment in english_fragments))
 
     def test_intraday_opportunity_penalizes_negative_material(self):
         base = {
@@ -834,6 +1031,7 @@ class ScreeningEngineTests(unittest.TestCase):
                 "tradeReadiness": "review",
                 "positionSizingVerdict": "reduced",
                 "advancedCrossEngineCheck": {"status": "review"},
+                "decisionAudit": {"verdict": "REVIEW"},
                 "shares": 100,
                 "budgetUsedJpy": 100000,
                 "expectedProfitJpy": 1000,
@@ -841,8 +1039,7 @@ class ScreeningEngineTests(unittest.TestCase):
             },
         }
 
-        self.assertEqual(server._select_best_ranked_opportunity([blocked, skipped, reviewable])["ticker"], "REVIEW.T")
-        self.assertIsNone(server._select_best_ranked_opportunity([blocked, skipped]))
+        self.assertIsNone(server._select_best_ranked_opportunity([blocked, skipped, reviewable]))
         fallback = server._select_best_available_opportunity([blocked, skipped])
         self.assertEqual(fallback["ticker"], "BLOCK.T")
         self.assertTrue(fallback["isFallbackCandidate"])
@@ -856,6 +1053,7 @@ class ScreeningEngineTests(unittest.TestCase):
                 "ticker": "UNCHECKED.T",
                 "tradeReadiness": "ready",
                 "positionSizingVerdict": "normal",
+                "decisionAudit": {"verdict": "PASS"},
                 "shares": 100,
                 "budgetUsedJpy": 100000,
                 "expectedProfitJpy": 1000,
@@ -870,6 +1068,7 @@ class ScreeningEngineTests(unittest.TestCase):
                 "tradeReadiness": "ready",
                 "positionSizingVerdict": "normal",
                 "advancedCrossEngineCheck": {"status": "pending"},
+                "decisionAudit": {"verdict": "PASS"},
                 "shares": 100,
                 "budgetUsedJpy": 100000,
                 "expectedProfitJpy": 1000,
@@ -884,6 +1083,7 @@ class ScreeningEngineTests(unittest.TestCase):
                 "tradeReadiness": "review",
                 "positionSizingVerdict": "reduced",
                 "advancedCrossEngineCheck": {"status": "review"},
+                "decisionAudit": {"verdict": "REVIEW"},
                 "shares": 100,
                 "budgetUsedJpy": 100000,
                 "expectedProfitJpy": 1000,
@@ -896,7 +1096,7 @@ class ScreeningEngineTests(unittest.TestCase):
             [unchecked, pending, reviewable],
             require_cross_engine_check=True,
         )
-        self.assertEqual(strict_best["ticker"], "REVIEW.T")
+        self.assertIsNone(strict_best)
         self.assertIsNone(server._select_best_ranked_opportunity([unchecked, pending], require_cross_engine_check=True))
 
     def test_select_best_ranked_opportunity_rejects_zero_share_candidate(self):
@@ -919,9 +1119,10 @@ class ScreeningEngineTests(unittest.TestCase):
             "advancedCrossEngineCheck": {"status": "review"},
             "intradayOpportunity": {
                 "ticker": "VALID.T",
-                "tradeReadiness": "review",
-                "positionSizingVerdict": "reduced",
-                "advancedCrossEngineCheck": {"status": "review"},
+                "tradeReadiness": "ready",
+                "positionSizingVerdict": "normal",
+                "advancedCrossEngineCheck": {"status": "aligned"},
+                "decisionAudit": {"verdict": "PASS"},
                 "shares": 100,
                 "budgetUsedJpy": 100000,
                 "expectedProfitJpy": 500,
@@ -1082,11 +1283,36 @@ class ScreeningEngineTests(unittest.TestCase):
         mojibake_fragments = tuple(chr(code) for code in (0x7e3a, 0x7e1d, 0x8b41, 0x8700, 0x8373, 0x87a2, 0x8c6c, 0x8413, 0x8b5a, 0x87f6, 0x9695, 0x9082, 0x9b2f, 0x9677, 0x9aea, 0x8b4c, 0x00e3, 0x00e6)) + ("????",)
 
         self.assertFalse(any(fragment in visible_text for fragment in mojibake_fragments))
+        for english_fragment in (
+            "Risk exit",
+            "Scale out",
+            "Take profit",
+            "Trailing stop hit",
+            "Simulator-only exit plan",
+            "No decisive technical signal",
+            "20-day momentum",
+            "Profit/loss",
+            "Market closed",
+            "Tokyo market is closed",
+            "manual verification",
+        ):
+            self.assertNotIn(english_fragment, visible_text)
         self.assertIn("三菱電機", visible_text)
         self.assertIn("TDnet無料RSS", visible_text)
         self.assertIn("20日高値更新", visible_text)
         self.assertIn("保有継続", visible_text)
         self.assertIn("短期トレンド", visible_text)
+
+    def test_http_text_decoder_preserves_shift_jis_japanese(self):
+        class ShiftJisResponse:
+            content = "日本株 値上がり率".encode("cp932")
+            encoding = "ISO-8859-1"
+            apparent_encoding = "SHIFT_JIS"
+
+        decoded = server._decode_http_text(ShiftJisResponse())
+
+        self.assertEqual(decoded, "日本株 値上がり率")
+        self.assertNotIn("\ufffd", decoded)
 
     def test_intraday_opportunity_caps_stale_or_unconfirmed_material(self):
         base = {
@@ -2391,6 +2617,9 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertTrue(any(gate["id"] == "backtest" for gate in quality["gates"]))
         self.assertTrue(any(gate["id"] == "evidence_strength" for gate in quality["gates"]))
         self.assertTrue(all("繧" not in gate["label"] and "????" not in gate["label"] for gate in quality["gates"]))
+        self.assertTrue(all("evidence" not in gate["label"].lower() for gate in quality["gates"]))
+        self.assertTrue(all("structure" not in gate["label"].lower() for gate in quality["gates"]))
+        self.assertTrue(all("pattern" not in gate["label"].lower() for gate in quality["gates"]))
         self.assertIn("momentum5", quality["metrics"])
 
     def test_candidate_quality_penalizes_negative_similar_pattern_expectancy(self):
@@ -3411,8 +3640,10 @@ class ScreeningEngineTests(unittest.TestCase):
                             "siteRank": 2,
                             "candidateRank": 1,
                             "decisionAudit": {"label": "条件通過"},
-                            "tradeReadiness": "review",
-                            "positionSizingVerdict": "reduced",
+                            "tradeReadiness": "ready",
+                            "positionSizingVerdict": "normal",
+                            "advancedCrossEngineCheck": {"status": "aligned"},
+                            "decisionAudit": {"verdict": "PASS"},
                             "shares": 100,
                             "budgetUsedJpy": 20000,
                             "expectedProfitJpy": 1000,
@@ -3666,7 +3897,8 @@ class ScreeningEngineTests(unittest.TestCase):
         audit_gates = payload["items"][0]["intradayOpportunity"]["decisionAudit"]["gates"]
         market_gate = next(gate for gate in audit_gates if gate["id"] == "market_regime")
         self.assertFalse(market_gate["ok"])
-        self.assertIn("stale", market_gate["detail"].lower())
+        self.assertIn("日前", market_gate["detail"])
+        self.assertIn("地合いを判断しない", market_gate["detail"])
 
     def test_market_rankings_enriches_legacy_snapshot_liquidity_quality(self):
         original_load_snapshot = server._load_market_snapshot
@@ -3802,7 +4034,7 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertEqual(plan["decision"], "DAYTRADE_ENTRY_OK")
         self.assertTrue(plan["marketAllowed"])
 
-    def test_ai_fund_desk_uses_same_best_available_candidate_as_market_rankings(self):
+    def test_ai_fund_desk_does_not_draft_order_for_unverified_best_available_candidate(self):
         server.MARKET_REVIEW_CACHE.clear()
         opportunity = {
             "ticker": "FALL.T",
@@ -3841,10 +4073,10 @@ class ScreeningEngineTests(unittest.TestCase):
         ):
             desk_payload = server.ai_fund_desk(budget=500_000)
 
-        self.assertEqual(desk_payload["draftOrder"]["ticker"], ranking_payload["bestAvailableOpportunity"]["ticker"])
-        self.assertEqual(desk_payload["draftOrder"]["entryPrice"], ranking_payload["bestAvailableOpportunity"]["entryPrice"])
+        self.assertIsNone(desk_payload["draftOrder"])
+        self.assertEqual(desk_payload["summary"]["state"], "WAIT")
 
-    def test_daytrade_scan_uses_ranking_price_when_ranking_data_exists(self):
+    def test_daytrade_scan_does_not_emit_unverified_ranking_candidate(self):
         server.MARKET_REVIEW_CACHE.clear()
         opportunity = {
             "ticker": "LIVE.T",
@@ -3868,9 +4100,8 @@ class ScreeningEngineTests(unittest.TestCase):
         with patch.object(server, "market_rankings", return_value=ranking_payload):
             payload = server.scan_daytrade_signals()
 
-        self.assertTrue(payload["signals"])
-        self.assertEqual(payload["signals"][0]["ticker"], "LIVE.T")
-        self.assertEqual(payload["signals"][0]["limitPrice"], 1234)
+        self.assertEqual(payload["source"], "NO_VERIFIED_RANKING_SIGNAL")
+        self.assertEqual(payload["signals"], [])
 
     def test_ai_fund_desk_returns_draft_without_live_orders(self):
         opportunity = {
@@ -3904,6 +4135,15 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertEqual(payload["draftOrder"]["status"], "DRAFT_ONLY")
         self.assertIn("注文は作成しません", payload["draftOrder"]["brokerInstruction"])
         self.assertTrue(payload["guardrails"][0]["ok"])
+        self.assertEqual(
+            [lane["label"] for lane in payload["workflow"]],
+            ["候補とシグナルの調査", "手入力計画の下書き", "人による承認確認", "リスク監査記録"],
+        )
+        self.assertEqual(
+            [guardrail["label"] for guardrail in payload["guardrails"]],
+            ["実注文機能は無効", "人による承認が必要", "保有集中の確認", "最大損失の試算"],
+        )
+        self.assertIn("学習・検証用", payload["disclaimer"])
 
     def test_ai_fund_desk_does_not_create_draft_for_zero_share_candidate(self):
         opportunity = {
@@ -3936,7 +4176,7 @@ class ScreeningEngineTests(unittest.TestCase):
 
         self.assertEqual(payload["summary"]["state"], "RESEARCH_ONLY")
         self.assertIsNone(payload["draftOrder"])
-        self.assertFalse(next(item for item in payload["guardrails"] if item["label"] == "Human approval required")["ok"])
+        self.assertFalse(next(item for item in payload["guardrails"] if item["label"] == "人による承認が必要")["ok"])
 
     def test_ai_fund_endpoint_uses_market_review_candidate(self):
         opportunity = {
@@ -3952,6 +4192,10 @@ class ScreeningEngineTests(unittest.TestCase):
             "confidencePct": 69.4,
             "expectedProfitJpy": 6927,
             "opportunityScore": 6927,
+            "tradeReadiness": "ready",
+            "positionSizingVerdict": "normal",
+            "decisionAudit": {"verdict": "PASS"},
+            "advancedCrossEngineCheck": {"status": "aligned"},
             "whyBuy": ["ranking aligned"],
             "whyNotBuy": ["manual check"],
             "invalidConditions": ["break stop"],
@@ -3959,7 +4203,7 @@ class ScreeningEngineTests(unittest.TestCase):
 
         with patch.object(server, "_market_review_candidates_for_budget", return_value=([
             {"ticker": "4179.T", "name": "ジーネクスト", "intradayOpportunity": opportunity}
-        ], None, opportunity, "2026-06-06T00:00:00+00:00")), patch.object(
+        ], opportunity, opportunity, "2026-06-06T00:00:00+00:00")), patch.object(
             server,
             "get_portfolio",
             return_value={"cash": 0, "holdings": [], "marketContext": {}},
@@ -3979,14 +4223,22 @@ class ScreeningEngineTests(unittest.TestCase):
             "targetPrice": 516,
             "stopLoss": 469,
             "shares": 261,
+            "budgetUsedJpy": 124758,
+            "targetProfitJpy": 9918,
+            "expectedProfitJpy": 6927,
+            "opportunityScore": 6927,
             "confidencePct": 69.4,
             "changePct": 3.8,
             "material": {"hasNegative": False},
+            "tradeReadiness": "ready",
+            "positionSizingVerdict": "normal",
+            "decisionAudit": {"verdict": "PASS"},
+            "advancedCrossEngineCheck": {"status": "aligned"},
         }
 
         with patch.object(server, "_market_review_candidates_for_budget", return_value=([
             {"ticker": "4179.T", "name": "ジーネクスト", "candidateRank": 1, "intradayOpportunity": opportunity}
-        ], None, opportunity, "2026-06-06T00:00:00+00:00")):
+        ], opportunity, opportunity, "2026-06-06T00:00:00+00:00")):
             payload = server.scan_daytrade_signals()
 
         self.assertEqual(payload["source"], "LOCAL_PAPER_SIMULATION_RANKING_ALIGNED")

@@ -58,19 +58,28 @@ export async function api(path, options = {}) {
   let lastError = null;
   for (const base of API_BASES) {
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), options.timeout ?? 6500);
+    const timerApi = typeof window !== 'undefined' ? window : globalThis;
+    const timeoutMs = options.timeout ?? 6500;
+    const timeout = timerApi.setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetchApi(base, path, options, controller.signal);
     } catch (error) {
       lastError = error;
+      if (error.name === 'AbortError') {
+        const timeoutError = new Error(`API応答が${Math.ceil(timeoutMs / 1000)}秒以内に完了しませんでした: ${path}`);
+        timeoutError.name = 'ApiTimeoutError';
+        timeoutError.path = path;
+        timeoutError.timeoutMs = timeoutMs;
+        throw timeoutError;
+      }
       const likelyMissingSameOriginProxy = base === '/api' && [404, 405].includes(error.status) && !error.parsedJson;
       const likelyProxyFailure = base === '/api' && [502, 504].includes(error.status);
-      const recoverableConnectionError = error.name === 'TypeError' || error.name === 'AbortError';
+      const recoverableConnectionError = error.name === 'TypeError';
       if (!likelyMissingSameOriginProxy && !likelyProxyFailure && !recoverableConnectionError) {
         throw error;
       }
     } finally {
-      window.clearTimeout(timeout);
+      timerApi.clearTimeout(timeout);
     }
   }
   const attempted = API_BASES.join(', ');
@@ -79,6 +88,7 @@ export async function api(path, options = {}) {
 
 export function readFreshCache() {
   try {
+    if (typeof localStorage === 'undefined') return null;
     const data = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
     if (!data || data.cacheVersion !== CACHE_VERSION) return null;
     if (!data.cachedAt || Date.now() - Number(data.cachedAt) > CACHE_MAX_AGE_MS) return null;
@@ -95,9 +105,15 @@ export function readFreshCache() {
 }
 
 export function writeCache(payload) {
-  localStorage.setItem(CACHE_KEY, JSON.stringify({
-    ...payload,
-    cacheVersion: CACHE_VERSION,
-    cachedAt: Date.now(),
-  }));
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ...payload,
+      cacheVersion: CACHE_VERSION,
+      cachedAt: Date.now(),
+    }));
+    return true;
+  } catch {
+    return false;
+  }
 }

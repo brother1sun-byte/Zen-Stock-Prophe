@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -42,17 +42,26 @@ import {
   YAxis,
 } from 'recharts';
 import { api, readFreshCache, writeCache } from './api/apiClient';
-import CandidateSummary from './components/CandidateSummary';
 import { DataSourceBadge, DataSourceWarning } from './components/DataSourceBadge';
 import DetailPanels from './components/DetailPanels';
 import PortfolioLedger from './components/PortfolioLedger';
 import PracticeDashboard from './components/PracticeDashboard';
+import TopCandidateCard from './components/TopCandidateCard';
 import WatchlistPanel from './components/WatchlistPanel';
 import { useMarketData } from './hooks/useMarketData';
+import {
+  buildDisplayStocks,
+  buildJobsCandidate,
+  buildMarketCachePayload,
+  buildRankedStocks,
+  deriveDaytradeTopPick,
+  priceSourcePayload,
+  rankingMetricDisplay,
+} from './hooks/useMarketDataHelpers';
+import { useDashboardViewModel } from './hooks/useDashboardViewModel';
 import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLedger';
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
-import { dataSourceBadgeInfo } from './utils/dataSource';
 import './index.css';
 
 const COLORS = ['#16f1a4', '#38bdf8', '#f59e0b', '#fb7185', '#a78bfa', '#22c55e'];
@@ -238,6 +247,26 @@ function marketToneLabel(tone) {
   return labels[tone] || tone || '市場確認';
 }
 
+function materialToneLabel(tone) {
+  const labels = {
+    positive: '好材料',
+    negative: '悪材料',
+    important: '重要材料',
+    neutral: '中立',
+    unconfirmed: '未確認',
+    unknown: '未確認',
+  };
+  return labels[String(tone || '').toLowerCase()] || tone || '未確認';
+}
+
+function operationLogTagLabel(tag) {
+  if (tag === 'Jobs') return '分析担当';
+  if (tag === 'SIM') return 'シミュレーション';
+  if (tag === 'SYS') return 'システム';
+  if (tag === 'Market') return '市場データ';
+  return tag;
+}
+
 function cacheStatusLabel(status) {
   const labels = {
     LIVE: '取得',
@@ -309,6 +338,17 @@ function aiFundOrderSideLabel(side) {
   return labels[side] || side || '-';
 }
 
+function verificationStatusLabel(status) {
+  const labels = {
+    PASS: '通過',
+    REVIEW: '要確認',
+    REJECT: '見送り',
+    BLOCK: '見送り',
+    UNKNOWN: '未確認',
+  };
+  return labels[String(status || '').toUpperCase()] || status || '-';
+}
+
 function tradeActionLabel(action) {
   const labels = {
     BUY: '買い練習',
@@ -323,15 +363,6 @@ function tradeActionLabel(action) {
     MANUAL_SELL: '手入力の売り記録',
   };
   return labels[action] || action || '-';
-}
-
-function candidateScore(stock) {
-  const parsed = Number(stock?.candidateScore);
-  return Number.isFinite(parsed) ? clamp(parsed) : 55;
-}
-
-function candidateReason(stock) {
-  return stock?.candidateReason || 'AIスクリーニングで抽出した注目候補です。詳細画面でシグナルとリスクを確認してください。';
 }
 
 function candidateQuality(stock, detail) {
@@ -410,20 +441,10 @@ function ensurePinnedWatchStock(list = []) {
   ];
 }
 
-function clamp(value, min = 0, max = 100) {
-  return Math.max(min, Math.min(max, value));
-}
-
 function ratioLabel(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number) || number <= 0) return '-';
   return `${number.toFixed(2)}x`;
-}
-
-function lotSharesForBudget(entry, budget = JOBS_SIM_BUDGET_JPY) {
-  const price = Number(entry || 0);
-  if (!price) return 0;
-  return Math.floor(budget / price);
 }
 
 function scoreTone(value) {
@@ -431,58 +452,6 @@ function scoreTone(value) {
   if (number >= 72) return 'good';
   if (number >= 55) return 'info';
   return 'warn';
-}
-
-function normalizeIntradayOpportunity(opportunity, source) {
-  if (!opportunity?.ticker) return null;
-  const maxLoss = Number(opportunity.maxLossJpy || 0);
-  const targetProfit = Number(opportunity.targetProfitJpy || 0);
-  return {
-    ticker: opportunity.ticker,
-    name: opportunity.name,
-    siteRank: opportunity.siteRank,
-    candidateRank: opportunity.candidateRank,
-    rank: opportunity.rank,
-    entry: Number(opportunity.entryPrice || 0),
-    target: Number(opportunity.targetPrice || 0),
-    stop: Number(opportunity.stopLoss || 0),
-    shares: Number(opportunity.shares || 0),
-    budgetUsed: Number(opportunity.budgetUsedJpy || 0),
-    expectedProfit: targetProfit,
-    probabilityAdjustedProfit: Number(opportunity.expectedProfitJpy || 0),
-    maxLoss,
-    score: Number(opportunity.confidencePct || 0),
-    opportunityScore: Number(opportunity.opportunityScore || 0),
-    confidencePct: Number(opportunity.confidencePct || 0),
-    changePct: opportunity.changePct,
-    surgeScore: opportunity.surgeScore,
-    overheatRisk: opportunity.overheatRisk,
-    candidateReason: `短期スコア ${Number(opportunity.surgeScore || 0).toFixed(1)}、前日比 ${pct(opportunity.changePct)}、過熱リスク ${Number(opportunity.overheatRisk || 0).toFixed(1)} を加味して、50万円枠の期待損益を比較しています。`,
-    whyBuy: opportunity.whyBuy || [],
-    whyNotBuy: opportunity.whyNotBuy || [],
-    invalidConditions: opportunity.invalidConditions || [],
-    decisionAudit: opportunity.decisionAudit || null,
-    advancedCrossEngineCheck: opportunity.advancedCrossEngineCheck || null,
-    advancedReportSummary: opportunity.advancedReportSummary || null,
-    scoreBreakdown: opportunity.scoreBreakdown || null,
-    dataFreshness: opportunity.dataFreshness || {},
-    material: opportunity.material || {},
-    setupQualityGrade: opportunity.setupQualityGrade || opportunity.scoreBreakdown?.setupQualityGrade || '-',
-    expertRiskLevel: opportunity.expertRiskLevel || opportunity.scoreBreakdown?.expertRiskLevel || 'unknown',
-    tradeReadiness: opportunity.tradeReadiness || opportunity.scoreBreakdown?.tradeReadiness || 'review',
-    positionSizingVerdict: opportunity.positionSizingVerdict || opportunity.scoreBreakdown?.positionSizingVerdict || 'reduced',
-    expertWarnings: opportunity.expertWarnings || [],
-    expertChecklist: opportunity.expertChecklist || [],
-    availabilityMode: opportunity.availabilityMode || 'STRICT_MATCH',
-    isFallbackCandidate: Boolean(opportunity.isFallbackCandidate),
-    displayDecision: opportunity.displayDecision || null,
-    simpleAction: opportunity.simpleAction || null,
-    primaryWarning: opportunity.primaryWarning || null,
-    disclaimer: opportunity.disclaimer,
-    rr: maxLoss > 0 ? (targetProfit / maxLoss).toFixed(2) : '-',
-    affordable: Number(opportunity.shares || 0) > 0,
-    source,
-  };
 }
 
 function crossEngineTone(status) {
@@ -523,26 +492,10 @@ function sourceShortLabel(value) {
   const text = String(value);
   if (text.includes('finance.yahoo.co.jp')) return 'Yahoo Finance';
   if (text === 'yfinance') return 'yfinance';
-  if (text === 'yahoo_chart') return 'Yahoo chart';
+  if (text === 'yahoo_chart') return 'Yahooチャート';
   if (text === 'stooq') return 'Stooq';
   if (text === 'JPX_MASTER') return 'JPX銘柄マスタ';
   return text.length > 36 ? `${text.slice(0, 34)}...` : text;
-}
-
-function priceSourcePayload(...items) {
-  const merged = {};
-  items.filter(Boolean).forEach((item) => {
-    if (typeof item === 'string') {
-      if (!merged.source) merged.source = item;
-      return;
-    }
-    Object.assign(merged, item);
-  });
-  return merged;
-}
-
-function suppressSyntheticAction(action, source) {
-  return dataSourceBadgeInfo(source).key === 'synthetic' ? '参考表示' : action;
 }
 
 function stockDecisionTone(decision) {
@@ -561,19 +514,9 @@ function exitPlanTone(action) {
   return 'info';
 }
 
-function stockDecisionPriority(stock) {
-  if (stock?.decision === 'DAYTRADE_ENTRY_OK') return 0;
-  if (stock?.decision === 'BUY_LIMIT_OK') return 0;
-  if (stock?.decision === 'REPRICE_FOR_DAYTRADE') return 1;
-  if (stock?.decision === 'BUY_ON_PULLBACK') return 1;
-  if (stock?.mustInclude) return 2;
-  if (stock?.decision === 'WATCH') return 3;
-  return 4;
-}
-
 function signalMeta(signal = 'HOLD') {
   const map = {
-    STRONG_BUY: ['強い買い', 'buy'],
+    STRONG_BUY: ['強い監視候補', 'buy'],
     BUY: ['買い', 'buy'],
     WAIT: ['押し目待ち', 'hold'],
     HOLD: ['様子見', 'hold'],
@@ -627,6 +570,9 @@ function ProTooltip({ active, payload, label }) {
 }
 
 export default function App() {
+  const advancedAnalysisRef = useRef(null);
+  const hydrateInFlightRef = useRef(null);
+  const daytradeAnalysisRequestsRef = useRef(new Map());
   const cached = useMemo(() => {
     return readFreshCache();
   }, []);
@@ -684,6 +630,8 @@ export default function App() {
     setLog((items) => [{ tag, text }, ...items].slice(0, 12));
   }, []);
 
+  const browserMarketStatus = useMemo(() => currentTokyoMarketStatus(), []);
+
   const {
     stocks,
     portfolio,
@@ -692,10 +640,12 @@ export default function App() {
     setDetail,
     advancedReport,
     setAdvancedReport,
+    advancedReportsByTicker,
     marketUniverse,
     marketRankings,
     marketSearch,
     marketFreshness,
+    marketStatusView,
     hydrateMarketData,
     loadDetail,
     loadMarketRankings,
@@ -703,6 +653,7 @@ export default function App() {
   } = useMarketData({
     cached,
     fallback: demo,
+    browserMarketStatus,
     selectedTicker,
     setSelectedTicker,
     rankingKind,
@@ -729,8 +680,11 @@ export default function App() {
     setStatus,
   });
 
-  const hydrate = useCallback(async (background = false) => {
-    try {
+  const hydrate = useCallback((background = false) => {
+    if (hydrateInFlightRef.current) return hydrateInFlightRef.current;
+
+    const task = (async () => {
+      try {
       const marketResult = await hydrateMarketData(background);
       const [daytradePlanResult, daytradeSignalsResult, daytradeRiskResult, brokerStatusResult, autopilotResult, aiFundDeskResult, alertResult, jquantsResult] = await Promise.allSettled([
         api('/daytrade/plan'),
@@ -761,7 +715,7 @@ export default function App() {
       setAiFundDesk(nextAiFundDesk);
       setAlertReport(nextAlertReport);
       setJquantsResearch(nextJquantsResearch);
-      writeCache({
+      writeCache(buildMarketCachePayload({
         stocks: marketResult?.stocks || stocks,
         portfolio: marketResult?.portfolio || portfolio,
         transactions: marketResult?.transactions || transactions,
@@ -781,39 +735,58 @@ export default function App() {
         searchQuery,
         marketSearch,
         advancedReport,
+        advancedReportsByTicker,
         jquantsCode,
         selectedTicker,
         detail,
-      });
-    } catch (error) {
-      setStatus({ tone: 'warn', text: 'オフライン高速表示' });
-      addLog('SYS', `API応答を短縮: ${error.message}`);
-    } finally {
-      setBusy('');
-    }
-  }, [addLog, advancedReport, aiFundDesk, alertReport, autopilotStatus, brokerStatus, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, hydrateMarketData, jquantsCode, jquantsResearch, marketRankings, marketSearch, marketUniverse, portfolio, rankingKind, searchQuery, selectedTicker, stocks, transactions]);
-
-  const loadDaytradeAnalysis = useCallback(async (ticker, interval = daytradeInterval) => {
-    if (!ticker) return;
-    try {
-      const result = await api(`/daytrade/analysis/${encodeURIComponent(ticker)}?interval=${encodeURIComponent(interval)}`, { timeout: 30000 });
-      setDaytradeAnalysis(result);
-      let nextDaytradeRoutine = daytradeRoutine;
-      try {
-        nextDaytradeRoutine = await api(`/daytrade/routine/${encodeURIComponent(ticker)}?interval=${encodeURIComponent(interval)}`, { timeout: 30000 });
-        setDaytradeRoutine(nextDaytradeRoutine);
-      } catch (routineError) {
-        addLog('SYS', `${ticker} ${interval} の生活導線は未取得: ${routineError.message}`);
+      }));
+      } catch (error) {
+        setStatus({ tone: 'warn', text: 'オフライン補完表示' });
+        addLog('SYS', `API応答を短縮: ${error.message}`);
+      } finally {
+        hydrateInFlightRef.current = null;
+        setBusy('');
       }
-      writeCache({
-        stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk,
-        daytradeInterval: interval, daytradeAnalysis: result, daytradeRoutine: nextDaytradeRoutine, brokerStatus, autopilotStatus, alertReport,
-        jquantsResearch, advancedReport, jquantsCode, selectedTicker: ticker, detail,
-      });
-      addLog('SIM', `${ticker} ${interval} の短期スコアを更新しました。`);
-    } catch (error) {
-      addLog('SYS', `${ticker} ${interval} の短期分析は未取得: ${error.message}`);
-    }
+    })();
+
+    hydrateInFlightRef.current = task;
+    return task;
+  }, [addLog, advancedReport, advancedReportsByTicker, aiFundDesk, alertReport, autopilotStatus, brokerStatus, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, hydrateMarketData, jquantsCode, jquantsResearch, marketRankings, marketSearch, marketUniverse, portfolio, rankingKind, searchQuery, selectedTicker, stocks, transactions]);
+
+  const loadDaytradeAnalysis = useCallback((ticker, interval = daytradeInterval) => {
+    if (!ticker) return Promise.resolve(null);
+    const requestKey = `${ticker}:${interval}`;
+    const activeRequest = daytradeAnalysisRequestsRef.current.get(requestKey);
+    if (activeRequest) return activeRequest;
+
+    const task = (async () => {
+      try {
+        const result = await api(`/daytrade/analysis/${encodeURIComponent(ticker)}?interval=${encodeURIComponent(interval)}`, { timeout: 30000 });
+        setDaytradeAnalysis(result);
+        let nextDaytradeRoutine = daytradeRoutine;
+        try {
+          nextDaytradeRoutine = await api(`/daytrade/routine/${encodeURIComponent(ticker)}?interval=${encodeURIComponent(interval)}`, { timeout: 30000 });
+          setDaytradeRoutine(nextDaytradeRoutine);
+        } catch (routineError) {
+          addLog('SYS', `${ticker} ${interval} の生活導線は未取得: ${routineError.message}`);
+        }
+        writeCache(buildMarketCachePayload({
+          stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk,
+          daytradeInterval: interval, daytradeAnalysis: result, daytradeRoutine: nextDaytradeRoutine, brokerStatus, autopilotStatus, alertReport,
+          jquantsResearch, advancedReport, jquantsCode, selectedTicker: ticker, detail,
+        }));
+        addLog('SIM', `${ticker} ${interval} の短期スコアを更新しました。`);
+        return result;
+      } catch (error) {
+        addLog('SYS', `${ticker} ${interval} の短期分析は未取得: ${error.message}`);
+        return null;
+      } finally {
+        daytradeAnalysisRequestsRef.current.delete(requestKey);
+      }
+    })();
+
+    daytradeAnalysisRequestsRef.current.set(requestKey, task);
+    return task;
   }, [addLog, advancedReport, alertReport, autopilotStatus, brokerStatus, daytradeInterval, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, jquantsCode, jquantsResearch, portfolio, stocks, transactions]);
 
   useEffect(() => {
@@ -853,78 +826,19 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTicker, daytradeInterval]);
 
-  const rankedStocks = useMemo(() => {
-    return ensurePinnedWatchStock(stocks)
-      .map((stock) => ({
-        ...stock,
-        candidateScore: candidateScore(stock),
-        candidateReason: candidateReason(stock),
-        mustInclude: stock.ticker === PINNED_WATCH_TICKER || Boolean(stock.mustInclude),
-      }))
-      .sort((a, b) => {
-        const rankA = Number(a.candidateRank || 999);
-        const rankB = Number(b.candidateRank || 999);
-        return stockDecisionPriority(a) - stockDecisionPriority(b)
-          || Number(b.confidence || 0) - Number(a.confidence || 0)
-          || rankA - rankB
-          || candidateScore(b) - candidateScore(a)
-          || Number(b.price || 0) - Number(a.price || 0);
-      })
-      .slice(0, WATCHLIST_DISPLAY_LIMIT);
-  }, [stocks]);
+  const rankedStocks = useMemo(() => buildRankedStocks({
+    stocks,
+    pinnedTicker: PINNED_WATCH_TICKER,
+    pinnedStock: PINNED_WATCH_STOCK,
+    watchlistLimit: WATCHLIST_DISPLAY_LIMIT,
+  }), [stocks]);
 
-  const browserMarketStatus = useMemo(() => currentTokyoMarketStatus(), []);
-  const marketStatus = marketRankings?.marketStatus || browserMarketStatus;
-  const isRegularSession = marketStatus?.isOpen !== false;
-  const marketStatusTopLabel = isRegularSession ? '取引時間中' : '時間外';
-  const marketFreshnessLabel = marketFreshness?.lastUpdated
-    ? `${marketFreshness.isCached || marketFreshness.stale ? '参考更新' : 'データ更新'} ${marketFreshness.lastUpdated.toLocaleTimeString('ja-JP')}`
-    : 'データ更新 未確認';
-
-  const daytradeTopPick = useMemo(() => {
-    const strictPick = marketRankings?.bestOpportunity;
-    const fallbackPick = marketRankings?.bestAvailableOpportunity;
-    if (!strictPick && !fallbackPick && rankedStocks?.length) {
-      const candidate = rankedStocks[0];
-      const entry = Number(candidate.buyLimit || candidate.price || 0);
-      const target = Number(candidate.sellLimit || (entry ? entry * 1.018 : 0));
-      const stop = Number(candidate.stopLoss || (entry ? entry * 0.992 : 0));
-      const shares = lotSharesForBudget(entry);
-      const targetProfit = Math.max(0, (target - entry) * shares);
-      const maxLoss = Math.max(0, (entry - stop) * shares);
-      return normalizeIntradayOpportunity({
-        ticker: candidate.ticker,
-        name: candidate.name,
-        entryPrice: entry,
-        targetPrice: target,
-        stopLoss: stop,
-        shares,
-        budgetUsedJpy: entry * shares,
-        targetProfitJpy: targetProfit,
-        expectedProfitJpy: targetProfit * 0.55,
-        maxLossJpy: maxLoss,
-        confidencePct: Number(candidate.confidence || candidate.candidateScore || 50),
-        changePct: candidate.entryGapPct || 0,
-        surgeScore: candidate.preopenScore || candidate.candidateScore || 0,
-        overheatRisk: candidate.overheatRisk || 0,
-        availabilityMode: 'WATCHLIST_FALLBACK',
-        isFallbackCandidate: true,
-        simpleAction: '暫定候補',
-        displayDecision: 'WAIT_FOR_RANKING',
-        primaryWarning: 'ランキング更新中です。正式候補が出るまでは価格・材料確認用の暫定表示です。',
-        whyBuy: [candidate.candidateReason || 'ウォッチリスト内で最上位の候補です。'],
-        whyNotBuy: ['ランキング更新完了後に最終確認してください。'],
-        invalidConditions: ['価格が注文上限を超える', '材料や流動性が確認できない'],
-        expertRiskLevel: 'medium',
-        tradeReadiness: 'review',
-        positionSizingVerdict: shares > 0 ? 'reduced' : 'skip',
-      }, 'watchlist-fallback-candidate');
-    }
-    return normalizeIntradayOpportunity(
-      strictPick || fallbackPick,
-      strictPick ? 'global-best-intraday-opportunity' : 'best-available-daytrade-candidate',
-    );
-  }, [marketRankings, rankedStocks]);
+  const daytradeTopPick = useMemo(() => deriveDaytradeTopPick({
+    marketRankings,
+    rankedStocks,
+    rankingKind,
+    budget: JOBS_SIM_BUDGET_JPY,
+  }), [marketRankings, rankedStocks, rankingKind]);
 
   const topPickSyncKey = daytradeTopPick?.ticker
     ? `${daytradeTopPick.ticker}|${daytradeTopPick.entry || ''}|${daytradeTopPick.shares || ''}`
@@ -950,6 +864,7 @@ export default function App() {
     marketUniverse,
     detail,
     advancedReport,
+    advancedReportsByTicker,
     setDetail,
     setAdvancedReport,
     setDaytradeAnalysis,
@@ -964,6 +879,15 @@ export default function App() {
     () => candidateQuality(selectedStock, selectedDetail),
     [selectedDetail, selectedStock],
   );
+  const openTopPickDetails = useCallback(() => {
+    focusTopPick?.();
+    setShowDetails(true);
+    const scrollToAnalysis = () => {
+      advancedAnalysisRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    };
+    window.requestAnimationFrame(scrollToAnalysis);
+    window.setTimeout(scrollToAnalysis, 450);
+  }, [focusTopPick]);
   const selectedDataQuality = useMemo(
     () => candidateDataQuality(selectedStock, selectedDetail),
     [selectedDetail, selectedStock],
@@ -994,6 +918,10 @@ export default function App() {
     archivedHoldings,
     allocation,
     portfolioHealth,
+    lifecycleFeed,
+    riskMetrics,
+    verdictRows,
+    pendingLifecycle,
     closePortfolioPosition,
   } = usePortfolioLedger({
     portfolio,
@@ -1014,139 +942,25 @@ export default function App() {
     setStatus,
   });
 
-  const displayStocks = useMemo(() => {
-    const syncTopPickIntoWatchlist = (items) => {
-      if (!daytradeTopPick?.ticker) return items;
-      const topPickStock = {
-        ticker: daytradeTopPick.ticker,
-        name: daytradeTopPick.name || daytradeTopPick.ticker,
-        emoji: 'JP',
-        price: daytradeTopPick.entry,
-        candidateScore: daytradeTopPick.score,
-        candidateRank: 0,
-        candidateReason: `デイトレ候補レビューと同じ条件一致トップです。${daytradeTopPick.candidateReason}`,
-        buyLimit: daytradeTopPick.entry,
-        sellLimit: daytradeTopPick.target,
-        stopLoss: daytradeTopPick.stop,
-        entryGapPct: daytradeTopPick.changePct || 0,
-        confidence: daytradeTopPick.confidencePct,
-        preopenScore: daytradeTopPick.score,
-        preopenDecision: '条件一致',
-        decision: 'DAYTRADE_ENTRY_OK',
-        source: daytradeTopPick.source,
-      };
-      const existingIndex = items.findIndex((stock) => stock.ticker === daytradeTopPick.ticker);
-      if (existingIndex === -1) return [topPickStock, ...items].slice(0, WATCHLIST_DISPLAY_LIMIT);
-      return items.map((stock, index) => (
-        index === existingIndex
-          ? { ...stock, ...topPickStock, mustInclude: stock.mustInclude }
-          : stock
-      ));
-    };
+  const displayStocks = useMemo(() => buildDisplayStocks({
+    rankedStocks,
+    daytradeTopPick,
+    marketRankings,
+    marketSearch,
+    marketUniverse,
+    detail,
+    watchlistLimit: WATCHLIST_DISPLAY_LIMIT,
+    fallbackCandidates: WATCHLIST_FALLBACK_CANDIDATES,
+  }), [daytradeTopPick, detail, marketRankings, marketSearch, marketUniverse, rankedStocks]);
 
-    const fillFromRankings = (items) => {
-      const next = [...items];
-      const seen = new Set(next.map((stock) => stock.ticker));
-      const fillerItems = [
-        ...(marketRankings?.items || []),
-        ...(marketSearch?.items || []),
-        ...(marketUniverse?.sample || []),
-        ...WATCHLIST_FALLBACK_CANDIDATES,
-      ];
-      for (const item of fillerItems) {
-        if (next.length >= WATCHLIST_DISPLAY_LIMIT) break;
-        if (!item?.ticker || seen.has(item.ticker)) continue;
-        const opportunity = normalizeIntradayOpportunity(item.intradayOpportunity || item, 'watchlist-ranking-fill');
-        next.push({
-          ticker: item.ticker,
-          name: item.name || item.ticker,
-          emoji: 'JP',
-          price: opportunity?.entry || item.price || 0,
-          candidateScore: opportunity?.score || item.candidateScore || item.surgeScore || 0,
-          candidateRank: item.candidateRank || item.rank,
-          candidateReason: opportunity?.candidateReason || item.reason || item.surgeStage || 'ランキング候補から補完表示しています。',
-          buyLimit: opportunity?.entry || item.price,
-          sellLimit: opportunity?.target,
-          stopLoss: opportunity?.stop,
-          entryGapPct: item.changePct || 0,
-          confidence: opportunity?.confidencePct || item.confidence || item.candidateScore || 0,
-          preopenScore: opportunity?.score || item.surgeScore || item.candidateScore || 0,
-          preopenDecision: opportunity?.simpleAction || item.surgeStage || '候補',
-          decision: opportunity?.tradeReadiness === 'avoid' ? 'AVOID' : 'DAYTRADE_ENTRY_OK',
-          source: item.source || opportunity?.source,
-        });
-        seen.add(item.ticker);
-      }
-      return next.slice(0, WATCHLIST_DISPLAY_LIMIT);
-    };
-
-    return fillFromRankings(syncTopPickIntoWatchlist(rankedStocks)).map((stock) => {
-      if (!detail || detail.ticker !== stock.ticker) return stock;
-      return {
-        ...stock,
-        price: detail.price ?? stock.price,
-        buyLimit: detail.analysis?.strategy?.buy_limit ?? stock.buyLimit,
-        sellLimit: detail.analysis?.strategy?.sell_limit ?? stock.sellLimit,
-        stopLoss: detail.analysis?.strategy?.stop_loss ?? stock.stopLoss,
-        entryGapPct: detail.analysis?.execution?.entryGapPct ?? stock.entryGapPct,
-        decision: detail.analysis?.execution?.decision ?? stock.decision,
-        candidateQuality: detail.candidateQuality ?? stock.candidateQuality,
-        preopenReport: detail.preopenReport ?? stock.preopenReport,
-        preopenScore: detail.preopenScore ?? stock.preopenScore,
-        preopenDecision: detail.preopenDecision || stock.preopenDecision,
-        candidateReason: detail.analysis?.technicalSummary || stock.candidateReason,
-      };
-    });
-  }, [daytradeTopPick, detail, marketRankings, marketSearch, marketUniverse, rankedStocks]);
-
-  const jobsCandidate = useMemo(() => {
-    const selectedRankingItem = (marketRankings?.items || []).find((item) => item.ticker === selectedTicker);
-    const opportunity = selectedRankingItem?.intradayOpportunity
-      || (marketRankings?.bestOpportunity?.ticker === selectedTicker ? marketRankings.bestOpportunity : null)
-      || (marketRankings?.bestAvailableOpportunity?.ticker === selectedTicker ? marketRankings.bestAvailableOpportunity : null);
-    if (opportunity?.ticker) {
-      return normalizeIntradayOpportunity(opportunity, 'selected-intraday-opportunity');
-    }
-    const candidate = selectedStock || rankedStocks.find((stock) => stock.ticker === selectedTicker) || null;
-    if (!candidate) return null;
-    const entry = Number(candidate.buyLimit || candidate.price || 0);
-    const target = Number(candidate.sellLimit || (entry ? entry * 1.018 : 0));
-    const stop = Number(candidate.stopLoss || (entry ? entry * 0.992 : 0));
-    const shares = lotSharesForBudget(entry);
-    const budgetUsed = shares * entry;
-    const expectedProfit = Math.max(0, (target - entry) * shares);
-    const maxLoss = Math.max(0, (entry - stop) * shares);
-    const score = Number(candidate.preopenScore ?? candidate.candidateScore ?? candidate.confidence ?? 0);
-    return {
-      ...candidate,
-      entry,
-      target,
-      stop,
-      shares,
-      budgetUsed,
-      expectedProfit,
-      probabilityAdjustedProfit: expectedProfit * Math.max(0.01, Math.min(0.95, score / 100)),
-      maxLoss,
-      score,
-      rr: candidate.rrRatio || (maxLoss > 0 ? (expectedProfit / maxLoss).toFixed(2) : '-'),
-      affordable: shares > 0,
-      whyBuy: [candidateReason(candidate)],
-      whyNotBuy: ['根拠データが不足する場合、または板・ニュースを確認できない場合は見送り'],
-      invalidConditions: ['損切り価格を下回る', '出来高が細る', '重要ニュースが未確認'],
-      dataFreshness: {
-        latestBarDate: candidate.latestBarDate,
-        priceAsOfDate: candidate.priceAsOfDate || candidate.latestBarDate,
-        source: candidate.source,
-        priceSource: candidate.priceSource || candidate.dataQuality?.source || candidate.source,
-        rankingSource: candidate.source,
-        sourceFetchedDate: candidate.sourceFetchedDate,
-        sourceFetchedAt: candidate.sourceFetchedAt,
-      },
-      material: candidate.material || selectedDetail?.material || {},
-      disclaimer: 'これは売買指示ではなく、条件一致に基づく投資シミュレーションです。',
-      source: 'selected-watchlist',
-    };
-  }, [selectedDetail, marketRankings, rankedStocks, selectedStock, selectedTicker]);
+  const jobsCandidate = useMemo(() => buildJobsCandidate({
+    selectedTicker,
+    selectedStock,
+    selectedDetail,
+    marketRankings,
+    rankedStocks,
+    budget: JOBS_SIM_BUDGET_JPY,
+  }), [selectedDetail, marketRankings, rankedStocks, selectedStock, selectedTicker]);
 
   const crossEngineCheck = useMemo(() => {
     if (selectedDetail?.crossEngineCheck?.status && selectedDetail.crossEngineCheck.status !== 'pending') {
@@ -1242,112 +1056,6 @@ export default function App() {
       orderStyle: execution.orderStyle || 'limit_only',
     };
   }, [selectedDetail, portfolio, selectedStock, signalLabel]);
-  const jobsVerdictHeadline = useMemo(() => {
-    if (!daytradeTopPick?.ticker) return tradePlan.headline;
-    const action = daytradeTopPick.simpleAction || (daytradeTopPick.isFallbackCandidate ? '買い候補' : '承認待ち候補');
-    const entryText = daytradeTopPick.entry ? `指値 ${yen(daytradeTopPick.entry)}` : '指値確認中';
-    const riskText = daytradeTopPick.primaryWarning || tradePlan.headline;
-    return `${daytradeTopPick.ticker} ${action} / ${entryText}. ${riskText}`;
-  }, [daytradeTopPick, tradePlan.headline]);
-
-  const decisionGate = useMemo(() => {
-    const rr = Number(tradePlan.rr || 0);
-    const items = [
-      {
-        label: '明日買える価格帯である',
-        ok: tradePlan.entry > 0 && tradePlan.entryGapPct <= 0.35 && tradePlan.entryGapPct >= -1.5,
-        detail: '買えない深い指値ではなく、現在値近辺の上限価格だけを採用します。',
-      },
-      {
-        label: '損切りが先に決まっている',
-        ok: tradePlan.stop > 0 && tradePlan.stop < tradePlan.entry,
-        detail: '損失額を先に固定し、感情で保有し続ける事故を防ぎます。',
-      },
-      {
-        label: 'RRが最低2.0以上',
-        ok: rr >= 2,
-        detail: '勝率ではなく期待値で判断します。',
-      },
-      {
-        label: '1回の想定損失が資産1%以内',
-        ok: tradePlan.suggestedRiskJpy <= tradePlan.maxRiskJpy && tradePlan.suggestedRiskJpy > 0,
-        detail: '連敗しても破綻しにくいサイズに抑えます。',
-      },
-      {
-        label: 'データ出所を確認済み',
-        ok: Boolean(selectedDetail?.freshness?.priceOk),
-        detail: '最新日足の日付が古い場合は実注文判断に使いません。',
-      },
-      {
-        label: 'デイトレ監視候補の判定である',
-        ok: ['DAYTRADE_ENTRY_OK', 'BUY_LIMIT_OK'].includes(tradePlan.decision),
-        detail: '押し目待ちや観察銘柄を、監視候補には混ぜません。',
-      },
-      {
-        label: 'ランキングと高度分析が矛盾しない',
-        ok: crossEngineCheck.status === 'aligned',
-        detail: crossEngineCheck.detail,
-      },
-      {
-        label: '直近ニュース鮮度を確認済み',
-        ok: Boolean(selectedDetail?.freshness?.newsOk),
-        detail: '材料が古い場合は、ニュース未確認として一段落として扱います。',
-      },
-      {
-        label: 'ブローカー連携なし',
-        ok: brokerStatus?.mode === 'BROKER_DISABLED',
-        detail: 'この画面は注文実行ではなく、証券会社で手入力する前の確認票です。',
-      },
-    ];
-    const passed = items.filter((item) => item.ok).length;
-    return {
-      items,
-      passed,
-      total: items.length,
-      ready: passed === items.length,
-      label: passed === items.length ? '手入力前チェック通過' : '待機 / 再確認',
-    };
-  }, [brokerStatus, crossEngineCheck, selectedDetail, tradePlan]);
-
-  const dataProvenance = useMemo(() => {
-    const policy = jquantsResearch?.dataPolicy;
-    return [
-      {
-        label: '価格データ',
-        value: selectedDetail?.latestBarDate ? `${selectedDetail.latestBarDate} 更新` : jquantsResearch?.latestQuote?.source || selectedDetail?.source || '未確認',
-        note: selectedDetail?.latestBarAgeDays != null
-          ? `最新日足は${selectedDetail.latestBarAgeDays}日前。直近12週間はyfinance補完、リアルタイム板ではありません。`
-          : '価格鮮度を確認できない場合は実注文判断に使いません。',
-      },
-      {
-        label: '直近値動き',
-        value: selectedDetail?.recentWindow?.priceChangePct != null ? pct(selectedDetail.recentWindow.priceChangePct) : '-',
-        note: selectedDetail?.recentWindow?.from
-          ? `${selectedDetail.recentWindow.from}〜${selectedDetail.recentWindow.to} / ${selectedDetail.recentWindow.tradingDays}営業日`
-          : '直近2週間相当の終値変化を取得できません。',
-      },
-      {
-        label: '決算・開示・ニュース',
-        value: selectedDetail?.news?.count ? `${selectedDetail.news.count}件 / ${selectedDetail?.material?.tone || '確認'}` : '未取得',
-        note: selectedDetail?.news?.latestPublishedAt
-          ? `最新: ${shortDate(selectedDetail.news.latestPublishedAt)} / ${selectedDetail?.news?.summary || '材料確認済み'}`
-          : '決算・適時開示・重要ニュースが取得できない場合は、材料未確認として扱います。',
-      },
-      {
-        label: '公式履歴',
-        value: jquantsResearch?.configured ? 'J-Quants API' : '未接続',
-        note: policy ? `${policy.recentWindowDays}日以内は補完、古い履歴はJ-Quants` : 'J-Quants設定後に公式履歴を確認できます。',
-      },
-    ];
-  }, [selectedDetail, jquantsResearch]);
-
-  function safeStageLabel(label) {
-    if (!label) return '';
-    if (label.includes('本命')) return '短期上昇シグナル強';
-    if (label.includes('高騰')) return '短期上昇シグナル';
-    return label;
-  }
-
   const rankingTabs = [
     { id: 'surge', label: '短期上昇' },
     { id: 'gainers', label: '値上がり率' },
@@ -1358,22 +1066,93 @@ export default function App() {
     { id: 'overheat', label: '過熱注意' },
   ];
 
-  const rankingItems = marketRankings?.items?.length
-    ? marketRankings.items
-    : rankedStocks.map((stock, index) => ({
-      rank: index + 1,
-      ticker: stock.ticker,
-      name: stock.name,
-      price: stock.price,
-      changePct: stock.entryGapPct || 0,
-      volume: 0,
-      turnoverJpy: 0,
-      candidateScore: stock.candidateScore,
-      surgeScore: stock.candidateScore,
-      overheatRisk: 0,
-      surgeStage: stock.decision === 'AVOID' ? '過熱注意' : '上昇監視',
-      reason: stock.candidateReason,
-    }));
+  const {
+    isFallbackTopPick,
+    topPickSource,
+    simpleTopPickAction,
+    topPickTickerLabel,
+    selectedRankingLabel,
+    marketProviderLabel,
+    marketUniverseCount,
+    isYahooGainersRanking,
+    marketScopeLabel,
+    marketScopeCount,
+    marketPanelTitle,
+    marketPanelDescription,
+    marketSignalLabel,
+    marketContextReasonLabel,
+    marketContextTone,
+    marketContextUsable,
+    marketContextDetail,
+    tradeStrategyTitle,
+    tradeStrategyReason,
+    decisionScoreLabel,
+    selectedRankContext,
+    selectedDecisionSourceLabel,
+    selectedSourceContext,
+    selectedSourceEvidence,
+    topPickReason,
+    topPickMaterial,
+    topCandidateMetrics,
+    selectedRankingMetric,
+    openingScenarioPlan,
+    decisionGate,
+    dataProvenance,
+    jquantsView,
+    valueDisciplineLens,
+    jobsVerdictHeadline,
+    rankingItems,
+    practiceTicker,
+    practiceName,
+    practicePrice,
+    practicePriceSource,
+    practiceEntry,
+    practiceTarget,
+    practiceStop,
+    practiceShares,
+    practiceHoldings,
+    practiceOrderValidation,
+    practiceTransactions,
+    practicePnl,
+  } = useDashboardViewModel({
+    brokerStatus,
+    cached,
+    crossEngineCheck,
+    jquantsCode,
+    jquantsResearch,
+    marketRankings,
+    marketUniverse,
+    rankingKind,
+    rankingTabs,
+    rankedStocks,
+    daytradeTopPick,
+    jobsCandidate,
+    selectedDetail,
+    selectedStock,
+    selectedAdvancedReport,
+    selectedTicker,
+    userSelectedTicker,
+    tradePlan,
+    positionForm,
+    holdings,
+    transactions,
+    practiceOrders,
+    marketStatusView,
+    getPracticeOrderValidation,
+    compactNumber,
+    pct,
+    sourceShortLabel,
+    shortDate,
+    tradeActionLabel,
+    yen,
+  });
+
+  function safeStageLabel(label) {
+    if (!label) return '';
+    if (label.includes('本命')) return '短期上昇シグナル強';
+    if (label.includes('高騰')) return '短期上昇シグナル';
+    return label;
+  }
 
   function searchMarket(event) {
     event?.preventDefault?.();
@@ -1445,14 +1224,14 @@ export default function App() {
   async function loadJquantsResearch() {
     const code = (jquantsCode || selectedTicker || '4980.T').trim();
     setBusy('jquants');
-    addLog('J-Quants', `${code} の日本株リサーチ補助データを確認します。発注は行いません。`);
+    addLog('J-Quants', 'J-Quantsデータを確認しています。');
     try {
-      const result = await api(`/research/jquants/${encodeURIComponent(code)}`, { timeout: 12000 });
+      const result = await api('/research/jquants/' + encodeURIComponent(code), { timeout: 12000 });
       setJquantsResearch(result);
       addLog('J-Quants', result?.summary || 'J-Quantsリサーチ補助データを読み込みました。');
-      writeCache({ stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk, brokerStatus, autopilotStatus, alertReport, jquantsResearch: result, advancedReport, jquantsCode: code, selectedTicker, detail });
+      writeCache(buildMarketCachePayload({ stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk, brokerStatus, autopilotStatus, alertReport, jquantsResearch: result, advancedReport, jquantsCode: code, selectedTicker, detail }));
     } catch (error) {
-      addLog('J-Quants', `J-Quantsリサーチを利用できません: ${error.message}`);
+      addLog('J-Quants', error?.message || 'J-Quantsデータを取得できませんでした。');
     } finally {
       setBusy('');
     }
@@ -1463,9 +1242,9 @@ export default function App() {
     const result = await submitPracticeOrder({
       source: practicePriceSource,
       referencePrice: practicePrice,
-      onBeforePersist: (payload) => {
+      onBeforePersist: () => {
         setBusy('position');
-        addLog('Jobs', `${payload.ticker} ${payload.entryPrice}円 ${payload.shares}株を練習注文として保有台帳へ記録します。実注文は出しません。`);
+        addLog('Jobs', '練習注文を台帳へ保存しました。');
       },
       persistPortfolio: (payload) => api('/portfolio/positions', {
         method: 'POST',
@@ -1477,7 +1256,7 @@ export default function App() {
         await hydrate(true);
       },
       onError: (error) => {
-        addLog('SYS', `保有台帳の更新に失敗しました。練習履歴には未約定として残します: ${error.message}`);
+        addLog('SYS', error?.message || '練習注文の保存に失敗しました。');
       },
     });
     if (!result.ok && result.validation?.errors?.length) {
@@ -1491,197 +1270,20 @@ export default function App() {
     setBusy('');
   }
 
-  const jquantsConfigured = Boolean(jquantsResearch?.configured);
-  const selectedJquantsCode = (jquantsCode || selectedTicker || '').replace(/\.T$/i, '');
-  const researchCode = String(jquantsResearch?.code || '').replace(/\.T$/i, '');
-  const jquantsResearchMatchesSelection = !researchCode || researchCode === selectedJquantsCode;
-  const jquantsIntegrity = jquantsResearchMatchesSelection ? jquantsResearch?.sourceIntegrity : null;
-  const jquantsStatusLabel = jquantsConfigured ? 'J-Quants 接続済み' : 'J-Quants 未接続';
-  const jquantsStatusTone = jquantsConfigured ? 'good' : 'neutral';
-  const jquantsIntegrityTone = jquantsIntegrity?.verdict === 'PASS'
-    ? 'good'
-    : jquantsIntegrity?.verdict === 'REVIEW'
-      ? 'warn'
-      : 'neutral';
-  const jquantsIntegrityLabel = jquantsIntegrity?.label || (jquantsResearchMatchesSelection ? (jquantsConfigured ? '接続確認のみ' : '未接続') : '銘柄未確認');
-  const jquantsModeLabel = jquantsConfigured ? jquantsResearch?.mode : 'トークン未設定';
-  const jquantsTargetLabel = jquantsResearchMatchesSelection
-    ? (jquantsResearch?.issue?.name || jquantsResearch?.code || jquantsCode)
-    : jquantsCode;
-  const jquantsLatestClose = jquantsConfigured && jquantsResearchMatchesSelection && jquantsResearch?.latestQuote?.close ? yen(jquantsResearch.latestQuote.close) : '未取得';
-  const jquantsLatestSource = jquantsResearchMatchesSelection ? (jquantsIntegrity?.latestQuoteSource || jquantsResearch?.latestQuote?.source || '未取得') : '未確認';
-  const jquantsEpsBps = jquantsConfigured && jquantsResearchMatchesSelection
-    ? `${jquantsResearch?.latestStatement?.earningsPerShare || '-'} / ${jquantsResearch?.latestStatement?.bookValuePerShare || '-'}`
-    : '未取得';
-  const jquantsOfficialStatus = jquantsIntegrity?.officialHistoryUsable
-    ? `${jquantsIntegrity.officialHistorySource || 'official'} / ${jquantsIntegrity.officialHistoryAgeDays ?? '-'}日`
-    : '未確認';
-  const jquantsNote = jquantsConfigured && !jquantsResearchMatchesSelection
-    ? `${jquantsCode} はまだJ-Quants確認を実行していません。選択銘柄に連動してコードは更新済みです。必要なら確認ボタンで読み取り専用チェックを行います。`
-    : jquantsConfigured && jquantsResearch?.jquantsError
-    ? `J-Quants APIキーは適用済みですが、現在は ${jquantsResearch.jquantsError} のため公式遅延データを取得できません。直近日足は補完データとして表示しています。`
-    : jquantsIntegrity?.detail
-    ? jquantsIntegrity.detail
-    : jquantsConfigured
-    ? `J-Quantsは読み取り専用で確認しています。日足の最新値は ${jquantsResearch?.latestQuote?.date || '未取得'}、リアルタイム板ではありません。`
-    : jquantsResearch?.message || jquantsResearch?.nextStep || 'J-Quants APIトークンを設定すると、銘柄マスタ・日足・財務データを読み取り専用で取得できます。未設定でもアプリ本体は利用できます。';
-  const prophetValidated = selectedAdvancedReport?.verdict === 'ADVANCED_READY'
-    && Number(selectedAdvancedReport?.walkForward?.edgePct || 0) > 0
-    && selectedAdvancedReport?.guardrails?.every((item) => item.ok);
-  const hasRankingItems = Boolean(marketRankings?.items?.length);
-  const hasNoActionableTopPick = Boolean(marketRankings) && hasRankingItems && !daytradeTopPick;
-  const isFallbackTopPick = Boolean(daytradeTopPick?.isFallbackCandidate);
-  const topPickSource = priceSourcePayload(
-    cached ? { isCached: true, source: 'cache' } : null,
-    daytradeTopPick?.dataFreshness,
-    daytradeTopPick,
-    daytradeTopPick?.dataQuality,
-    marketRankings?.isCached ? { isCached: true, source: 'cache' } : null,
-  );
-  const simpleTopPickActionRaw = daytradeTopPick?.simpleAction
-    || (daytradeTopPick?.tradeReadiness === 'ready' ? '買い候補' : daytradeTopPick ? '待つ' : 'スキャン中');
-  const simpleTopPickAction = suppressSyntheticAction(simpleTopPickActionRaw, topPickSource);
-  const monitoredTickerLabel = jobsCandidate ? `${jobsCandidate.ticker} ${jobsCandidate.name}` : '国内市場スキャン中';
-  const topPickTickerLabel = daytradeTopPick
-    ? `${daytradeTopPick.ticker} ${daytradeTopPick.name || ''}`
-    : hasNoActionableTopPick
-      ? '候補抽出待ち'
-      : '全市場スキャン中';
-  const rankingPayloadKind = marketRankings?.kind || rankingKind;
-  const selectedRankingLabel = rankingTabs.find((tab) => tab.id === rankingPayloadKind)?.label || 'ランキング';
-  const marketProviderLabel = marketRankings?.provider || marketUniverse?.snapshot?.provider || '未取得';
-  const marketUniverseCount = marketUniverse?.count || marketRankings?.universeCount || 3800;
-  const isYahooGainersRanking = rankingPayloadKind === 'gainers' && (
-    marketRankings?.provider === 'Yahoo Finance Japan gainers ranking'
-    || String(marketRankings?.source || '').includes('finance.yahoo.co.jp/stocks/ranking/up')
-  );
-  const marketScopeLabel = isYahooGainersRanking ? 'Yahoo掲載' : '分析済み';
-  const marketScopeCount = isYahooGainersRanking
-    ? compactNumber(marketRankings?.analyzedCount || marketRankings?.items?.length || 0)
-    : compactNumber(marketRankings?.analyzedCount || marketUniverse?.snapshot?.analyzedCount || 0);
-  const marketPanelTitle = isYahooGainersRanking
-    ? 'Yahoo Finance値上がり率ランキングと銘柄検索'
-    : `約${marketUniverseCount.toLocaleString('ja-JP')}銘柄の独自スクリーニングと詳細検索`;
-  const marketPanelDescription = isYahooGainersRanking
-    ? '値上がり率タブはYahoo Finance Japanの掲載順位を優先表示します。Zen内部評価は候補品質の比較に分離し、地合い判定はJPX+yfinanceのフル市場スナップショットが新鮮な時だけ使います。'
-    : 'JPX上場銘柄マスタを母集団にし、日足価格、出来高、売買代金、勢い、候補品質、過熱リスクで候補を並べ替えます。検索した銘柄は高度分析へ渡し、実注文は作成しません。';
-  const marketSignalLabel = isYahooGainersRanking ? '公式順位 / 出来高' : '短期スコア / 過熱リスク';
-  const marketContextIntegrity = marketRankings?.marketContextIntegrity;
-  const marketContextCount = marketContextIntegrity?.contextCount ?? marketRankings?.marketContextCount ?? 0;
-  const marketContextAge = marketContextIntegrity?.ageDays ?? marketRankings?.marketContextAgeDays;
-  const marketContextAgeLabel = marketContextAge == null ? '不明' : `${marketContextAge}日`;
-  const marketContextUsable = Boolean(marketContextIntegrity?.usable);
-  const marketContextReasonLabel = marketContextUsable
-    ? 'フル市場地合い 有効'
-    : marketContextIntegrity?.reason === 'stale_snapshot'
-      ? '地合い要確認'
-      : marketContextIntegrity?.reason === 'empty_context'
-        ? '地合いデータ空'
-        : marketContextIntegrity?.reason === 'missing_snapshot'
-          ? '地合い未取得'
-          : '地合い未確認';
-  const marketContextTone = marketContextUsable ? 'good' : 'warn';
-  const marketContextDetail = marketContextUsable
-    ? `JPX+yfinance ${compactNumber(marketContextCount)}銘柄 / 鮮度 ${marketContextAgeLabel}。市場・セクター判定に使用します。`
-    : `フル市場データが古い、または未取得です。Yahoo上昇銘柄だけから地合いを推定せず、候補監査では要確認にします。`;
-  const usesIntradayOpportunity = jobsCandidate?.source === 'selected-intraday-opportunity';
-  const tradeStrategyTitle = jobsCandidate
-    ? usesIntradayOpportunity
-      ? `選択銘柄の50万円シミュレーション ${monitoredTickerLabel}`
-      : `選択銘柄の条件一致シミュレーション ${monitoredTickerLabel}`
-    : '本日の条件一致候補を計算中';
-  const tradeStrategyReason = usesIntradayOpportunity
-    ? '選択中の銘柄について、50万円を1株単位で投入した場合の利確シナリオ・期待損益・損失シナリオを同時比較しています。売買指示ではなく、根拠確認用のシミュレーションです。'
-    : prophetValidated
-    ? '検証ゲートを通過。板厚・スプレッド・ニュースを確認できる場合だけ、自己判断の参考にします。'
-    : `${monitoredTickerLabel} を50万円シミュレーションの上位条件一致として表示します。最終判断ではなく、価格・リスク・見送り条件を確認するための分析支援です。`;
-  const decisionScoreLabel = usesIntradayOpportunity ? '条件一致' : prophetValidated ? '検証済み' : '候補スコア';
-  const selectedRankContext = isYahooGainersRanking && jobsCandidate?.siteRank
-    ? `Yahoo #${jobsCandidate.siteRank} / Zen #${jobsCandidate.candidateRank || '-'}`
-    : jobsCandidate?.candidateRank
-      ? `Zen #${jobsCandidate.candidateRank}`
-      : null;
-  const selectedDecisionSourceLabel = usesIntradayOpportunity
-    ? '市場ランキング内の短期売買監査'
-    : selectedDetail?.crossEngineCheck?.source === 'backend-cross-engine'
-      ? '詳細APIの統合判定'
-      : 'ウォッチリスト候補';
-  const selectedFreshness = jobsCandidate?.dataFreshness || {};
-  const selectedPriceDate = selectedDetail?.priceAsOfDate
-    || selectedDetail?.dataQuality?.latestBarDate
-    || selectedFreshness.priceAsOfDate
-    || selectedFreshness.latestBarDate
-    || jobsCandidate?.priceAsOfDate
-    || jobsCandidate?.latestBarDate;
-  const selectedPriceSource = selectedDetail?.priceSource
-    || selectedDetail?.dataQuality?.source
-    || selectedFreshness.priceSource
-    || selectedFreshness.source
-    || jobsCandidate?.priceSource;
-  const selectedSourceContext = priceSourcePayload(
-    cached ? { isCached: true, source: 'cache' } : null,
-    selectedDetail,
-    selectedDetail?.dataQuality,
-    selectedFreshness,
-    jobsCandidate,
-    jobsCandidate?.dataQuality,
-    selectedPriceSource,
-  );
-  const selectedRankingFetchDate = selectedFreshness.sourceFetchedDate
-    || jobsCandidate?.sourceFetchedDate
-    || selectedDetail?.sourceFetchedDate;
-  const selectedRankingSource = selectedFreshness.rankingSource
-    || jobsCandidate?.source
-    || selectedFreshness.source
-    || selectedDetail?.source;
-  const selectedSourceEvidence = [
-    selectedPriceDate ? `価格日付 ${selectedPriceDate}` : '価格日付 未確認',
-    selectedPriceSource ? `価格ソース ${sourceShortLabel(selectedPriceSource)}` : null,
-    selectedRankingFetchDate ? `ランキング取得 ${selectedRankingFetchDate}` : null,
-    selectedRankingSource ? `ランキング元 ${sourceShortLabel(selectedRankingSource)}` : null,
-  ].filter(Boolean);
-  const offHoursAnalysisPrefix = !isRegularSession
-    ? '現在は時間外です。翌営業日の候補として表示しています。'
-    : '';
-  const topPickReason = daytradeTopPick
-    ? `${offHoursAnalysisPrefix}${isFallbackTopPick ? '今日見る候補です。' : '条件に近い候補です。'}まず見るのは、注文上限・利確・撤退・買わない条件だけです。`
-    : hasNoActionableTopPick
-      ? `${isYahooGainersRanking ? 'Yahoo掲載順は表示していますが、' : ''}候補計算中です。ランキング行から確認できます。`
-      : 'ランキング更新後に、今日見る候補をここへ表示します。';
-  const topPickMaterial = daytradeTopPick?.material?.summary || '決算・適時開示・重要ニュースは未確認です。取引前に無料確認リンクで必ず確認してください。';
-  const practiceCandidate = userSelectedTicker && userSelectedTicker !== daytradeTopPick?.ticker
-    ? selectedStock
-    : (selectedStock?.ticker === daytradeTopPick?.ticker ? daytradeTopPick : selectedStock || daytradeTopPick);
-  const practiceTicker = practiceCandidate?.ticker || selectedStock?.ticker || selectedTicker;
-  const practiceName = practiceCandidate?.name || selectedStock?.name || practiceTicker;
-  const practicePrice = Number(practiceCandidate?.entry || practiceCandidate?.entryPrice || selectedDetail?.price || selectedStock?.price || 0);
-  const practicePriceSource = priceSourcePayload(
-    selectedSourceContext,
-    practiceCandidate?.dataFreshness,
-    practiceCandidate,
-    selectedDetail,
-    userSelectedTicker && userSelectedTicker !== daytradeTopPick?.ticker ? null : topPickSource,
-  );
-  const practiceEntry = Number(practiceCandidate?.entry || practiceCandidate?.entryPrice || tradePlan.entry || practicePrice || 0);
-  const practiceTarget = Number(practiceCandidate?.target || practiceCandidate?.targetPrice || tradePlan.target || 0);
-  const practiceStop = Number(practiceCandidate?.stop || practiceCandidate?.stopLoss || tradePlan.stop || 0);
-  const practiceShares = Number(practiceCandidate?.shares || positionForm.shares || 0);
-  const practiceHoldings = holdings.filter((holding) => holding.ticker === practiceTicker);
-  const practiceOrderValidation = getPracticeOrderValidation({ source: practicePriceSource, referencePrice: practicePrice });
-  const localPracticeTransactions = practiceOrders.filter((order) => order.ticker === practiceTicker);
-  const apiPracticeTransactions = (transactions || []).filter((tx) => tx.ticker === practiceTicker).map((tx) => ({
-    ...tx,
-    statusLabel: tradeActionLabel(tx.action),
-  }));
-  const practiceTransactions = [...localPracticeTransactions, ...apiPracticeTransactions].slice(0, 5);
-  const practicePnl = practiceHoldings.reduce((sum, item) => sum + Number(item.pnl || 0), 0);
   const aiFundSummary = aiFundDesk?.summary || aiFundDeskFallback.summary;
   const aiFundDraft = aiFundDesk?.draftOrder;
   const aiFundWorkflow = aiFundDesk?.workflow?.length ? aiFundDesk.workflow : aiFundDeskFallback.workflow;
   const aiFundGuardrails = aiFundDesk?.guardrails?.length ? aiFundDesk.guardrails : aiFundDeskFallback.guardrails;
   const aiFundAudit = aiFundDesk?.auditTrail || aiFundDeskFallback.auditTrail;
   const aiFundReady = aiFundSummary.state === 'APPROVAL_REQUIRED';
-
+  void portfolioStatusLabel;
+  void priorityChecklistItems;
+  void backtestLabel;
+  void exitPlanTone;
+  void selectedQuality;
+  void selectedDataQuality;
+  void archivedHoldings;
+  void dataProvenance;
   return (
     <div className={`app-shell ${showDetails ? 'detail-mode' : 'simple-mode'}`}>
       <header className="command-bar">
@@ -1705,112 +1307,46 @@ export default function App() {
       </header>
 
       <main className="workspace">
-        <CandidateSummary ready={Boolean(daytradeTopPick)}>
-          <div>
-            <div className="section-title"><ShieldCheck size={18} /><span>デイトレ候補レビュー</span></div>
-            <h2>本日の最有力候補 {topPickTickerLabel}</h2>
-            <p>
-              <strong>分析結果:</strong> {topPickReason}
-            </p>
-            <div className="decision-pill-row">
-              {daytradeTopPick ? <StatusPill label={simpleTopPickAction} tone={isFallbackTopPick ? 'warn' : scoreTone(daytradeTopPick.score)} /> : null}
-              {daytradeTopPick ? <StatusPill label={`短期スコア ${daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100`} tone={scoreTone(daytradeTopPick.score)} /> : null}
-              <StatusPill label={`期待損益 ${daytradeTopPick ? yen(daytradeTopPick.probabilityAdjustedProfit) : '-'}`} tone="info" />
-              <StatusPill label={marketStatusTopLabel} tone={isRegularSession ? 'good' : 'warn'} />
-              <StatusPill label={marketFreshnessLabel} tone={marketFreshness?.isSynthetic || marketFreshness?.isCached || marketFreshness?.isUnknown ? 'warn' : 'info'} />
-              <DataSourceBadge source={topPickSource} />
-            </div>
-            <DataSourceWarning source={topPickSource} />
-            {daytradeTopPick && (
-              <div className="simple-daytrade-board">
-                <div className="simple-decision-card main">
-                  <span>判断</span>
-                  <strong>{simpleTopPickAction}</strong>
-                  <small>{isFallbackTopPick ? '厳格条件未達。価格と材料を見てから判断。' : '条件に近い候補。上限厳守で確認。'}</small>
-                </div>
-                <div className="simple-decision-card">
-                  <span>注文上限</span>
-                  <strong>{yen(daytradeTopPick.entry)}以下</strong>
-                  <small>届かなければ見送り</small>
-                  <DataSourceBadge source={topPickSource} compact />
-                </div>
-                <div className="simple-decision-card">
-                  <span>利確</span>
-                  <strong>{yen(daytradeTopPick.target)}</strong>
-                  <small>想定利益 {yen(daytradeTopPick.expectedProfit)}</small>
-                </div>
-                <div className="simple-decision-card danger">
-                  <span>撤退</span>
-                  <strong>{yen(daytradeTopPick.stop)}</strong>
-                  <small>最大損失 {yen(daytradeTopPick.maxLoss)}</small>
-                </div>
-                <div className="simple-decision-card">
-                  <span>株数</span>
-                  <strong>{daytradeTopPick.affordable ? `${daytradeTopPick.shares}株` : '0株'}</strong>
-                  <small>使用額 {yen(daytradeTopPick.budgetUsed)}</small>
-                </div>
-              </div>
-            )}
-            {daytradeTopPick && (
-              <div className="simple-reason-grid">
-                <div>
-                  <span>なぜ候補</span>
-                  <strong>期待損益 {yen(daytradeTopPick.probabilityAdjustedProfit)} / RR {daytradeTopPick.rr}</strong>
-                  {(daytradeTopPick.whyBuy?.length ? daytradeTopPick.whyBuy : [daytradeTopPick.candidateReason]).slice(0, 2).map((item, index) => <small key={`simple-buy-${index}-${item}`}>{simpleOpportunityText(item)}</small>)}
-                </div>
-                <div>
-                  <span>買わない条件</span>
-                  {[
-                    daytradeTopPick.primaryWarning,
-                    ...(daytradeTopPick.invalidConditions || []),
-                    ...(daytradeTopPick.whyNotBuy || []),
-                  ].filter(Boolean).slice(0, 3).map((item, index) => <small key={`simple-stop-${index}-${item}`}>{simpleOpportunityText(item)}</small>)}
-                </div>
-                <div>
-                  <span>今見る数字</span>
-                  <small>短期スコア {daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100、リスク {riskLevelLabel(daytradeTopPick.expertRiskLevel)}</small>
-                  <small>材料確認: {topPickMaterial}</small>
-                  <button className="inline-action" type="button" onClick={focusTopPick}>
-                    <Target size={14} />
-                    詳細分析へ
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="selected-simulation-summary">
-              <div>
-                <span>選択中銘柄の確認</span>
-                <strong>{tradeStrategyTitle}</strong>
-                <small>{tradeStrategyReason}</small>
-                <small>判定ソース: {selectedDecisionSourceLabel}{selectedRankContext ? ` / ${selectedRankContext}` : ''}</small>
-                {selectedSourceEvidence.length > 0 && (
-                  <div className="source-evidence-strip" aria-label="価格とランキングソース">
-                    {selectedSourceEvidence.map((item) => <small key={item}>{item}</small>)}
-                  </div>
-                )}
-                <small>{crossEngineCheck.detail}</small>
-                {crossEngineGatePreview.length > 0 && (
-                  <div className="cross-engine-gates" aria-label="クロスチェック内訳">
-                    {crossEngineGatePreview.map((gate) => (
-                      <small key={gate.id} className={gate.ok ? 'pass' : 'block'} title={gate.detail}>
-                        {gate.ok ? 'OK' : 'NG'} {crossEngineGateLabel(gate)}
-                      </small>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div>
-                <StatusPill label={crossEngineCheck.label} tone={crossEngineTone(crossEngineCheck.status)} />
-                <StatusPill label={`${decisionScoreLabel} ${jobsCandidate?.score?.toFixed?.(1) ?? selectedAdvancedReport?.compositeScore ?? '-'} / 100`} tone={scoreTone(jobsCandidate?.score ?? selectedAdvancedReport?.compositeScore)} />
-              </div>
-            </div>
-          </div>
-          <div className="brief-score">
-            <strong>{daytradeTopPick?.probabilityAdjustedProfit ? yen(daytradeTopPick.probabilityAdjustedProfit) : '-'}</strong>
-            <span>シミュレーション期待損益</span>
-            {daytradeTopPick && <small>利確 {yen(daytradeTopPick.expectedProfit)}</small>}
-          </div>
-        </CandidateSummary>
+        <TopCandidateCard
+          ready={Boolean(daytradeTopPick)}
+          topPickTickerLabel={topPickTickerLabel}
+          topPickReason={topPickReason}
+          daytradeTopPick={daytradeTopPick}
+          simpleTopPickAction={simpleTopPickAction}
+          isFallbackTopPick={isFallbackTopPick}
+          scoreTone={scoreTone}
+          marketStatusTopLabel={marketStatusView.topLabel}
+          marketFreshnessLabel={marketStatusView.freshnessLabel}
+          marketFreshness={marketFreshness}
+          topPickSource={topPickSource}
+          topCandidateMetrics={topCandidateMetrics}
+          selectedRankingLabel={selectedRankingLabel}
+          selectedRankingMetric={selectedRankingMetric}
+          topPickMaterial={topPickMaterial}
+          focusTopPick={openTopPickDetails}
+          openingScenarioPlan={openingScenarioPlan}
+          briefScore={daytradeTopPick?.probabilityAdjustedProfit ? yen(daytradeTopPick.probabilityAdjustedProfit) : '-'}
+          StatusPill={StatusPill}
+          yen={yen}
+          simpleOpportunityText={simpleOpportunityText}
+          riskLevelLabel={riskLevelLabel}
+          crossEngineCheck={crossEngineCheck}
+          crossEngineGatePreview={crossEngineGatePreview}
+          crossEngineGateLabel={crossEngineGateLabel}
+          crossEngineTone={crossEngineTone}
+          decisionScoreLabel={decisionScoreLabel}
+          selectedDecisionSourceLabel={selectedDecisionSourceLabel}
+          selectedRankContext={selectedRankContext}
+          selectedSourceEvidence={selectedSourceEvidence}
+          tradeStrategyTitle={tradeStrategyTitle}
+          tradeStrategyReason={tradeStrategyReason}
+          jobsCandidate={jobsCandidate}
+          selectedAdvancedReport={selectedAdvancedReport}
+          decisionGate={decisionGate}
+          jobsVerdictHeadline={jobsVerdictHeadline}
+          selectedDetail={selectedDetail}
+          valueDisciplineLens={valueDisciplineLens}
+        />
 
         <PracticeDashboard>
           <div className="practice-chart-panel" data-testid="practice-chart-panel">
@@ -1906,10 +1442,10 @@ export default function App() {
                 <span>保有と損益</span>
                 <strong>保有と損益</strong>
               </div>
-              <StatusPill label={`${practiceHoldings.length}件`} tone="info" />
+              <StatusPill label={practiceHoldings.length + '件'} tone="info" />
             </div>
             <div className="practice-pnl-strip">
-              <div><span>{practiceTicker}評価</span><strong>{yen(practiceHoldings.reduce((sum, item) => sum + Number(item.value || 0), 0))}</strong><DataSourceBadge source={practicePriceSource} compact /></div>
+              <div><span>{practiceTicker} 評価額</span><strong>{yen(practiceHoldings.reduce((sum, item) => sum + Number(item.value || 0), 0))}</strong><DataSourceBadge source={practicePriceSource} compact /></div>
               <div><span>現金</span><strong>{yen(portfolio?.cash)}</strong></div>
               <div><span>含み損益</span><strong className={practicePnl >= 0 ? 'up' : 'down'}>{yen(practicePnl)}</strong></div>
             </div>
@@ -1921,7 +1457,7 @@ export default function App() {
                   <small className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{yen(holding.pnl)} / {pct(holding.pnlPct)}</small>
                 </div>
               ))}
-              {!practiceHoldings.length && <small>{practiceTicker}の練習保有を保存すると、ここに損益が表示されます。</small>}
+              {!practiceHoldings.length && <small>{practiceTicker} の練習保有を保存すると、ここに損益が表示されます。</small>}
             </div>
           </div>
 
@@ -1931,15 +1467,16 @@ export default function App() {
                 <span>練習注文履歴</span>
                 <strong>履歴</strong>
               </div>
-              <StatusPill label={`${practiceTicker} 最新5件`} tone="neutral" />
+              <StatusPill label={practiceTicker + ' 最新5件'} tone="neutral" />
             </div>
             <div className="practice-history-list" data-testid="practice-history-list">
               {practiceTransactions.map((tx) => (
-                <div data-testid="practice-history-item" key={`practice-tx-${tx.id || tx.createdAt || `${tx.ticker}-${tx.action}`}`}>
+                <div data-testid="practice-history-item" key={'practice-tx-' + (tx.id || tx.createdAt || tx.ticker + '-' + tx.action)}>
                   <span>{tx.statusLabel || tradeActionLabel(tx.action)}</span>
                   <strong>{tx.ticker} {tx.shares}株</strong>
                   <small>{yen(tx.price)} / {yen(tx.total)}</small>
                   {tx.sourceLabel && <small>データ出所: {tx.sourceLabel}</small>}
+                  {tx.saveError && <small className="down">保存失敗: {tx.saveError}</small>}
                   {tx.isPracticeOrder && tx.practiceStatus === PRACTICE_ORDER_STATUS.PENDING && (
                     <div className="practice-history-actions">
                       <button type="button" onClick={() => markPracticeOrderFilled(tx.id)}>約定済みにする</button>
@@ -1948,7 +1485,7 @@ export default function App() {
                   )}
                 </div>
               ))}
-              {!practiceTransactions.length && <small>{practiceTicker}の練習注文を保存すると、履歴に残ります。</small>}
+              {!practiceTransactions.length && <small>{practiceTicker} の練習注文を保存すると、履歴に残ります。</small>}
             </div>
           </div>
         </PracticeDashboard>
@@ -1959,10 +1496,7 @@ export default function App() {
             <div>
               <div className="section-title"><Bot size={18} /><span>ローカル分析デスク</span></div>
               <h2>根拠とリスクの管制塔</h2>
-              <p>
-                「リサーチ、売買案、運用監視、決済判断」を、ローカルのシミュレーションと承認待ち確認票だけに限定して回します。
-                実注文API、証券会社、RPAには接続しません。
-              </p>
+              <p>売買案、運用監視、決済判断をローカルのシミュレーションと承認待ち確認票だけに限定します。実注文API、証券会社、RPAには接続しません。</p>
             </div>
             <div className="ai-fund-status">
               <StatusPill label={aiFundReady ? '承認待ち下書きあり' : '監視中'} tone={aiFundReady ? 'warn' : 'info'} />
@@ -1978,7 +1512,7 @@ export default function App() {
             <div>
               <span>口座風ビュー</span>
               <strong>現金 {yen(aiFundSummary.portfolioCashJpy)}</strong>
-              <small>保有監視 {aiFundSummary.activeHoldingCount || 0}件 / 予算 {yen(aiFundDesk?.budgetJpy || JOBS_SIM_BUDGET_JPY)}</small>
+              <small>保有銘柄 {aiFundSummary.activeHoldingCount || 0}件 / 予算 {yen(aiFundDesk?.budgetJpy || JOBS_SIM_BUDGET_JPY)}</small>
             </div>
             <div>
               <span>データ範囲</span>
@@ -1992,9 +1526,7 @@ export default function App() {
                 <span>{lane.label}</span>
                 <strong>{aiFundStatusLabel(lane.status)}</strong>
                 <p>{lane.summary}</p>
-                <div>
-                  {(lane.evidence || []).slice(0, 3).map((item, index) => <small key={`${lane.id}-evidence-${index}-${item}`}>{item}</small>)}
-                </div>
+                <div>{(lane.evidence || []).slice(0, 3).map((item, index) => <small key={`${lane.id}-evidence-${index}-${item}`}>{item}</small>)}</div>
               </article>
             ))}
           </div>
@@ -2004,7 +1536,7 @@ export default function App() {
               {aiFundDraft ? (
                 <div className="draft-ticket">
                   <div><span>銘柄</span><strong>{aiFundDraft.ticker} {aiFundDraft.name}</strong></div>
-                  <div><span>下書き</span><strong>{aiFundOrderSideLabel(aiFundDraft.side)} {aiFundDraft.shares}株</strong></div>
+                  <div><span>売買</span><strong>{aiFundOrderSideLabel(aiFundDraft.side)} {aiFundDraft.shares}株</strong></div>
                   <div><span>指値</span><strong>{yen(aiFundDraft.entryPrice)}</strong></div>
                   <div><span>利確 / 損切</span><strong>{yen(aiFundDraft.takeProfit)} / {yen(aiFundDraft.stopLoss)}</strong></div>
                 </div>
@@ -2026,6 +1558,16 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="portfolio-ledger-events" data-testid="ai-portfolio-ledger-events">
+            <div className="section-title"><Archive size={16} /><span>{pendingLifecycle ? '台帳更新中' : '保有履歴'}</span></div>
+            {lifecycleFeed.length ? lifecycleFeed.map((event) => (
+              <div key={event.id} className={`portfolio-ledger-event ${event.ok ? 'success' : 'error'}`} data-testid="ai-portfolio-ledger-event">
+                <strong>{event.title}</strong>
+                <span>{event.subtitle}</span>
+                <small>{event.message}</small>
+              </div>
+            )) : <small>保有銘柄の更新履歴はまだありません。</small>}
           </div>
         </section>
 
@@ -2080,7 +1622,7 @@ export default function App() {
                   key={tab.id}
                   className={rankingKind === tab.id ? 'active' : ''}
                   onClick={() => loadMarketRankings(tab.id)}
-                  disabled={busy === 'market'}
+                  aria-busy={busy === 'market' && rankingKind === tab.id}
                 >
                   {busy === 'market' && rankingKind === tab.id ? <Loader2 size={14} className="spin" /> : null}
                   <span>{tab.label}</span>
@@ -2104,7 +1646,7 @@ export default function App() {
           <div className="market-content-grid">
             <div className="ranking-table">
               <div className="table-title">
-                <span>{isYahooGainersRanking ? 'Yahoo掲載順トップ' : `${selectedRankingLabel}トップ`}</span>
+                <span>{isYahooGainersRanking ? 'Yahoo掲載順位' : selectedRankingLabel + '候補'}</span>
                 <small>{marketRankings?.provider || 'ウォッチリスト即時表示'}</small>
               </div>
               {rankingItems.slice(0, 12).map((item) => {
@@ -2122,8 +1664,9 @@ export default function App() {
                 const crossCheck = item.advancedCrossEngineCheck || item.intradayOpportunity?.advancedCrossEngineCheck;
                 const rowSubLabel = [item.name, stageLabel, audit?.label, rankingCrossEngineLabel(crossCheck)].filter(Boolean).join(' / ');
                 const scoreLabel = audit?.verdict
-                  ? `${audit.verdict} ${Number(item.intradayOpportunity?.opportunityScore || 0).toFixed(0)}`
+                  ? `${verificationStatusLabel(audit.verdict)} ${Number(item.intradayOpportunity?.opportunityScore || 0).toFixed(0)}`
                   : Number(item.surgeScore ?? item.candidateScore ?? 0).toFixed(0);
+                const activeMetric = rankingMetricDisplay(item, rankingKind);
 
                 return (
                   <button className="market-row" key={`${rankingKind}-${item.ticker}`} onClick={() => selectMarketTicker(item)}>
@@ -2135,7 +1678,10 @@ export default function App() {
                       <strong>{item.ticker}</strong>
                       <small>{rowSubLabel || item.name}</small>
                     </span>
-                    <span className={Number(item.changePct || 0) >= 0 ? 'market-up' : 'market-down'}>{pct(item.changePct)}</span>
+                    <span className={activeMetric.tone === 'down' ? 'market-down' : activeMetric.tone === 'up' ? 'market-up' : ''}>
+                      <small>{activeMetric.label}</small>
+                      <strong>{activeMetric.value}</strong>
+                    </span>
                     <span>{yen(item.price)}</span>
                     <span>{item.turnoverJpy ? yen(item.turnoverJpy) : compactNumber(item.volume)}</span>
                     <span className={audit?.verdict ? `audit-verdict ${audit.verdict.toLowerCase()}` : ''}>{scoreLabel}</span>
@@ -2146,7 +1692,7 @@ export default function App() {
             <div className="search-results-panel">
               <div className="table-title">
                 <span>詳細検索</span>
-                <small>{marketSearch?.items?.length ? `${marketSearch.count}件` : '検索待ち'}</small>
+                <small>{marketSearch?.items?.length ? marketSearch.count + '件' : '未検索'}</small>
               </div>
               {(marketSearch?.items?.length ? marketSearch.items : marketUniverse?.sample || []).slice(0, 12).map((item) => (
                 <button className="search-result-row" key={`search-${item.ticker}`} onClick={() => selectMarketTicker(item)}>
@@ -2164,90 +1710,44 @@ export default function App() {
           </div>
         </section>
 
-        <section className="advanced-analysis-panel" aria-label="高度分析">
+        <section ref={advancedAnalysisRef} className="advanced-analysis-panel" data-testid="advanced-analysis-panel" aria-label="高度分析">
           <div className="advanced-analysis-head">
             <div>
               <div className="section-title"><BrainCircuit size={18} /><span>高度分析エンジン</span></div>
               <h2>{selectedAdvancedReport?.actionLabel || '銘柄選択に連動して確率分析を準備中'}</h2>
-              <p>
-                1年分の日足から、トレンド整列、モメンタム、流動性、変動率、5営業日シナリオ、過去条件一致のウォークフォワード検証、1株単位の損失許容を同時に確認します。
-                実注文は作成せず、判断補助だけを表示します。
-              </p>
+              <p>トレンド、出来高、リスク、ウォークフォワード検証を総合して表示します。投資助言ではありません。</p>
             </div>
-            <StatusPill
-              label={selectedAdvancedReport ? `総合 ${selectedAdvancedReport.compositeScore}/100` : '取得待ち'}
-              tone={scoreTone(selectedAdvancedReport?.compositeScore)}
-            />
+            <StatusPill label={selectedAdvancedReport ? '統合スコア ' + selectedAdvancedReport.compositeScore + '/100' : '未取得'} tone={scoreTone(selectedAdvancedReport?.compositeScore)} />
           </div>
           <div className="advanced-score-grid">
             {[
               ['トレンド', selectedAdvancedReport?.factors?.trend?.score, selectedAdvancedReport?.factors?.trend?.state || '-'],
-              ['勢い', selectedAdvancedReport?.factors?.momentumScore, `5日 ${pct(selectedAdvancedReport?.factors?.momentum5Pct)} / 20日 ${pct(selectedAdvancedReport?.factors?.momentum20Pct)}`],
-              ['流動性', selectedAdvancedReport?.factors?.liquidityScore, `出来高 ${ratioLabel(selectedAdvancedReport?.factors?.volumeRatio)}`],
-              ['守備力', selectedAdvancedReport?.factors?.riskControlScore, `ATR ${pct(selectedAdvancedReport?.factors?.atrPct)} / DD ${pct(selectedAdvancedReport?.factors?.maxDrawdown60Pct)}`],
-              ['検証力', selectedAdvancedReport?.walkForward?.score, `一致 ${selectedAdvancedReport?.walkForward?.sampleCount ?? 0}件 / エッジ ${pct(selectedAdvancedReport?.walkForward?.edgePct)}`],
+              ['勢い', selectedAdvancedReport?.factors?.momentumScore, '5日 ' + pct(selectedAdvancedReport?.factors?.momentum5Pct) + ' / 20日 ' + pct(selectedAdvancedReport?.factors?.momentum20Pct)],
+              ['流動性', selectedAdvancedReport?.factors?.liquidityScore, '出来高 ' + ratioLabel(selectedAdvancedReport?.factors?.volumeRatio)],
+              ['リスク管理', selectedAdvancedReport?.factors?.riskControlScore, 'ATR ' + pct(selectedAdvancedReport?.factors?.atrPct)],
+              ['検証', selectedAdvancedReport?.walkForward?.score, '標本数 ' + (selectedAdvancedReport?.walkForward?.sampleCount ?? 0)],
               ['分析信頼度', selectedAdvancedReport?.analysisReliability?.score, selectedAdvancedReport?.analysisReliability?.label || '-'],
-              ['データ品質', selectedAdvancedReport?.dataQuality?.score, `${selectedAdvancedReport?.dataQuality?.bars ?? 0}本 / ${selectedAdvancedReport?.dataQuality?.priceFreshnessVerdict || '-'} / ${selectedAdvancedReport?.dataQuality?.source || '-'}`],
+              ['データ品質', selectedAdvancedReport?.dataQuality?.score, (selectedAdvancedReport?.dataQuality?.source || '-')],
             ].map(([label, value, note]) => (
               <div key={label} className={`advanced-factor ${scoreTone(value)}`}>
                 <span>{label}</span>
-                <strong>{value != null ? `${Number(value).toFixed(1)}` : '-'}</strong>
+                <strong>{Number.isFinite(Number(value)) ? Number(value).toFixed(0) + '/100' : '-'}</strong>
                 <small>{note}</small>
               </div>
             ))}
           </div>
-          <div className="advanced-detail-grid">
-            <div className="scenario-tape">
-              <span>5営業日シナリオ</span>
-              <div>
-                {(selectedAdvancedReport?.scenarios || [
-                  { name: '強気', returnPct: 0, price: 0 },
-                  { name: '標準', returnPct: 0, price: 0 },
-                  { name: '弱気', returnPct: 0, price: 0 },
-                ]).map((scenario) => (
-                  <article key={scenario.name}>
-                    <b>{scenario.name}</b>
-                    <strong>{pct(scenario.returnPct)}</strong>
-                    <small>{scenario.price ? yen(scenario.price) : '-'}</small>
-                  </article>
-                ))}
-              </div>
+          <div className="advanced-analysis-body">
+            <div>
+              <h3>根拠</h3>
+              <p>{selectedAdvancedReport?.reason || selectedDetail?.analysis?.reason || '分析根拠を取得中です。'}</p>
             </div>
-            <div className="probability-panel">
-              <span>確率レンジ</span>
-              <strong>{selectedAdvancedReport?.monteCarlo?.probabilityUpPct != null ? `${selectedAdvancedReport.monteCarlo.probabilityUpPct.toFixed(1)}%` : '-'}</strong>
-              <small>
-                上昇確率 / 期待リターン {selectedAdvancedReport?.monteCarlo ? pct(selectedAdvancedReport.monteCarlo.expectedReturnPct) : '-'} /
-                標本 {selectedAdvancedReport?.monteCarlo?.sampleCount || 0}
-              </small>
+            <div>
+              <h3>リスク</h3>
+              <p>{selectedAdvancedReport?.riskNote || '価格変動、流動性、材料イベントを確認してから判断してください。'}</p>
             </div>
-            <div className="position-plan-panel">
-              <span>1%リスクの建玉</span>
-              <strong>{selectedAdvancedReport?.positionPlan ? `${selectedAdvancedReport.positionPlan.suggestedShares}株` : '-'}</strong>
-              <small>
-                入口 {yen(selectedAdvancedReport?.positionPlan?.entryPrice)} / 損切 {yen(selectedAdvancedReport?.positionPlan?.stopPrice)} /
-                RR 1:{selectedAdvancedReport?.positionPlan?.riskReward || '-'}
-              </small>
-            </div>
-            <div className="probability-panel">
-              <span>過去検証</span>
-              <strong>{selectedAdvancedReport?.walkForward?.hitRatePct != null ? `${selectedAdvancedReport.walkForward.hitRatePct.toFixed(1)}%` : '-'}</strong>
-              <small>
-                勝率 / 平均 {selectedAdvancedReport?.walkForward ? pct(selectedAdvancedReport.walkForward.avgReturnPct) : '-'} /
-                全体比 {selectedAdvancedReport?.walkForward ? pct(selectedAdvancedReport.walkForward.edgePct) : '-'}
-              </small>
-            </div>
-          </div>
-          <div className="advanced-guardrails">
-            {(selectedAdvancedReport?.guardrails || []).map((item, index) => (
-              <div key={`advanced-guard-${index}-${item.label}`} className={item.ok ? 'pass' : 'block'}>
-                <b>{item.ok ? '通過' : '停止'}</b>
-                <span>{item.label}</span>
-              </div>
-            ))}
           </div>
           <div className="advanced-explainability">
-            {(selectedAdvancedReport?.explainability || []).map((item, index) => (
+            {(selectedAdvancedReport?.explainability || []).slice(0, 8).map((item, index) => (
               <span key={`explain-${index}-${item}`}>{item}</span>
             ))}
           </div>
@@ -2261,56 +1761,27 @@ export default function App() {
               <p>J-Quantsは日次提供でリアルタイム板ではありません。公式履歴・財務の根拠確認として使い、直近価格は補完データと分けて表示します。</p>
             </div>
             <div className="jquants-status-pills">
-              <StatusPill label={jquantsStatusLabel} tone={jquantsStatusTone} />
-              <StatusPill label={jquantsIntegrityLabel} tone={jquantsIntegrityTone} />
+              <StatusPill label={jquantsView.statusLabel} tone={jquantsView.statusTone} />
+              <StatusPill label={jquantsView.integrityLabel} tone={jquantsView.integrityTone} />
             </div>
           </div>
           <div className="jquants-controls">
-            <input
-              value={jquantsCode}
-              onChange={(event) => setJquantsCode(event.target.value)}
-              placeholder="4980.T"
-              aria-label="J-Quants銘柄コード"
-            />
+            <input value={jquantsCode} onChange={(event) => setJquantsCode(event.target.value)} placeholder="4980.T" aria-label="J-Quants銘柄コード" />
             <button className="treasure-button" onClick={loadJquantsResearch} disabled={!!busy}>
               {busy === 'jquants' ? <Loader2 size={15} className="spin" /> : <Search size={15} />}
               <span>確認</span>
             </button>
           </div>
           <div className="jquants-grid">
-            <div className="metric">
-              <span>接続状態</span>
-              <strong>{jquantsModeLabel || '確認中'}</strong>
-            </div>
-            <div className="metric">
-              <span>対象</span>
-              <strong>{jquantsTargetLabel}</strong>
-            </div>
-            <div className="metric">
-              <span>最新終値</span>
-              <strong>{jquantsLatestClose}</strong>
-            </div>
-            <div className="metric">
-              <span>EPS / BPS</span>
-              <strong>{jquantsEpsBps}</strong>
-            </div>
-            <div className="metric">
-              <span>価格ソース</span>
-              <strong>{jquantsLatestSource}</strong>
-            </div>
-            <div className="metric">
-              <span>公式履歴</span>
-              <strong>{jquantsOfficialStatus}</strong>
-            </div>
-            <div className="metric">
-              <span>品質判定</span>
-              <strong>{jquantsIntegrity?.verdict || '-'}</strong>
-            </div>
+            <div className="metric"><span>接続モード</span><strong>{jquantsView.modeLabel || '未接続'}</strong></div>
+            <div className="metric"><span>対象</span><strong>{jquantsView.targetLabel}</strong></div>
+            <div className="metric"><span>終値</span><strong>{jquantsView.latestClose}</strong></div>
+            <div className="metric"><span>EPS / BPS</span><strong>{jquantsView.epsBps}</strong></div>
+            <div className="metric"><span>出所</span><strong>{jquantsView.latestSource}</strong></div>
+            <div className="metric"><span>公式履歴</span><strong>{jquantsView.officialStatus}</strong></div>
+            <div className="metric"><span>整合性</span><strong>{verificationStatusLabel(jquantsView.integrity?.verdict)}</strong></div>
           </div>
-          <div className="jquants-note">
-            <ShieldCheck size={16} />
-            <span>{jquantsResearch?.message || jquantsNote}</span>
-          </div>
+          <div className="jquants-note"><ShieldCheck size={16} /><span>{jquantsView.note}</span></div>
         </section>
 
         {showOpeningGapDesk && (
@@ -2319,7 +1790,7 @@ export default function App() {
             <div>
               <div className="section-title"><Activity size={18} /><span>寄り付きギャップ確認</span></div>
               <h2>ローカル短期シミュレーション</h2>
-              <p>{daytradePlan?.premise}</p>
+              <p>{daytradePlan?.premise || '寄り付き後の値動き、出来高、VWAPを確認してから方針を判断します。'}</p>
             </div>
             <div className="daytrade-actions">
               <StatusPill label={daytradeRisk?.liveOrderMode === 'disabled' ? '実注文オフ' : '実行前確認'} tone={daytradeRisk?.liveOrderMode === 'disabled' ? 'warn' : 'good'} />
@@ -2341,22 +1812,13 @@ export default function App() {
           <div className="intraday-analysis-card">
             <div className="intraday-analysis-head">
               <div>
-                <span>{selectedTicker} / 短期強弱</span>
+                <span>{selectedTicker} / 短期分析</span>
                 <strong>{daytradeAnalysis ? `${daytradeAnalysis.label} ${Number(daytradeAnalysis.score || 0).toFixed(1)} / 100` : '分析取得中'}</strong>
                 <p>{daytradeAnalysis?.explanations?.[0] || 'VWAP、出来高、RSI、MACD、ボリンジャーバンド、サポレジをまとめて確認します。'}</p>
               </div>
               <div className="interval-switcher" aria-label="時間足">
                 {['1m', '5m', '15m', '1d'].map((interval) => (
-                  <button
-                    key={interval}
-                    type="button"
-                    className={daytradeInterval === interval ? 'active' : ''}
-                    onClick={() => setDaytradeInterval(interval)}
-                    disabled={busy === 'detail'}
-                    title={`${interval}で短期分析`}
-                  >
-                    {interval}
-                  </button>
+                  <button key={interval} type="button" className={daytradeInterval === interval ? 'active' : ''} onClick={() => setDaytradeInterval(interval)} disabled={busy === 'detail'} title={interval + '時間軸'}>{interval}</button>
                 ))}
               </div>
             </div>
@@ -2367,21 +1829,13 @@ export default function App() {
                     ['VWAP', yen(daytradeAnalysis.indicators?.vwap)],
                     ['RSI', Number(daytradeAnalysis.indicators?.rsi || 0).toFixed(1)],
                     ['MACD', Number(daytradeAnalysis.indicators?.macd?.histogram || 0).toFixed(2)],
-                    ['出来高', `${Number(daytradeAnalysis.indicators?.volumeRatio || 0).toFixed(2)}x`],
-                    ['季節性', `${Number(daytradeAnalysis.indicators?.volumeSeasonality?.seasonalRatio || 1).toFixed(2)}x`],
+                    ['出来高倍率', Number(daytradeAnalysis.indicators?.volumeRatio || 0).toFixed(2) + 'x'],
                     ['ATR', pct(daytradeAnalysis.indicators?.atrPct)],
-                    ['Gap', pct(daytradeAnalysis.indicators?.gapPct)],
-                    ['スプレッド', pct(daytradeAnalysis.indicators?.microstructure?.spreadPct)],
-                    ['板/気配', daytradeAnalysis.indicators?.microstructure?.depthSource === 'QUOTE' ? `${Number(daytradeAnalysis.indicators?.microstructure?.bookRatio || 0).toFixed(2)}x` : '推定'],
-                    ['材料', daytradeAnalysis.indicators?.eventRisk?.verdict || '未確認'],
-                    ['データ', `${cacheStatusLabel(daytradeAnalysis.cacheStatus)} ${Number(daytradeAnalysis.cacheAgeSec || 0).toFixed(0)}秒`],
                     ['支持線', yen(daytradeAnalysis.indicators?.support)],
                     ['抵抗線', yen(daytradeAnalysis.indicators?.resistance)],
+                    ['キャッシュ', cacheStatusLabel(daytradeAnalysis.cacheStatus) + ' ' + Number(daytradeAnalysis.cacheAgeSec || 0).toFixed(0) + '秒'],
                   ].map(([label, value]) => (
-                    <div className="metric" key={`intraday-${label}`}>
-                      <span>{label}</span>
-                      <strong>{value}</strong>
-                    </div>
+                    <div className="metric" key={`intraday-${label}`}><span>{label}</span><strong>{value}</strong></div>
                   ))}
                 </div>
                 <div className="intraday-levels">
@@ -2391,35 +1845,10 @@ export default function App() {
                   <div><span>RR</span><strong>{Number(daytradeAnalysis.levels?.riskReward || 0).toFixed(2)}</strong></div>
                 </div>
                 <div className="intraday-evidence-grid">
-                  <div>
-                    <span>根拠</span>
-                    {(daytradeAnalysis.evidence || []).slice(0, 6).map((item) => (
-                      <small key={item.id} className={item.ok ? 'pass' : 'block'}>{item.ok ? 'OK' : 'NG'} {item.label}: {item.detail}</small>
-                    ))}
-                  </div>
-                  <div>
-                    <span>騙し除外</span>
-                    {(daytradeAnalysis.fakeoutFilters || []).length
-                      ? daytradeAnalysis.fakeoutFilters.map((item) => <small className="block" key={item}>{item}</small>)
-                      : <small className="pass">主要な騙しフィルターは未検出</small>}
-                  </div>
-                  <div>
-                    <span>バックテスト</span>
-                    <small>件数 {daytradeAnalysis.backtest?.trades || 0} / 勝率 {Number(daytradeAnalysis.backtest?.winRatePct || 0).toFixed(1)}%</small>
-                    <small>平均 {pct(daytradeAnalysis.backtest?.avgReturnPct)} / PF {Number(daytradeAnalysis.backtest?.profitFactor || 0).toFixed(2)}</small>
-                    <small>最大DD {pct(daytradeAnalysis.backtest?.maxDrawdownPct)} / {daytradeAnalysis.backtest?.verdict}</small>
-                  </div>
-                  <div>
-                    <span>ウォークフォワード</span>
-                    <small>安定 {pct(daytradeAnalysis.walkForward?.stabilityPct)} / {daytradeAnalysis.walkForward?.verdict || '未検証'}</small>
-                    <small>件数 {daytradeAnalysis.walkForward?.trades || 0} / 勝率 {Number(daytradeAnalysis.walkForward?.winRatePct || 0).toFixed(1)}%</small>
-                    <small>平均 {pct(daytradeAnalysis.walkForward?.avgReturnPct)} / PF {Number(daytradeAnalysis.walkForward?.profitFactor || 0).toFixed(2)}</small>
-                  </div>
-                  <div>
-                    <span>イベント除外</span>
-                    <small>{daytradeAnalysis.indicators?.eventRisk?.latestTitle || '直近材料・決算イベントは未確認'}</small>
-                    <small>{daytradeAnalysis.indicators?.eventRisk?.source || 'UNCONFIRMED'} / {daytradeAnalysis.indicators?.eventRisk?.tone || 'unknown'}</small>
-                  </div>
+                  <div><span>根拠</span>{(daytradeAnalysis.evidence || []).slice(0, 6).map((item) => <small key={item.id} className={item.ok ? 'pass' : 'block'}>{item.ok ? 'OK' : 'NG'} {item.label}: {item.detail}</small>)}</div>
+                  <div><span>騙し除外</span>{(daytradeAnalysis.fakeoutFilters || []).length ? daytradeAnalysis.fakeoutFilters.map((item) => <small className="block" key={item}>{item}</small>) : <small className="pass">目立つ騙し条件なし</small>}</div>
+                  <div><span>バックテスト</span><small>取引 {daytradeAnalysis.backtest?.trades || 0}件 / 勝率 {Number(daytradeAnalysis.backtest?.winRatePct || 0).toFixed(1)}%</small><small>平均 {pct(daytradeAnalysis.backtest?.avgReturnPct)} / PF {Number(daytradeAnalysis.backtest?.profitFactor || 0).toFixed(2)}</small></div>
+                  <div><span>材料イベント</span><small>{daytradeAnalysis.indicators?.eventRisk?.latestTitle || 'イベント未確認'}</small><small>{daytradeAnalysis.indicators?.eventRisk?.source || '出所未確認'} / {materialToneLabel(daytradeAnalysis.indicators?.eventRisk?.tone)}</small></div>
                 </div>
               </>
             ) : (
@@ -2428,90 +1857,23 @@ export default function App() {
           </div>
           <div className="commute-routine-panel">
             <div className="commute-routine-head">
-              <div>
-                <span>{selectedTicker} / 生活導線</span>
-                <strong>{daytradeRoutine ? `${daytradeRoutine.priority} / ${daytradeRoutine.verdict}` : 'ルーティン作成中'}</strong>
-                <p>{daytradeRoutine?.summary || '帰宅後、翌朝の電車、仕事中の確認項目を短く整理します。'}</p>
-              </div>
+              <div><span>{selectedTicker} / 寄り付き後方針</span><strong>{daytradeRoutine ? `${daytradeRoutine.priority} / ${daytradeRoutine.verdict}` : '待機'}</strong><p>{daytradeRoutine?.summary || '寄り付き後の価格、出来高、VWAPを確認してから方針を表示します。'}</p></div>
               <div className="manual-only-badge">手動判断のみ</div>
             </div>
             {daytradeRoutine ? (
-              <>
-                <div className="commute-price-strip">
-                  {[
+              <div className="commute-price-strip">
+                {[
                     ['注文上限', yen(daytradeRoutine.mobileSummary?.orderUpperLimit)],
                     ['利確', yen(daytradeRoutine.mobileSummary?.takeProfit)],
                     ['撤退', yen(daytradeRoutine.mobileSummary?.stopLoss)],
                     ['接近通知', yen(daytradeRoutine.mobileSummary?.warningPrice)],
-                    ['スコア', `${Number(daytradeRoutine.mobileSummary?.score || 0).toFixed(1)}/100`],
+                  ['スコア', Number(daytradeRoutine.mobileSummary?.score || 0).toFixed(1) + '/100'],
                     ['RR', Number(daytradeRoutine.mobileSummary?.riskReward || 0).toFixed(2)],
-                  ].map(([label, value]) => (
-                    <div key={`routine-${label}`}>
-                      <span>{label}</span>
-                      <strong>{value}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div className="commute-phase-grid">
-                  {(daytradeRoutine.phases || []).map((phase) => (
-                    <article className="commute-phase-card" key={phase.id}>
-                      <div>
-                        <span>{phase.label}</span>
-                        <strong>{phase.purpose}</strong>
-                      </div>
-                      {(phase.checks || []).slice(0, 5).map((check) => (
-                        <small className={check.ok ? 'pass' : 'block'} key={`${phase.id}-${check.label}`}>
-                          {check.ok ? 'OK' : 'NG'} {check.label}: {check.detail}
-                        </small>
-                      ))}
-                    </article>
-                  ))}
-                </div>
-                <p className="manual-only-note">{daytradeRoutine.manualOnlyNotice}</p>
-              </>
-            ) : (
-              <div className="empty-note">生活導線を取得できませんでした。短期分析の更新後に再表示します。</div>
-            )}
+                ].map(([label, value]) => <div key={`routine-${label}`}><span>{label}</span><strong>{value}</strong></div>)}
+              </div>
+            ) : <div className="empty-note">寄り付き後方針は未取得です。</div>}
           </div>
-          <div className="daytrade-grid">
-            <div className="daytrade-rules">
-              {[
-                ['窓開け幅', `±${daytradePlan?.rules?.gapAbsPct || 3}%以上`],
-                ['流動性倍率', `${daytradePlan?.rules?.minBookRatio || 1.5}倍以上`],
-                ['スプレッド', `${daytradePlan?.rules?.maxSpreadPct || 0.15}%以下`],
-                ['利確/損切り', `+${daytradePlan?.rules?.takeProfitPct || 1}% / -${daytradePlan?.rules?.stopLossPct || 0.5}%`],
-                ['リスク', `${daytradePlan?.rules?.riskPerTradePct || 2}% / 最大${daytradePlan?.rules?.maxPositions || 3}建玉`],
-              ].map(([label, value]) => (
-                <div className="metric" key={label}>
-                  <span>{label}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
-            <div className="signal-stack">
-              {(daytradeSignals || []).slice(0, 3).map((signal) => (
-                <article className={`signal-ticket ${signal.state === 'READY' ? 'ready' : 'rejected'}`} key={`${signal.ticker}-${signal.strategy}`}>
-                  <div>
-                    <StatusPill label={signal.state === 'READY' ? '準備完了' : '見送り'} tone={signal.state === 'READY' ? 'buy' : 'warn'} />
-                    <strong>{signal.ticker} {signal.name}</strong>
-                    <span>{signal.strategy} / 機械判定 {Math.round(Number(signal.mlProbability || 0) * 100)}%</span>
-                  </div>
-                  <div className="ticket-order">
-                    <b>{tradeActionLabel(signal.side)}</b>
-                    <span>指値 {yen(signal.limitPrice)} x {signal.shares}株</span>
-                    <span>利確 {yen(signal.takeProfit)} / 損切り {yen(signal.stopLoss)}</span>
-                    <span>期限 {signal.expiresAt}</span>
-                  </div>
-                  <p>{signal.reason}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div className="daytrade-verdict">
-            <ShieldCheck size={16} />
-            <span>{daytradeRisk?.jobsVerdict}</span>
-            <strong>準備完了 {readyDaytradeSignals.length}</strong>
-          </div>
+          <div className="daytrade-verdict"><ShieldCheck size={16} /><span>{daytradeRisk?.jobsVerdict}</span><strong>準備完了 {readyDaytradeSignals.length}</strong></div>
         </section>
         )}
         </DetailPanels>
@@ -2553,19 +1915,26 @@ export default function App() {
                   onClick={() => chooseTicker(stock, { source: 'watchlist', note: '監視リスト銘柄を反映' })}
                 >
                   <span className="candidate-badge">
-                    {stock.preopenDecision || (stock.decision === 'DAYTRADE_ENTRY_OK' ? '監視候補' : stock.decision === 'BUY_LIMIT_OK' ? '条件確認' : stock.decision === 'REPRICE_FOR_DAYTRADE' ? '再計算' : stock.decision === 'BUY_ON_PULLBACK' ? '押し目監視' : stock.mustInclude ? '固定観察' : '観察')}
+                    {stock.preopenDecision || (
+                      stock.decision === 'DAYTRADE_ENTRY_OK' ? '買い候補'
+                        : stock.decision === 'BUY_LIMIT_OK' ? '買い候補'
+                          : stock.decision === 'REPRICE_FOR_DAYTRADE' ? '価格待ち'
+                            : stock.decision === 'BUY_ON_PULLBACK' ? '押し目待ち'
+                              : stock.mustInclude ? '固定観察'
+                                : '観察'
+                    )}
                   </span>
                   <span className="stock-emoji">{stock.emoji || 'JP'}</span>
                   <span className="stock-name">{stock.name || stock.ticker}</span>
                   <span className="stock-meta">{stock.ticker}</span>
-                  <span className="candidate-score">上昇期待 {Math.round(stock.preopenScore ?? stock.candidateScore ?? stock.confidence)} / 100</span>
+                  <span className="candidate-score">候補スコア {Math.round(stock.preopenScore ?? stock.candidateScore ?? stock.confidence)} / 100</span>
                   {candidateDataQuality(stock) && (
                     <span className={`candidate-data-quality ${dataQualityTone(candidateDataQuality(stock))}`}>
                       {dataQualitySummary(candidateDataQuality(stock))}
                     </span>
                   )}
                   {preopenRiskLabels(stock.preopenReport) && <span className="candidate-risk">{preopenRiskLabels(stock.preopenReport)}</span>}
-                  {stock.buyLimit && <span className="candidate-score">指値上限 {yen(stock.buyLimit)} / 現在値比 {pct(stock.entryGapPct)}</span>}
+                  {stock.buyLimit && <span className="candidate-score">注文上限 {yen(stock.buyLimit)} / 現在値乖離 {pct(stock.entryGapPct)}</span>}
                   <span className="candidate-reason">{stock.candidateReason}</span>
                   <span className="current-price-label">現在値</span>
                   <strong>{yen(stock.price)}</strong>
@@ -2582,7 +1951,7 @@ export default function App() {
                 <h2>{selectedStock?.emoji || 'JP'} {selectedStock?.name || selectedTicker}</h2>
               </div>
               <div className="price-block">
-                <strong>{yen(selectedDetail?.price || selectedStock?.price)}</strong>
+                <strong data-testid="selected-detail-price">{yen(selectedDetail?.price || selectedStock?.price)}</strong>
                 <DataSourceBadge source={selectedSourceContext} compact />
                 <span className={Number(selectedDetail?.changePct || 0) >= 0 ? 'up' : 'down'}>
                   {Number(selectedDetail?.changePct || 0) >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
@@ -2619,18 +1988,18 @@ export default function App() {
                 <div className="decision-grid">
                   <div className="decision-card primary">
                     <span>監視する上限価格</span>
-                    <strong>{yen(tradePlan.entry)}以下</strong>
-                    <p>現在値から {pct(tradePlan.entryGapPct)}。深い押し目待ちではなく、監視レンジの上限価格です。</p>
+                    <strong>{yen(tradePlan.entry)}</strong>
+                    <p>現在値と注文上限の差を確認し、寄り付き直後は価格を追わずに待ちます。</p>
                   </div>
                   <div className="decision-card">
                     <span>利確 / 損切り</span>
                     <strong>{yen(tradePlan.target)} / {yen(tradePlan.stop)}</strong>
-                    <p>RR 1:{tradePlan.rr}。損切り価格を先に決め、利確は後から欲張りません。</p>
+                    <p>RRと損切り目安を先に確認し、許容損失を超える場合は見送ります。</p>
                   </div>
                   <div className="decision-card">
                     <span>株数目安</span>
                     <strong>{tradePlan.suggestedShares > 0 ? `${tradePlan.suggestedShares}株` : '今回は見送り'}</strong>
-                    <p>想定損失 {yen(tradePlan.suggestedRiskJpy)} / 上限 {yen(tradePlan.maxRiskJpy)}。100株の余力確認も必要。</p>
+                    <p>資金と損失上限に収まる株数だけを練習注文へ反映します。</p>
                   </div>
                   <div className="decision-card danger">
                     <span>買わない条件</span>
@@ -2641,122 +2010,20 @@ export default function App() {
                 {selectedPreopen && (
                   <div className="preopen-panel">
                     <div className="preopen-head">
-                      <div>
-                        <span>Pre-Open Score</span>
-                        <h3>{selectedPreopen.decisionLabel} {selectedPreopen.score} / 100</h3>
-                      </div>
+                      <div><span>寄り付き前判定</span><h3>{selectedPreopen.decisionLabel} {selectedPreopen.score} / 100</h3></div>
                       <StatusPill label="分析支援" tone={selectedPreopen.score >= 55 ? 'warn' : 'neutral'} />
                     </div>
                     <div className="score-breakdown-grid">
                       {[
                         ['材料', selectedPreopen.scoreBreakdown?.material],
-                        ['出来高', selectedPreopen.scoreBreakdown?.volume],
-                        ['PTS/気配', selectedPreopen.scoreBreakdown?.indicationPts],
-                        ['テクニカル', selectedPreopen.scoreBreakdown?.technical],
-                        ['地合い', selectedPreopen.scoreBreakdown?.marketSector],
-                        ['流動性', selectedPreopen.scoreBreakdown?.liquidity],
-                        ['リスク控除', selectedPreopen.scoreBreakdown?.riskDeduction],
-                      ].map(([label, value]) => (
-                        <div key={label}>
-                          <span>{label}</span>
-                          <strong>{Number(value ?? 0).toFixed(1)}</strong>
-                        </div>
-                      ))}
+                        ['需給', selectedPreopen.scoreBreakdown?.flow],
+                        ['安全性', selectedPreopen.scoreBreakdown?.safety],
+                        ['過熱', selectedPreopen.scoreBreakdown?.overheat],
+                      ].map(([label, value]) => <span key={label}>{label}: {Number(value || 0).toFixed(0)}</span>)}
                     </div>
-                    <div className="preopen-evidence">
-                      <p>{(selectedPreopen.keyReasons || []).join(' / ')}</p>
-                      <p>{(selectedPreopen.riskFlags || []).slice(0, 3).map((risk) => risk.label).join(' / ') || '重大なリスクフラグなし'}</p>
-                    </div>
+                    <p>{selectedPreopen.summary}</p>
                   </div>
                 )}
-                <div className="evidence-panel">
-                  <div>
-                    <span>翌日パターン検証</span>
-                    <p>{backtestLabel(selectedQuality?.backtest)} / 品質 {selectedQuality?.qualityScore ?? '-'}%。買える価格帯、出来高、過熱、RRを同じゲートで確認します。</p>
-                  </div>
-                  <div>
-                    <span>価格データ品質</span>
-                    <p>
-                      {selectedDataQuality
-                        ? `${Math.round(Number(selectedDataQuality.score || 0))}/100 / ${selectedDataQuality.priceFreshnessVerdict || '-'} / ${selectedDataQuality.source || '-'} / ${selectedDataQuality.latestBarAgeDays ?? '-'}日前`
-                        : '価格履歴の鮮度と出所を確認中です。'}
-                    </p>
-                  </div>
-                  <div>
-                    <span>通過ゲート</span>
-                    <p>
-                      {priorityChecklistItems((selectedQuality?.gates || []).map((gate) => ({ label: gate.label, ok: gate.ok, detail: '' })), 6)
-                        .map((gate) => `${gate.ok ? 'OK' : 'NG'} ${gate.label}`)
-                        .join(' / ') || '検証データを取得中です。'}
-                    </p>
-                  </div>
-                  <div>
-                    <span>検討に進める条件</span>
-                    <p>{tradePlan.entryCondition}</p>
-                  </div>
-                  <div>
-                    <span>候補に残した根拠</span>
-                    <p>{selectedStock?.candidateReason || selectedDetail?.analysis?.technicalSummary || '候補理由を取得中です。'}</p>
-                  </div>
-                  <div>
-                    <span>テクニカル補足</span>
-                    <ul>
-                      {(selectedDetail?.analysis?.details || []).slice(0, 4).map((item, index) => <li key={`detail-${index}-${item}`}>{item}</li>)}
-                    </ul>
-                  </div>
-                  <div>
-                    <span>直近ニュース</span>
-                    <p>
-                      {selectedDetail?.news?.items?.[0]?.title
-                        ? `${selectedDetail.news.items[0].title} (${shortDate(selectedDetail.news.items[0].publishedAt)} / ${selectedDetail?.freshness?.newsOk ? '直近材料' : '古い材料'})`
-                        : '取得できるニュースがありません。材料未確認として扱います。'}
-                    </p>
-                  </div>
-                  <div className="external-research-card">
-                    <span>無料確認リンク</span>
-                    <p>売買判断前に、無料で確認できる外部情報だけを別窓で照合します。</p>
-                    <div className="external-link-list">
-                      {(selectedDetail?.externalLinks || []).slice(0, 5).map((link) => (
-                        <a key={link.label} href={link.url} target="_blank" rel="noreferrer">
-                          {link.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="order-prep-panel">
-                  <div className="order-prep-head">
-                    <div>
-                      <span>手入力前チェック</span>
-                      <h3>手入力を検討する前の確認票</h3>
-                    </div>
-                    <StatusPill label={decisionGate.label} tone={decisionGate.ready ? 'good' : 'warn'} />
-                  </div>
-                  <div className="order-prep-grid">
-                    <div><span>確認方式</span><strong>{tradePlan.marketAllowed ? '近い指値中心' : '近い指値'}</strong><small>成行判断はこの画面では推奨しません</small></div>
-                    <div><span>銘柄</span><strong>{selectedStock?.ticker}</strong><small>{selectedStock?.name}</small></div>
-                    <div><span>上限価格</span><strong>{yen(tradePlan.entry)}</strong><small>届かなければ見送り</small></div>
-                    <div><span>株数上限</span><strong>{tradePlan.suggestedShares > 0 ? `${tradePlan.suggestedShares}株` : '0株'}</strong><small>最大損失 {yen(tradePlan.suggestedRiskJpy)}</small></div>
-                  </div>
-                  <div className="gate-list">
-                    {decisionGate.items.map((item, index) => (
-                      <div key={`decision-${index}-${item.label}`} className={item.ok ? 'pass' : 'block'}>
-                        <b>{item.ok ? '通過' : '停止'}</b>
-                        <span>{item.label}</span>
-                        <small>{item.detail}</small>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="provenance-grid">
-                  {dataProvenance.map((source, index) => (
-                    <div key={`provenance-${index}-${source.label}`}>
-                      <span>{source.label}</span>
-                      <strong>{source.value}</strong>
-                      <p>{source.note}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
@@ -2794,10 +2061,7 @@ export default function App() {
                   {[
                     ['RSI', selectedDetail?.analysis?.indicators?.rsi?.toFixed?.(1) || '-'],
                     ['MACD', selectedDetail?.analysis?.indicators?.macd?.macd?.toFixed?.(2) || '-'],
-                    ['年率変動', `${portfolioHealth.volatility.toFixed(1)}%`],
-                    ['最大下落', `${portfolioHealth.drawdown.toFixed(1)}%`],
-                    ['集中度', `${portfolioHealth.maxHoldingPct.toFixed(1)}%`],
-                    ['現金比率', `${portfolioHealth.cashPct.toFixed(1)}%`],
+                    ...riskMetrics,
                     ['利確目安', yen(selectedDetail?.analysis?.strategy?.sell_limit)],
                     ['損切り目安', yen(selectedDetail?.analysis?.strategy?.stop_loss)],
                   ].map(([label, value]) => (
@@ -2828,7 +2092,7 @@ export default function App() {
                     <strong>成行警戒</strong>
                     <p>初心者は緑色や上昇率に引っ張られやすいため、この画面では成行注文を推奨しません。</p>
                   </div>
-                </div>
+              </div>
               </div>
             )}
 
@@ -2859,190 +2123,51 @@ export default function App() {
             </div>
             <StatusPill label={marketToneLabel(portfolio?.marketContext?.tone)} tone={portfolio?.marketContext?.riskOff ? 'warn' : 'info'} />
           </div>
-
           <form className="position-form" onSubmit={saveManualPosition}>
-            <label>
-              <span>銘柄コード</span>
-              <input data-testid="ledger-order-ticker" value={positionForm.ticker} onChange={(event) => updatePositionForm('ticker', event.target.value)} placeholder="4980.T" />
-            </label>
-            <label>
-              <span>銘柄名</span>
-              <input value={positionForm.name} onChange={(event) => updatePositionForm('name', event.target.value)} placeholder="デクセリアルズ" />
-            </label>
-            <label>
-              <span>買値</span>
-              <input type="number" min="1" step="0.1" value={positionForm.entryPrice} onChange={(event) => updatePositionForm('entryPrice', event.target.value)} />
-            </label>
-            <label>
-              <span>株数</span>
-              <input type="number" min="1" step="1" value={positionForm.shares} onChange={(event) => updatePositionForm('shares', event.target.value)} />
-            </label>
-            <label className="position-note">
-              <span>メモ</span>
-              <input value={positionForm.note} onChange={(event) => updatePositionForm('note', event.target.value)} placeholder="買付理由や材料" />
-            </label>
-            <div className="position-actions">
-              <button type="button" className="ghost-action" onClick={() => applyPracticeCandidate({
-                ticker: practiceTicker || positionForm.ticker,
-                name: practiceName || positionForm.name,
-                entryPrice: practiceEntry,
-              })}>
-                <Target size={15} />
-                <span>表示銘柄を使う</span>
-              </button>
-              <button type="submit" className="treasure-button" disabled={busy === 'position'}>
-                {busy === 'position' ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
-                <span>保有に保存</span>
-              </button>
-            </div>
+            <label><span>銘柄コード</span><input data-testid="ledger-order-ticker" value={positionForm.ticker} onChange={(event) => updatePositionForm('ticker', event.target.value)} placeholder="4980.T" /></label>
+            <label><span>銘柄名</span><input value={positionForm.name} onChange={(event) => updatePositionForm('name', event.target.value)} placeholder="銘柄名" /></label>
+            <label><span>参考価格</span><input type="number" min="1" step="0.1" value={positionForm.entryPrice} onChange={(event) => updatePositionForm('entryPrice', event.target.value)} /></label>
+            <label><span>株数</span><input type="number" min="1" step="1" value={positionForm.shares} onChange={(event) => updatePositionForm('shares', event.target.value)} /></label>
+            <button data-testid="ledger-order-save" className="treasure-button" type="submit" disabled={busy === 'position'}>{busy === 'position' ? <Loader2 size={15} className="spin" /> : <Save size={15} />}練習台帳へ保存</button>
           </form>
-
-          <div className="exit-coach-grid">
-            {holdings.length ? holdings.map((holding) => {
-              const plan = holding.exitPlan || {};
-              const research = plan.marketResearch || [];
-              return (
-                <article className={`exit-card ${exitPlanTone(plan.action)}`} key={`exit-${holding.ticker}`}>
-                  <div className="exit-card-head">
-                    <div>
-                      <span>{holding.ticker}</span>
-                      <strong>{holding.name || holding.ticker}</strong>
-                    </div>
-                    <StatusPill label={plan.label || '確認中'} tone={exitPlanTone(plan.action)} />
-                  </div>
-                  <div className="exit-price-grid">
-                    <div><span>売却確認価格</span><strong>{yen(plan.reviewPrice)}</strong><DataSourceBadge source={priceSourcePayload(holding, holding.dataQuality)} compact /><small>{plan.sellReviewShares || holding.shares}株</small></div>
-                    <div><span>利確目標</span><strong>{yen(plan.targetPrice)}</strong><small>伸び目標 {yen(plan.stretchTargetPrice)}</small></div>
-                    <div><span>保護ライン</span><strong>{yen(plan.stopLoss)}</strong><small>終値割れで再確認</small></div>
-                    <div><span>損益</span><strong className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{pct(holding.pnlPct)}</strong><small>{yen(holding.pnl)}</small></div>
-                  </div>
-                  <p className="exit-timing">{plan.timing}</p>
-                  <div className="exit-research">
-                    {research.slice(0, 4).map((item) => (
-                      <div key={`${holding.ticker}-${item.label}`}>
-                        <span>{item.label}</span>
-                        <strong>{item.value ?? '-'}{item.unit}</strong>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="exit-market">
-                    <ShieldCheck size={15} />
-                    <span>{plan.marketSummary || '地合い確認中'}</span>
-                  </div>
-                  <div className="holding-lifecycle-actions" aria-label={`${holding.ticker} 台帳操作`}>
-                    <button type="button" onClick={() => closePortfolioPosition(holding, 'SOLD')} disabled={!!busy} title="売却済みにして通常ポートフォリオから外す">
-                      <CheckCircle2 size={14} />
-                      <span>売却済み</span>
-                    </button>
-                    <button type="button" onClick={() => closePortfolioPosition(holding, 'VOIDED')} disabled={!!busy} title="入力ミスとして訂正履歴に残す">
-                      <XCircle size={14} />
-                      <span>入力ミス</span>
-                    </button>
-                    <button type="button" onClick={() => closePortfolioPosition(holding, 'ARCHIVED')} disabled={!!busy} title="削除せず通常表示から外す">
-                      <Archive size={14} />
-                      <span>非表示</span>
-                    </button>
-                  </div>
-                </article>
-              );
-            }) : (
-              <div className="exit-empty">
-                <Target size={22} />
-                <strong>保有銘柄はまだありません</strong>
-                <span>例: 4980.T / 2,648円 / 100株を入力すると、デクセリアルズの売却判断カードがここに出ます。</span>
+          <div className="portfolio-grid">
+            <div className="metric"><span>総資産</span><strong>{yen(portfolio?.totalAssets)}</strong></div>
+            <div className="metric"><span>現金</span><strong>{yen(portfolio?.cash)}</strong></div>
+            <div className="metric"><span>含み損益</span><strong>{yen(portfolio?.unrealizedPnl)}</strong></div>
+            <div className="metric"><span>データ出所</span><strong>{selectedSourceContext?.label || selectedSourceContext?.source || '-'}</strong></div>
+          </div>
+          <div className="holdings-list">
+            {(portfolio?.holdings || []).map((holding) => (
+              <article key={holding.ticker} data-testid="holding-row" className="holding-card" onClick={() => chooseTicker(holding, { source: 'portfolio', note: '保有銘柄から選択' })}>
+                <div><strong>{holding.ticker}</strong><span>{holding.name}</span></div>
+                <div><span>{holding.shares}株</span><strong>{yen(holding.currentPrice || holding.price)}</strong></div>
+                <small className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{yen(holding.pnl)} / {pct(holding.pnlPct)}</small>
+                <div className="holding-lifecycle-actions" aria-label={holding.ticker + ' 台帳操作'}>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'SOLD'); }}>売却済み</button>
+                  <button type="button" onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'VOIDED'); }}>非表示</button>
+                </div>
+              </article>
+            ))}
+            {!(portfolio?.holdings || []).length && <small className="empty-note">保有銘柄はありません。</small>}
+          </div>
+          <div className="portfolio-ledger-events" data-testid="portfolio-ledger-events">
+            <div className="section-title"><Archive size={16} /><span>{pendingLifecycle ? '台帳更新中' : '保有履歴'}</span></div>
+            {lifecycleFeed.length ? lifecycleFeed.map((event) => (
+              <div key={event.id} className={`portfolio-ledger-event ${event.ok ? 'success' : 'error'}`} data-testid="portfolio-ledger-event">
+                <strong>{event.title}</strong><span>{event.subtitle}</span><small>{event.message}</small>
               </div>
-            )}
+            )) : <small>保有銘柄の更新履歴はまだありません。</small>}
+          </div>
+          <div className="activity-log">
+            <div className="section-title"><Archive size={16} /><span>操作履歴</span></div>
+            {log.slice(0, 8).map((log, index) => <small key={`log-${index}-${log.time || ''}`}>{log.time} {log.type}: {log.message}</small>)}
           </div>
         </section>
-
-        <section className="table-panel">
-          <div className="section-title">
-            <BriefcaseBusiness size={18} />
-            <span>保有銘柄</span>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>銘柄</th>
-                  <th>保有</th>
-                  <th>平均</th>
-                  <th>現在値</th>
-                  <th>評価額</th>
-                  <th>損益</th>
-                  <th>台帳</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.map((holding) => (
-                  <tr
-                    key={holding.ticker}
-                    data-testid="holding-row"
-                    data-ticker={holding.ticker}
-                    onClick={() => chooseTicker({
-                      ticker: holding.ticker,
-                      name: holding.name || holding.ticker,
-                      price: holding.currentPrice,
-                      entryPrice: holding.currentPrice,
-                    }, { source: 'holding', note: '保有銘柄を反映' })}
-                  >
-                    <td><b>{holding.emoji || 'JP'} {holding.name || holding.ticker}</b><small>{holding.ticker}</small></td>
-                    <td>{holding.shares} 株</td>
-                    <td>{yen(holding.avgCost)}</td>
-                    <td>{yen(holding.currentPrice)} <DataSourceBadge source={priceSourcePayload(holding, holding.dataQuality)} compact /></td>
-                    <td>{yen(holding.value)}</td>
-                    <td className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{yen(holding.pnl)} / {pct(holding.pnlPct)}</td>
-                    <td><StatusPill label={portfolioStatusLabel(holding.status)} tone="good" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {archivedHoldings.length ? (
-          <section className="table-panel ledger-panel">
-            <div className="section-title">
-              <Archive size={18} />
-              <span>保有履歴</span>
-            </div>
-            <p className="ledger-note">削除はせず、売却済み・入力ミス・非表示として残した銘柄です。通常の損益計算からは外しています。</p>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>銘柄</th>
-                    <th>状態</th>
-                    <th>最終株数</th>
-                    <th>平均</th>
-                    <th>理由</th>
-                    <th>処理日</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {archivedHoldings.map((holding) => (
-                    <tr key={`ledger-${holding.ticker}-${holding.status}`}>
-                      <td><b>{holding.emoji || 'JP'} {holding.name || holding.ticker}</b><small>{holding.ticker}</small></td>
-                      <td><StatusPill label={holding.status} tone={holding.status === 'SOLD' ? 'info' : 'neutral'} /></td>
-                      <td>{holding.shares} 株</td>
-                      <td>{yen(holding.avgCost)}</td>
-                      <td>{holding.lifecycleReason || '-'}</td>
-                      <td>{holding.closedAt ? new Date(holding.closedAt).toLocaleString('ja-JP') : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
         </PortfolioLedger>
       </main>
 
       <aside className="ops-panel">
-        <div className="section-title">
-          <Bot size={18} />
-          <span>操作ログ</span>
-        </div>
+        <div className="section-title"><Bot size={18} /><span>操作ログ</span></div>
         <button className="primary-action" onClick={() => runAction('screen')} disabled={!!busy}>
           {busy === 'screen' ? <Loader2 className="spin" size={18} /> : <Search size={18} />}
           AI再分析
@@ -3054,25 +2179,15 @@ export default function App() {
         </div>
         <div className="log-feed">
           {log.map((entry, index) => (
-            <div key={`${entry.tag}-${index}`}>
-              <span>{entry.tag}</span>
-              <p>{entry.text}</p>
-            </div>
+            <div key={`${entry.tag}-${index}`}><span>{operationLogTagLabel(entry.tag)}</span><p>{entry.text}</p></div>
           ))}
         </div>
         <div className="recent-box">
-          <h3><ShieldCheck size={16} /> Jobs Verdict</h3>
-          <div className="verdict-row"><span>健全性</span><strong>{portfolioHealth.score}/100</strong></div>
-          <div className="verdict-row"><span>最大集中</span><strong>{portfolioHealth.maxHoldingPct.toFixed(1)}%</strong></div>
-          <div className="verdict-row"><span>現金比率</span><strong>{portfolioHealth.cashPct.toFixed(1)}%</strong></div>
-          <p className="verdict-copy">
-            {jobsVerdictHeadline}
-          </p>
+          <h3><ShieldCheck size={16} /> 品質評価</h3>
+          {verdictRows.map((row) => <div className="verdict-row" key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
+          <p className="verdict-copy">{jobsVerdictHeadline}</p>
         </div>
-        <div className="notice">
-          <AlertTriangle size={15} />
-          投資助言ではなく、ローカルの投資シミュレーションです。
-        </div>
+        <div className="notice"><AlertTriangle size={15} />このツールは学習・分析・シミュレーション専用です。実注文や投資助言は行いません。</div>
       </aside>
     </div>
   );

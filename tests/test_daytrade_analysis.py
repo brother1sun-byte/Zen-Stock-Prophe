@@ -60,7 +60,28 @@ class DaytradeAnalysisTests(unittest.TestCase):
         self.assertIn("winRatePct", report["backtest"])
         self.assertIn("maxDrawdownPct", report["backtest"])
         self.assertIn("stabilityPct", report["walkForward"])
-        self.assertIn("not investment advice", report["disclaimer"])
+        self.assertIn("投資助言ではありません", report["disclaimer"])
+        self.assertIn("シミュレーション専用", report["disclaimer"])
+        self.assertNotIn("強い買い", report["label"])
+        self.assertNotIn("買い検討", report["label"])
+        visible_copy = " ".join(
+            [item["label"] + " " + item["detail"] for item in report["evidence"]]
+            + report["fakeoutFilters"]
+            + report["explanations"]
+            + [report["label"]]
+        )
+        for english_fragment in (
+            "Trend alignment",
+            "VWAP support",
+            "RSI tradable zone",
+            "MACD momentum",
+            "Volume expansion",
+            "Volatility range",
+            "Session volume seasonality",
+            "News / earnings exclusion",
+            "Fakeout filters",
+        ):
+            self.assertNotIn(english_fragment, visible_copy)
         json.dumps(report)
 
     def test_event_and_spread_risk_reduce_signal_quality(self):
@@ -80,8 +101,8 @@ class DaytradeAnalysisTests(unittest.TestCase):
 
         self.assertEqual(report["indicators"]["microstructure"]["verdict"], "WIDE")
         self.assertEqual(report["indicators"]["eventRisk"]["verdict"], "BLOCK")
-        self.assertTrue(any("spread" in item.lower() for item in report["fakeoutFilters"]))
-        self.assertTrue(any("earnings" in item.lower() for item in report["fakeoutFilters"]))
+        self.assertTrue(any("スプレッド" in item for item in report["fakeoutFilters"]))
+        self.assertTrue(any("決算" in item for item in report["fakeoutFilters"]))
 
     def test_daytrade_analysis_rejects_unsupported_interval(self):
         with self.assertRaises(ValueError):
