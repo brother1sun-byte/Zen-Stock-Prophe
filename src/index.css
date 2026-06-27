@@ -3499,6 +3499,66 @@ h1 {
   font-weight: 950;
 }
 
+.watchlist-prompt-panel {
+  margin-top: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: var(--radius-sm);
+  padding: 11px;
+  background: rgba(4, 120, 87, 0.08);
+}
+
+.watchlist-prompt-head,
+.watchlist-prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.watchlist-prompt-head > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.watchlist-prompt-head strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.watchlist-prompt-head small,
+.watchlist-prompt-note,
+.watchlist-prompt-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.watchlist-prompt-note {
+  margin: 9px 0 0;
+}
+
+.watchlist-prompt-status {
+  margin: 8px 0 0;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.watchlist-prompt-textarea {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  resize: vertical;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .watchlist-preopen-filters {
   display: flex;
   flex-wrap: wrap;

@@ -63,6 +63,7 @@ import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLe
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
+import { buildWatchlistResearchPrompt } from './utils/chatGptPromptBuilder';
 import { buildDisclosureEventSummary } from './utils/disclosureEvents';
 import { fetchEdinetDocumentsByDateRange } from './utils/edinetClient';
 import { buildPreopenCheckSummary, fetchEarningsCalendarByDateRange } from './utils/earningsCalendarClient';
@@ -594,6 +595,8 @@ export default function App() {
   const hydrateInFlightRef = useRef(null);
   const daytradeAnalysisRequestsRef = useRef(new Map());
   const [chatGptPromptCopied, setChatGptPromptCopied] = useState(false);
+  const [watchlistPromptVisible, setWatchlistPromptVisible] = useState(false);
+  const [watchlistPromptCopyStatus, setWatchlistPromptCopyStatus] = useState('');
   const cached = useMemo(() => {
     return readFreshCache();
   }, []);
@@ -1293,6 +1296,22 @@ export default function App() {
     [watchlistPreopenFilter, watchlistPreopenResults],
   );
 
+  const watchlistResearchPrompt = useMemo(() => buildWatchlistResearchPrompt({
+    watchlistResults: watchlistPreopenResults,
+    watchlistSummary: watchlistPreopenSummary,
+    businessWindow: morningCheckWindow,
+    sourceStatus: watchlistPreopenResults[0]?.sourceStatus || {
+      earnings: earningsCalendar?.sourceStatus,
+      edinet: edinetDisclosure?.sourceStatus,
+    },
+  }), [
+    earningsCalendar,
+    edinetDisclosure,
+    morningCheckWindow,
+    watchlistPreopenResults,
+    watchlistPreopenSummary,
+  ]);
+
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
     daytradeTopPick,
@@ -1356,6 +1375,37 @@ export default function App() {
     setChatGptPromptCopied(true);
     window.setTimeout(() => setChatGptPromptCopied(false), 1800);
   }, [chatGptConsultationPrompt]);
+
+  const copyWatchlistResearchPrompt = useCallback(async () => {
+    if (!watchlistResearchPrompt) return;
+    const fallbackCopy = () => {
+      const textarea = document.createElement('textarea');
+      textarea.value = watchlistResearchPrompt;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(watchlistResearchPrompt);
+      } else {
+        fallbackCopy();
+      }
+      setWatchlistPromptCopyStatus('コピーしました');
+    } catch {
+      try {
+        fallbackCopy();
+        setWatchlistPromptCopyStatus('コピーしました');
+      } catch {
+        setWatchlistPromptCopyStatus('コピーに失敗しました。手動で選択してコピーしてください');
+      }
+    }
+    window.setTimeout(() => setWatchlistPromptCopyStatus(''), 2400);
+  }, [watchlistResearchPrompt]);
 
   function safeStageLabel(label) {
     if (!label) return '';
@@ -2368,6 +2418,47 @@ export default function App() {
                 <div><span>データ未取得</span><strong>{watchlistPreopenSummary.missing}</strong></div>
                 <div><span>目立つ材料なし</span><strong>{watchlistPreopenSummary.quiet}</strong></div>
                 <div><span>エラー</span><strong>{watchlistPreopenSummary.errors}</strong></div>
+              </div>
+              <div className="watchlist-prompt-panel" data-testid="watchlist-chatgpt-prompt-panel">
+                <div className="watchlist-prompt-head">
+                  <div>
+                    <strong>ChatGPT相談用プロンプト</strong>
+                    <small>ChatGPT APIへ送信しません。コピー用テキストを生成するだけです。</small>
+                  </div>
+                  <div className="watchlist-prompt-actions">
+                    <button
+                      type="button"
+                      className="inline-action"
+                      onClick={() => setWatchlistPromptVisible((visible) => !visible)}
+                      data-testid="watchlist-prompt-create-button"
+                    >
+                      {watchlistPromptVisible ? '閉じる' : 'ChatGPT相談用プロンプトを作成'}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-action"
+                      onClick={copyWatchlistResearchPrompt}
+                      data-testid="watchlist-prompt-copy-button"
+                    >
+                      コピー
+                    </button>
+                  </div>
+                </div>
+                <p className="watchlist-prompt-note">
+                  EDINET提出書類、J-Quants決算予定、日本営業日カレンダー、寄り付き前チェック、一括チェック結果を材料確認用に整理します。未取得データがある場合は本文内に明示します。
+                </p>
+                {watchlistPromptCopyStatus ? (
+                  <p className="watchlist-prompt-status" data-testid="watchlist-prompt-copy-status">{watchlistPromptCopyStatus}</p>
+                ) : null}
+                {watchlistPromptVisible ? (
+                  <textarea
+                    readOnly
+                    value={watchlistResearchPrompt}
+                    className="watchlist-prompt-textarea"
+                    data-testid="watchlist-prompt-textarea"
+                    aria-label="ChatGPT相談用プロンプト"
+                  />
+                ) : null}
               </div>
               <div className="watchlist-preopen-filters" data-testid="watchlist-preopen-filters">
                 {[
