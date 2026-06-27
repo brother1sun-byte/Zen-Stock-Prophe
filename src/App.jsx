@@ -69,6 +69,11 @@ import { buildPreopenCheckSummary, fetchEarningsCalendarByDateRange } from './ut
 import { buildMorningCheckWindow } from './utils/japanBusinessCalendar';
 import { buildResearchCoverage } from './utils/researchCoverage';
 import { displayStockName } from './utils/stockNames';
+import {
+  buildWatchlistPreopenCheck,
+  filterPreopenCheckResults,
+  summarizeWatchlistPreopenCheck,
+} from './utils/watchlistPreopenCheck';
 import './index.css';
 
 const COLORS = ['#16f1a4', '#38bdf8', '#f59e0b', '#fb7185', '#a78bfa', '#22c55e'];
@@ -613,6 +618,7 @@ export default function App() {
   const [earningsCalendar, setEarningsCalendar] = useState(null);
   const [jquantsCode, setJquantsCode] = useState(cached?.jquantsCode || PINNED_WATCH_TICKER);
   const [rankingKind, setRankingKind] = useState('gainers');
+  const [watchlistPreopenFilter, setWatchlistPreopenFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState(cached?.searchQuery || '');
   const [activeTab, setActiveTab] = useState('plan');
   const [showDetails, setShowDetails] = useState(false);
@@ -1266,6 +1272,26 @@ export default function App() {
     earningsCalendar,
     disclosureSummary: disclosureEventSummary,
   }), [disclosureEventSummary, earningsCalendar, morningCheckWindow, selectedDetail, selectedStock]);
+
+  const watchlistPreopenResults = useMemo(() => buildWatchlistPreopenCheck(displayStocks, {
+    businessWindow: morningCheckWindow,
+    earningsCalendar,
+    edinetDisclosure,
+    jquantsResearch,
+    jquantsView,
+    cached,
+    env: import.meta.env,
+  }), [cached, displayStocks, earningsCalendar, edinetDisclosure, jquantsResearch, jquantsView, morningCheckWindow]);
+
+  const watchlistPreopenSummary = useMemo(
+    () => summarizeWatchlistPreopenCheck(watchlistPreopenResults),
+    [watchlistPreopenResults],
+  );
+
+  const filteredWatchlistPreopenResults = useMemo(
+    () => filterPreopenCheckResults(watchlistPreopenResults, watchlistPreopenFilter),
+    [watchlistPreopenFilter, watchlistPreopenResults],
+  );
 
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
@@ -2318,6 +2344,93 @@ export default function App() {
                   <DataSourceBadge source={priceSourcePayload(marketRankings?.isCached ? { isCached: true, source: 'cache' } : null, stock, stock.dataQuality)} compact />
                 </button>
               ))}
+            </div>
+            <div className="watchlist-preopen-panel" data-testid="watchlist-preopen-panel">
+              <div className="watchlist-preopen-head">
+                <div>
+                  <span>寄り付き前材料確認</span>
+                  <strong>ウォッチリスト一括チェック</strong>
+                  <small>{morningCheckWindow.periodLabel} / 最終確認 {shortDate(edinetDisclosure?.fetchedAt || earningsCalendar?.fetchedAt || new Date().toISOString())}</small>
+                </div>
+                <StatusPill
+                  label={watchlistPreopenSummary.important ? `重要予定あり ${watchlistPreopenSummary.important}件` : '材料確認'}
+                  tone={watchlistPreopenSummary.important ? 'danger' : watchlistPreopenSummary.review ? 'warn' : watchlistPreopenSummary.missing ? 'neutral' : 'good'}
+                />
+              </div>
+              <p className="watchlist-preopen-caution">
+                ウォッチリスト全銘柄の寄り付き前材料を確認しました。本機能は売買を推奨するものではありません。必ず一次情報をご確認ください。
+              </p>
+              <div className="watchlist-preopen-summary">
+                <div><span>対象銘柄数</span><strong>{watchlistPreopenSummary.total}</strong></div>
+                <div><span>確認済み</span><strong>{watchlistPreopenSummary.checked}</strong></div>
+                <div><span>重要予定あり</span><strong>{watchlistPreopenSummary.important}</strong></div>
+                <div><span>確認推奨</span><strong>{watchlistPreopenSummary.review}</strong></div>
+                <div><span>データ未取得</span><strong>{watchlistPreopenSummary.missing}</strong></div>
+                <div><span>目立つ材料なし</span><strong>{watchlistPreopenSummary.quiet}</strong></div>
+                <div><span>エラー</span><strong>{watchlistPreopenSummary.errors}</strong></div>
+              </div>
+              <div className="watchlist-preopen-filters" data-testid="watchlist-preopen-filters">
+                {[
+                  ['all', 'すべて'],
+                  ['important', '重要予定あり'],
+                  ['review', '確認推奨'],
+                  ['missing', 'データ未取得'],
+                  ['quiet', '目立つ材料なし'],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={watchlistPreopenFilter === value ? 'active' : ''}
+                    onClick={() => setWatchlistPreopenFilter(value)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="watchlist-preopen-list" data-testid="watchlist-preopen-list">
+                {filteredWatchlistPreopenResults.length ? filteredWatchlistPreopenResults.map((item) => (
+                  <details className={`watchlist-preopen-row ${item.risk}`} key={`${item.ticker}-${item.status}`} data-testid="watchlist-preopen-row">
+                    <summary>
+                      <span className="watchlist-preopen-ticker">{item.ticker || '照合不可'}</span>
+                      <span className="watchlist-preopen-name">{item.companyName}</span>
+                      <StatusPill label={item.status} tone={item.risk === 'high' ? 'danger' : item.risk === 'medium' ? 'warn' : item.risk === 'low' ? 'good' : 'neutral'} />
+                      <span>注意度 {item.riskLabel}</span>
+                      <span>EDINET {item.hasEdinetDocuments ? `${item.edinetDocuments.length}件` : 'なし'}</span>
+                      <span>決算予定 {item.hasEarnings ? `${item.earnings.length}件` : 'なし'}</span>
+                    </summary>
+                    <div className="watchlist-preopen-detail">
+                      <div>
+                        <strong>確認対象期間</strong>
+                        <span>{item.periodLabel}</span>
+                      </div>
+                      <div>
+                        <strong>照合方法</strong>
+                        <span>{item.matchMethod}</span>
+                      </div>
+                      <div>
+                        <strong>データ取得状況</strong>
+                        <span>EDINET {item.sourceStatus.edinet.label} / 決算 {item.sourceStatus.earnings.label} / 営業日 {item.sourceStatus.businessCalendar.label}</span>
+                      </div>
+                      <div className="watchlist-preopen-events">
+                        <strong>EDINET提出書類</strong>
+                        {item.edinetDocuments.length ? item.edinetDocuments.map((event, index) => (
+                          <p key={`${event.docID || event.title}-${index}`}>{event.date} / {event.classification} / {event.title}</p>
+                        )) : <p>対象期間のEDINET提出書類は表示されていません。</p>}
+                      </div>
+                      <div className="watchlist-preopen-events">
+                        <strong>決算予定</strong>
+                        {item.earnings.length ? item.earnings.map((event, index) => (
+                          <p key={`${event.date}-${event.ticker}-${index}`}>{event.date} / {event.fiscalPeriod} / {event.scheduledTime} / {event.source}</p>
+                        )) : <p>決算予定データは未取得、または対象予定がありません。</p>}
+                      </div>
+                      <p className="watchlist-preopen-detail-caution">{item.caution}</p>
+                      {item.unknownInputs.length ? <p className="watchlist-preopen-missing">確認不足: {item.unknownInputs.join(' / ')}</p> : null}
+                    </div>
+                  </details>
+                )) : (
+                  <div className="watchlist-preopen-empty">選択中のフィルターに該当する銘柄はありません。</div>
+                )}
+              </div>
             </div>
           </WatchlistPanel>
 

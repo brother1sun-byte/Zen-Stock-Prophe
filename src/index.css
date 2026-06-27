@@ -3427,6 +3427,170 @@ h1 {
   color: var(--muted);
 }
 
+.watchlist-preopen-panel {
+  margin-top: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: var(--radius);
+  padding: 13px;
+  background: rgba(8, 13, 24, 0.78);
+}
+
+.watchlist-preopen-head,
+.watchlist-preopen-row summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.watchlist-preopen-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.watchlist-preopen-head span,
+.watchlist-preopen-summary span,
+.watchlist-preopen-row summary span,
+.watchlist-preopen-detail strong {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.watchlist-preopen-head strong {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.watchlist-preopen-head small,
+.watchlist-preopen-caution,
+.watchlist-preopen-detail span,
+.watchlist-preopen-detail p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.watchlist-preopen-caution {
+  margin: 10px 0;
+}
+
+.watchlist-preopen-summary {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.watchlist-preopen-summary div,
+.watchlist-preopen-detail > div,
+.watchlist-preopen-empty {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.watchlist-preopen-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.watchlist-preopen-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0 10px;
+}
+
+.watchlist-preopen-filters button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.watchlist-preopen-filters button.active {
+  border-color: rgba(16, 185, 129, 0.68);
+  color: #001810;
+  background: var(--green);
+}
+
+.watchlist-preopen-list {
+  display: grid;
+  gap: 8px;
+}
+
+.watchlist-preopen-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+  overflow: hidden;
+}
+
+.watchlist-preopen-row.high {
+  border-color: rgba(244, 63, 94, 0.48);
+}
+
+.watchlist-preopen-row.medium {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.watchlist-preopen-row summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 9px 10px;
+  list-style: none;
+}
+
+.watchlist-preopen-row summary::-webkit-details-marker {
+  display: none;
+}
+
+.watchlist-preopen-ticker {
+  min-width: 58px;
+  color: var(--text) !important;
+  font-weight: 950 !important;
+}
+
+.watchlist-preopen-name {
+  flex: 1;
+  min-width: 110px;
+  color: var(--text) !important;
+}
+
+.watchlist-preopen-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 10px;
+}
+
+.watchlist-preopen-events,
+.watchlist-preopen-detail-caution,
+.watchlist-preopen-missing {
+  grid-column: 1 / -1;
+}
+
+.watchlist-preopen-events p,
+.watchlist-preopen-detail-caution,
+.watchlist-preopen-missing {
+  margin: 5px 0 0;
+}
+
+.watchlist-preopen-missing {
+  color: var(--amber);
+  font-weight: 850;
+}
+
 .stock-emoji {
   display: block;
   font-size: 22px;
@@ -4880,6 +5044,8 @@ button:disabled {
   .advanced-score-grid,
   .research-coverage-grid,
   .preopen-check-grid,
+  .watchlist-preopen-summary,
+  .watchlist-preopen-detail,
   .preopen-earnings-row,
   .disclosure-source-grid,
   .disclosure-event-row,
