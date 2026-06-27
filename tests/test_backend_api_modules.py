@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+import requests
 from fastapi import HTTPException
 
 
@@ -140,11 +141,122 @@ class BackendApiModuleTests(unittest.TestCase):
             temp_path = Path(handle.name)
         try:
             payload = build_earnings_calendar_payload("2026-06-29", "2026-06-29", env={}, manual_path=temp_path)
-            self.assertEqual(payload["status"], "success")
+            self.assertEqual(payload["status"], "manual_data")
             self.assertEqual(payload["items"][0]["ticker"], "4980.T")
             self.assertEqual(payload["sourceStatus"]["label"], "手動データ")
         finally:
             temp_path.unlink(missing_ok=True)
+
+    def test_earnings_calendar_payload_reports_missing_jquants_key(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            payload = build_earnings_calendar_payload(
+                "2026-06-29",
+                "2026-06-29",
+                env={},
+                manual_path=Path(temp_dir) / "manual.json",
+                cache_path=Path(temp_dir) / "cache.json",
+            )
+        self.assertEqual(payload["status"], "api_key_missing")
+        self.assertEqual(payload["sourceStatus"]["label"], "J-Quants API未設定")
+        self.assertEqual(payload["items"], [])
+
+    def test_earnings_calendar_payload_fetches_jquants_v2_items(self):
+        calls = []
+
+        def fake_get(url, params=None, headers=None, timeout=None):
+            calls.append((url, params, headers, timeout))
+            return _FakeResponse({
+                "data": [{
+                    "Code": "49800",
+                    "CompanyName": "Dexerials",
+                    "Date": "2026-06-29",
+                    "FiscalPeriod": "1Q",
+                    "ScheduledTime": "15:00",
+                }]
+            })
+
+        payload = build_earnings_calendar_payload(
+            "2026-06-29",
+            "2026-06-29",
+            env={"JQUANTS_API_KEY": "test-key"},
+            http_get=fake_get,
+        )
+
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["sourceStatus"]["label"], "J-Quants実取得済み")
+        self.assertEqual(payload["items"][0]["stockCode"], "4980")
+        self.assertEqual(payload["items"][0]["source"], "J-Quants")
+        self.assertEqual(calls[0][2]["x-api-key"], "test-key")
+
+    def test_earnings_calendar_payload_reports_auth_failed(self):
+        import tempfile
+
+        class AuthFailedResponse(_FakeResponse):
+            def raise_for_status(self):
+                raise requests.HTTPError(response=self)
+
+        def fake_get(_url, **_kwargs):
+            return AuthFailedResponse({}, status_code=401)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            payload = build_earnings_calendar_payload(
+                "2026-06-29",
+                "2026-06-29",
+                env={"JQUANTS_API_KEY": "bad-key"},
+                manual_path=Path(temp_dir) / "manual.json",
+                cache_path=Path(temp_dir) / "cache.json",
+                http_get=fake_get,
+            )
+
+        self.assertEqual(payload["status"], "auth_failed")
+        self.assertEqual(payload["sourceStatus"]["label"], "認証失敗")
+
+    def test_earnings_calendar_payload_reports_fetch_failed(self):
+        import tempfile
+
+        def fake_get(_url, **_kwargs):
+            raise requests.RequestException("network down")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            payload = build_earnings_calendar_payload(
+                "2026-06-29",
+                "2026-06-29",
+                env={"JQUANTS_API_KEY": "test-key"},
+                manual_path=Path(temp_dir) / "manual.json",
+                cache_path=Path(temp_dir) / "cache.json",
+                http_get=fake_get,
+            )
+
+        self.assertEqual(payload["status"], "fetch_failed")
+        self.assertEqual(payload["sourceStatus"]["label"], "取得失敗")
+
+    def test_earnings_calendar_payload_uses_cache_fallback(self):
+        import tempfile
+
+        def fake_get(_url, **_kwargs):
+            raise requests.RequestException("temporary outage")
+
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as cache_handle:
+            cache_handle.write('{"items":[{"code":"7203","companyName":"Toyota","date":"2026-06-29"}]}')
+            cache_path = Path(cache_handle.name)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                payload = build_earnings_calendar_payload(
+                    "2026-06-29",
+                    "2026-06-29",
+                    env={"JQUANTS_API_KEY": "test-key"},
+                    manual_path=Path(temp_dir) / "manual.json",
+                    cache_path=cache_path,
+                    http_get=fake_get,
+                )
+            finally:
+                cache_path.unlink(missing_ok=True)
+
+        self.assertEqual(payload["status"], "cache_used")
+        self.assertEqual(payload["sourceStatus"]["label"], "キャッシュ利用")
+        self.assertEqual(payload["items"][0]["stockCode"], "7203")
 
     def test_price_history_prefers_yfinance_and_sets_source_flags(self):
         calls = []
