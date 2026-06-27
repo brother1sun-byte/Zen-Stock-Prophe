@@ -1866,6 +1866,161 @@ h1 {
   border-color: rgba(251, 113, 133, 0.38);
 }
 
+.disclosure-check-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 8px;
+  background: rgba(24, 18, 9, 0.62);
+}
+
+.disclosure-check-panel.high {
+  border-color: rgba(251, 113, 133, 0.42);
+}
+
+.disclosure-check-panel.low {
+  border-color: rgba(22, 241, 164, 0.24);
+}
+
+.disclosure-check-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.disclosure-check-head div {
+  display: grid;
+  gap: 3px;
+}
+
+.disclosure-check-head span,
+.disclosure-source span,
+.disclosure-event-main span,
+.disclosure-event-source span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.disclosure-check-head strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.disclosure-check-caution {
+  margin: 0;
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.disclosure-source-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.disclosure-source {
+  display: grid;
+  gap: 5px;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.disclosure-source.good {
+  border-color: rgba(22, 241, 164, 0.3);
+}
+
+.disclosure-source.warn {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.disclosure-source strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.disclosure-source small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.disclosure-event-list {
+  display: grid;
+  gap: 8px;
+}
+
+.disclosure-event-row,
+.disclosure-empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.disclosure-event-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.disclosure-event-main strong {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.disclosure-event-main p,
+.disclosure-event-main small,
+.disclosure-empty span {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.disclosure-event-main small,
+.disclosure-empty span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.disclosure-event-source {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  align-content: start;
+  text-align: right;
+}
+
+.disclosure-event-source a {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.disclosure-empty {
+  grid-template-columns: 1fr;
+}
+
+.disclosure-empty strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
 .ml-verification-card {
   margin-top: 12px;
   padding: 14px;
@@ -4586,6 +4741,8 @@ button:disabled {
   .advanced-analysis-head,
   .advanced-score-grid,
   .research-coverage-grid,
+  .disclosure-source-grid,
+  .disclosure-event-row,
   .advanced-detail-grid,
   .advanced-explainability,
   .advanced-guardrails,
@@ -4609,6 +4766,7 @@ button:disabled {
   .market-controls,
   .market-intel-head,
   .research-coverage-head,
+  .disclosure-check-head,
   .ai-fund-head,
   .intraday-analysis-head,
   .commute-routine-head,

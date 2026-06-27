@@ -63,6 +63,7 @@ import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLe
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
+import { buildDisclosureEventSummary } from './utils/disclosureEvents';
 import { buildResearchCoverage } from './utils/researchCoverage';
 import { displayStockName } from './utils/stockNames';
 import './index.css';
@@ -1167,6 +1168,13 @@ export default function App() {
     marketRankings,
   }), [jquantsView, marketRankings, selectedAdvancedReport, selectedDetail, selectedSourceContext]);
 
+  const disclosureEventSummary = useMemo(() => buildDisclosureEventSummary(selectedDetail || selectedStock, {
+    jquantsResearch,
+    jquantsView,
+    cached,
+    env: import.meta.env,
+  }), [cached, jquantsResearch, jquantsView, selectedDetail, selectedStock]);
+
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
     daytradeTopPick,
@@ -1843,6 +1851,46 @@ export default function App() {
                   <em>{item.action}</em>
                 </div>
               ))}
+            </div>
+          </div>
+          <div className={`disclosure-check-panel ${disclosureEventSummary.risk}`} data-testid="disclosure-check-panel">
+            <div className="disclosure-check-head">
+              <div>
+                <span>開示・決算チェック</span>
+                <strong>{disclosureEventSummary.status}</strong>
+              </div>
+              <StatusPill label={`注意度 ${disclosureEventSummary.riskLabel}`} tone={disclosureEventSummary.risk === 'high' ? 'danger' : disclosureEventSummary.risk === 'medium' ? 'warn' : disclosureEventSummary.risk === 'low' ? 'good' : 'neutral'} />
+            </div>
+            <p className="disclosure-check-caution">{disclosureEventSummary.caution}</p>
+            <div className="disclosure-source-grid">
+              {Object.entries(disclosureEventSummary.sourceStatus).map(([key, status]) => (
+                <div key={key} className={`disclosure-source ${status.tone}`}>
+                  <span>{key === 'edinet' ? 'EDINET' : key === 'tdnet' ? 'TDnet' : key === 'jquants' ? 'J-Quants' : 'キャッシュ'}</span>
+                  <strong>{status.label}</strong>
+                  <small>{status.detail}</small>
+                </div>
+              ))}
+            </div>
+            <div className="disclosure-event-list">
+              {disclosureEventSummary.events.length ? disclosureEventSummary.events.map((event, index) => (
+                <div className="disclosure-event-row" key={`${event.date}-${event.title}-${index}`}>
+                  <div className="disclosure-event-main">
+                    <span>{event.date || '-'}</span>
+                    <strong>{event.classification}</strong>
+                    <p>{event.title}</p>
+                    <small>{event.summary}</small>
+                  </div>
+                  <div className="disclosure-event-source">
+                    <span>{event.source}</span>
+                    {event.url ? <a href={event.url} target="_blank" rel="noreferrer">一次情報</a> : <small>URLなし</small>}
+                  </div>
+                </div>
+              )) : (
+                <div className="disclosure-empty">
+                  <strong>直近イベントは表示できていません</strong>
+                  <span>EDINET、TDnet、J-Quants、公式開示の一次情報を取引前に確認してください。</span>
+                </div>
+              )}
             </div>
           </div>
           {selectedAdvancedReport?.mlPrediction ? (
