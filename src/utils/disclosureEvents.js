@@ -1,3 +1,5 @@
+import { getTdnetSourceStatus } from './tdnetSourceStatus';
+
 const EVENT_TYPES = [
   { type: '業績修正', keywords: ['業績予想の修正', '業績修正', '上方修正', '下方修正', '通期業績予想'] },
   { type: '配当修正', keywords: ['配当予想の修正', '配当修正', '増配', '減配', '無配'] },
@@ -190,6 +192,10 @@ export function getDisclosureSourceStatus(sources = {}) {
   const edinetEvents = buildEdinetDisclosureEvents(sources.edinetDisclosure?.documents || [], sources.stock?.ticker || sources.ticker);
   const edinetStatus = sources.edinetDisclosure?.status;
   const hasTdnet = events.some((event) => /tdnet/i.test(event.source));
+  const tdnetSourceStatus = sources.tdnetSourceStatus || getTdnetSourceStatus({
+    manualEvents: sources.manualTdnetEvents || sources.cachedTdnetEvents,
+    addonEnabled: sources.tdnetAddonEnabled,
+  });
   const hasEdinet = edinetEvents.length > 0 || events.some((event) => /edinet/i.test(event.source) || ['大量保有報告', '有価証券報告書', '四半期報告書', '臨時報告書'].includes(event.classification));
   const jquantsConfigured = Boolean(sources.jquantsView?.configured && sources.jquantsView?.matchesSelection);
   const hasJquantsEvent = jquantsEventsFromResearch(sources.jquantsResearch, sources.jquantsView).length > 0;
@@ -215,9 +221,9 @@ export function getDisclosureSourceStatus(sources = {}) {
       detail: edinetDetail,
     },
     tdnet: {
-      label: hasTdnet ? '取得済み' : events.length ? '該当なし' : 'データ未取得',
-      tone: hasTdnet ? 'good' : events.length ? 'neutral' : 'warn',
-      detail: hasTdnet ? 'TDnet相当の適時開示を検出しました。' : 'TDnetデータは取得できていないか、該当イベントがありません。',
+      label: hasTdnet ? '取得済み' : tdnetSourceStatus.label,
+      tone: hasTdnet ? 'good' : tdnetSourceStatus.tone,
+      detail: hasTdnet ? 'TDnet相当の適時開示を検出しました。' : tdnetSourceStatus.detail,
     },
     jquants: {
       label: hasJquantsEvent ? '取得済み' : jquantsConfigured ? 'データなし' : '未取得',

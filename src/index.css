@@ -3460,6 +3460,150 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.watchlist-import-panel,
+.tdnet-safe-panel {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: rgba(8, 13, 24, 0.74);
+}
+
+.watchlist-import-head,
+.watchlist-import-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.watchlist-import-head > div,
+.tdnet-safe-panel {
+  min-width: 0;
+}
+
+.watchlist-import-head span,
+.watchlist-import-summary span,
+.watchlist-file-picker span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.watchlist-import-head strong,
+.tdnet-safe-panel strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.watchlist-import-head small,
+.watchlist-import-actions small,
+.watchlist-import-message,
+.tdnet-safe-panel span,
+.tdnet-safe-panel small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.watchlist-import-controls {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.watchlist-file-picker,
+.watchlist-import-textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.watchlist-file-picker {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 112px;
+  padding: 10px;
+}
+
+.watchlist-file-picker input {
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.watchlist-import-textarea {
+  min-height: 112px;
+  padding: 10px;
+  resize: vertical;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.watchlist-import-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.watchlist-import-summary div,
+.watchlist-import-preview-list,
+.watchlist-import-errors {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.watchlist-import-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.watchlist-import-preview-list,
+.watchlist-import-errors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.watchlist-import-preview-list span,
+.watchlist-import-errors span {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.watchlist-import-errors {
+  display: grid;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.watchlist-import-errors strong {
+  color: var(--amber);
+  font-size: 12px;
+}
+
+.watchlist-import-message {
+  margin: 0;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.tdnet-safe-panel {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.07);
+}
+
 .treasure-button {
   display: inline-flex;
   align-items: center;
@@ -5227,6 +5371,8 @@ button:disabled {
   .research-insight-grid.compact,
   .research-insight-sources,
   .watchlist-insight-columns,
+  .watchlist-import-controls,
+  .watchlist-import-summary,
   .watchlist-preopen-detail,
   .preopen-earnings-row,
   .disclosure-source-grid,

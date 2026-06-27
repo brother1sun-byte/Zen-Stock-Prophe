@@ -74,6 +74,11 @@ import {
   buildWatchlistResearchInsights,
 } from './utils/researchInsightBuilder';
 import { displayStockName } from './utils/stockNames';
+import { getTdnetSourceStatus } from './utils/tdnetSourceStatus';
+import {
+  buildImportPreview,
+  mergeWatchlistItems,
+} from './utils/watchlistCsvImporter';
 import {
   buildWatchlistPreopenCheck,
   filterPreopenCheckResults,
@@ -601,9 +606,12 @@ export default function App() {
   const [chatGptPromptCopied, setChatGptPromptCopied] = useState(false);
   const [watchlistPromptVisible, setWatchlistPromptVisible] = useState(false);
   const [watchlistPromptCopyStatus, setWatchlistPromptCopyStatus] = useState('');
+  const [watchlistCsvText, setWatchlistCsvText] = useState('');
+  const [watchlistImportMessage, setWatchlistImportMessage] = useState('');
   const cached = useMemo(() => {
     return readFreshCache();
   }, []);
+  const [importedWatchlistItems, setImportedWatchlistItems] = useState(cached?.importedWatchlistItems || []);
   const cachedSelectedTicker = cached?.selectedTicker || PINNED_WATCH_TICKER;
   const cachedDaytradeAnalysis = cached?.daytradeAnalysis?.ticker === cachedSelectedTicker ? cached.daytradeAnalysis : null;
   const cachedDaytradeRoutine = cached?.daytradeRoutine?.ticker === cachedSelectedTicker ? cached.daytradeRoutine : null;
@@ -706,6 +714,7 @@ export default function App() {
       jquantsResearch,
       jquantsCode,
       searchQuery,
+      importedWatchlistItems,
     },
     addLog,
     setBusy,
@@ -771,6 +780,7 @@ export default function App() {
         jquantsCode,
         selectedTicker,
         detail,
+        importedWatchlistItems,
       }));
       } catch (error) {
         setStatus({ tone: 'warn', text: 'オフライン補完表示' });
@@ -783,7 +793,7 @@ export default function App() {
 
     hydrateInFlightRef.current = task;
     return task;
-  }, [addLog, advancedReport, advancedReportsByTicker, aiFundDesk, alertReport, autopilotStatus, brokerStatus, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, hydrateMarketData, jquantsCode, jquantsResearch, marketRankings, marketSearch, marketUniverse, portfolio, rankingKind, searchQuery, selectedTicker, stocks, transactions]);
+  }, [addLog, advancedReport, advancedReportsByTicker, aiFundDesk, alertReport, autopilotStatus, brokerStatus, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, hydrateMarketData, importedWatchlistItems, jquantsCode, jquantsResearch, marketRankings, marketSearch, marketUniverse, portfolio, rankingKind, searchQuery, selectedTicker, stocks, transactions]);
 
   const loadDaytradeAnalysis = useCallback((ticker, interval = daytradeInterval) => {
     if (!ticker) return Promise.resolve(null);
@@ -806,6 +816,7 @@ export default function App() {
           stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk,
           daytradeInterval: interval, daytradeAnalysis: result, daytradeRoutine: nextDaytradeRoutine, brokerStatus, autopilotStatus, alertReport,
           jquantsResearch, advancedReport, jquantsCode, selectedTicker: ticker, detail,
+          importedWatchlistItems,
         }));
         addLog('SIM', `${ticker} ${interval} の短期スコアを更新しました。`);
         return result;
@@ -819,7 +830,7 @@ export default function App() {
 
     daytradeAnalysisRequestsRef.current.set(requestKey, task);
     return task;
-  }, [addLog, advancedReport, alertReport, autopilotStatus, brokerStatus, daytradeInterval, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, jquantsCode, jquantsResearch, portfolio, stocks, transactions]);
+  }, [addLog, advancedReport, alertReport, autopilotStatus, brokerStatus, daytradeInterval, daytradePlan, daytradeRisk, daytradeRoutine, daytradeSignals, daytradeSource, detail, importedWatchlistItems, jquantsCode, jquantsResearch, portfolio, stocks, transactions]);
 
   useEffect(() => {
     hydrate(false);
@@ -1051,7 +1062,7 @@ export default function App() {
     setStatus,
   });
 
-  const displayStocks = useMemo(() => buildDisplayStocks({
+  const baseDisplayStocks = useMemo(() => buildDisplayStocks({
     rankedStocks,
     daytradeTopPick,
     marketRankings,
@@ -1061,6 +1072,15 @@ export default function App() {
     watchlistLimit: WATCHLIST_DISPLAY_LIMIT,
     fallbackCandidates: WATCHLIST_FALLBACK_CANDIDATES,
   }), [daytradeTopPick, detail, marketRankings, marketSearch, marketUniverse, rankedStocks]);
+
+  const displayStocks = useMemo(() => mergeWatchlistItems(baseDisplayStocks, importedWatchlistItems).items, [baseDisplayStocks, importedWatchlistItems]);
+
+  const watchlistImportPreview = useMemo(
+    () => buildImportPreview(watchlistCsvText, displayStocks),
+    [displayStocks, watchlistCsvText],
+  );
+
+  const tdnetSourceStatus = useMemo(() => getTdnetSourceStatus(), []);
 
   const jobsCandidate = useMemo(() => buildJobsCandidate({
     selectedTicker,
@@ -1271,7 +1291,8 @@ export default function App() {
     env: import.meta.env,
     edinetDisclosure,
     morningCheck: edinetDisclosure?.morningCheck,
-  }), [cached, edinetDisclosure, jquantsResearch, jquantsView, selectedDetail, selectedStock]);
+    tdnetSourceStatus,
+  }), [cached, edinetDisclosure, jquantsResearch, jquantsView, selectedDetail, selectedStock, tdnetSourceStatus]);
 
   const preopenCheckSummary = useMemo(() => buildPreopenCheckSummary({
     stock: selectedDetail || selectedStock,
@@ -1433,6 +1454,41 @@ export default function App() {
     window.setTimeout(() => setWatchlistPromptCopyStatus(''), 2400);
   }, [watchlistResearchPrompt]);
 
+  const handleWatchlistCsvFile = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setWatchlistCsvText(text);
+      setWatchlistImportMessage(`${file.name} を読み込みました。取り込み前にプレビューを確認してください。`);
+    } catch (error) {
+      setWatchlistImportMessage(`CSVファイルを読み込めませんでした: ${error.message}`);
+    }
+  }, []);
+
+  const applyWatchlistImport = useCallback(() => {
+    if (!watchlistImportPreview.validItems.length) {
+      setWatchlistImportMessage('追加できる銘柄がありません。不正行の理由を確認してください。');
+      return;
+    }
+    const existingTickers = new Set(displayStocks.map((stock) => stock.ticker).filter(Boolean));
+    const itemsToAdd = watchlistImportPreview.validItems.filter((item) => !existingTickers.has(item.ticker));
+    if (!itemsToAdd.length) {
+      setWatchlistImportMessage(
+        `新しく追加する銘柄はありません。重複 ${watchlistImportPreview.duplicateCount}件は既存ウォッチリストと統合扱いです。`,
+      );
+      return;
+    }
+    setImportedWatchlistItems((current) => {
+      const merged = mergeWatchlistItems(current, itemsToAdd);
+      writeCache(buildMarketCachePayload(cached || {}, { importedWatchlistItems: merged.items }));
+      return merged.items;
+    });
+    setWatchlistImportMessage(
+      `ウォッチリストへ ${watchlistImportPreview.mergePreview.addedCount}件を追加しました。重複 ${watchlistImportPreview.mergePreview.duplicateCount}件は統合しました。`,
+    );
+  }, [cached, displayStocks, watchlistImportPreview]);
+
   function safeStageLabel(label) {
     if (!label) return '';
     if (label.includes('本命')) return '短期上昇シグナル強';
@@ -1515,7 +1571,7 @@ export default function App() {
       const result = await api('/research/jquants/' + encodeURIComponent(code), { timeout: 12000 });
       setJquantsResearch(result);
       addLog('J-Quants', result?.summary || 'J-Quantsリサーチ補助データを読み込みました。');
-      writeCache(buildMarketCachePayload({ stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk, brokerStatus, autopilotStatus, alertReport, jquantsResearch: result, advancedReport, jquantsCode: code, selectedTicker, detail }));
+      writeCache(buildMarketCachePayload({ stocks, portfolio, transactions, daytradePlan, daytradeSignals, daytradeSource, daytradeRisk, brokerStatus, autopilotStatus, alertReport, jquantsResearch: result, advancedReport, jquantsCode: code, selectedTicker, detail, importedWatchlistItems }));
     } catch (error) {
       addLog('J-Quants', error?.message || 'J-Quantsデータを取得できませんでした。');
     } finally {
@@ -2419,6 +2475,66 @@ export default function App() {
                 )}
               </div>
             )}
+            <div className="watchlist-import-panel" data-testid="watchlist-csv-import-panel">
+              <div className="watchlist-import-head">
+                <div>
+                  <span>CSVインポート</span>
+                  <strong>CSVからウォッチリストを追加</strong>
+                  <small>取り込み前に内容を確認できます。不正な行はスキップされ、重複は統合されます。</small>
+                </div>
+                <StatusPill label={`正常 ${watchlistImportPreview.validCount}件`} tone={watchlistImportPreview.validCount ? 'good' : 'neutral'} />
+              </div>
+              <div className="watchlist-import-controls">
+                <label className="watchlist-file-picker">
+                  <span>CSVファイル選択</span>
+                  <input type="file" accept=".csv,text/csv" onChange={handleWatchlistCsvFile} data-testid="watchlist-csv-file-input" />
+                </label>
+                <textarea
+                  value={watchlistCsvText}
+                  onChange={(event) => {
+                    setWatchlistCsvText(event.target.value);
+                    setWatchlistImportMessage('');
+                  }}
+                  placeholder="code,name,market,sector,memo&#10;7203,トヨタ自動車,東証,輸送用機器,朝の材料確認&#10;9984.T,ソフトバンクグループ"
+                  className="watchlist-import-textarea"
+                  data-testid="watchlist-csv-textarea"
+                  aria-label="ウォッチリストCSV貼り付け欄"
+                />
+              </div>
+              <div className="watchlist-import-summary" data-testid="watchlist-import-preview">
+                <div><span>読み取り行</span><strong>{watchlistImportPreview.rows}</strong></div>
+                <div><span>正常件数</span><strong>{watchlistImportPreview.validCount}</strong></div>
+                <div><span>スキップ件数</span><strong>{watchlistImportPreview.skipCount}</strong></div>
+                <div><span>重複件数</span><strong>{watchlistImportPreview.duplicateCount}</strong></div>
+              </div>
+              {watchlistImportPreview.validItems.length ? (
+                <div className="watchlist-import-preview-list" data-testid="watchlist-import-valid-list">
+                  {watchlistImportPreview.validItems.slice(0, 6).map((item) => (
+                    <span key={item.ticker}>{item.ticker} {item.companyName || item.name}</span>
+                  ))}
+                </div>
+              ) : null}
+              {watchlistImportPreview.errors.length ? (
+                <div className="watchlist-import-errors" data-testid="watchlist-import-errors">
+                  <strong>エラー行一覧</strong>
+                  {watchlistImportPreview.errors.slice(0, 4).map((item) => (
+                    <span key={`${item.lineNumber}-${item.raw}`}>行{item.lineNumber}: {item.reason}</span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="watchlist-import-actions">
+                <button type="button" className="inline-action" onClick={applyWatchlistImport} data-testid="watchlist-import-apply-button">
+                  ウォッチリストへ追加
+                </button>
+                <small>追加後、ウォッチリスト一括チェックと重要材料サマリーに反映されます。</small>
+              </div>
+              {watchlistImportMessage ? <p className="watchlist-import-message" data-testid="watchlist-import-message">{watchlistImportMessage}</p> : null}
+            </div>
+            <div className="tdnet-safe-panel" data-testid="tdnet-source-status-panel">
+              <strong>{tdnetSourceStatus.label}</strong>
+              <span>{tdnetSourceStatus.detail}</span>
+              <small>適時開示の最終確認は一次情報をご確認ください。規約リスクのあるスクレイピングは行いません。</small>
+            </div>
             <div className="stock-rail">
               {displayStocks.map((stock) => (
                 <button
