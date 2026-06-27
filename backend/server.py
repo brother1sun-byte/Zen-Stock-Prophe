@@ -81,6 +81,7 @@ from daytrade_context_service import (
     safe_float as service_safe_float,
 )
 from edinet_api_service import fetch_edinet_documents_by_date_range
+from earnings_calendar_service import build_earnings_calendar_payload
 from market_data_api import build_market_search_response, build_market_universe_response
 from material_event_service import (
     MATERIAL_IMPORTANT_KEYWORDS,
@@ -4240,6 +4241,14 @@ def edinet_documents(
     end_date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
 ) -> dict[str, Any]:
     return fetch_edinet_documents_by_date_range(start_date, end_date)
+
+
+@app.get("/api/research/earnings-calendar")
+def earnings_calendar(
+    start_date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+) -> dict[str, Any]:
+    return build_earnings_calendar_payload(start_date, end_date)
 
 
 @app.get("/api/research/jquants/{code}")

@@ -20,6 +20,11 @@ from edinet_api_service import (  # noqa: E402
     fetch_edinet_documents_by_date_range,
     normalize_edinet_document,
 )
+from earnings_calendar_service import (  # noqa: E402
+    build_earnings_calendar_payload,
+    get_earnings_calendar_source_status,
+    normalize_earnings_calendar_item,
+)
 from market_data_api import build_market_search_response, build_market_universe_response  # noqa: E402
 from material_event_service import (  # noqa: E402
     external_research_links,
@@ -109,6 +114,37 @@ class BackendApiModuleTests(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertEqual(len(payload["days"]), 5)
         self.assertEqual(len(payload["documents"]), 5)
+
+    def test_earnings_calendar_item_normalizes_stock_code(self):
+        item = normalize_earnings_calendar_item({
+            "code": "4980",
+            "companyName": "デクセリアルズ",
+            "announcementDate": "2026-06-29",
+            "fiscalPeriod": "第1四半期",
+            "scheduledTime": "15:00",
+        })
+        self.assertEqual(item["ticker"], "4980.T")
+        self.assertEqual(item["stockCode"], "4980")
+        self.assertEqual(item["companyName"], "デクセリアルズ")
+
+    def test_earnings_calendar_status_reports_unconfigured_api(self):
+        status = get_earnings_calendar_source_status(env={}, item_count=0)
+        self.assertEqual(status["label"], "J-Quants API未設定")
+        self.assertFalse(status["jquantsConfigured"])
+
+    def test_earnings_calendar_payload_reads_manual_json(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False) as handle:
+            handle.write('{"items":[{"code":"4980","companyName":"デクセリアルズ","date":"2026-06-29","source":"手動データ"}]}')
+            temp_path = Path(handle.name)
+        try:
+            payload = build_earnings_calendar_payload("2026-06-29", "2026-06-29", env={}, manual_path=temp_path)
+            self.assertEqual(payload["status"], "success")
+            self.assertEqual(payload["items"][0]["ticker"], "4980.T")
+            self.assertEqual(payload["sourceStatus"]["label"], "手動データ")
+        finally:
+            temp_path.unlink(missing_ok=True)
 
     def test_price_history_prefers_yfinance_and_sets_source_flags(self):
         calls = []

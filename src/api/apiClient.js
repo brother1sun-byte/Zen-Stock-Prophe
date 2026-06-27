@@ -1,5 +1,6 @@
-const EXPLICIT_API_BASE = import.meta.env.VITE_ZEN_API_BASE;
-const API_PORT = import.meta.env.VITE_ZEN_API_PORT || '8889';
+const VITE_ENV = import.meta.env || {};
+const EXPLICIT_API_BASE = VITE_ENV.VITE_ZEN_API_BASE;
+const API_PORT = VITE_ENV.VITE_ZEN_API_PORT || '8889';
 
 export const CACHE_VERSION = 4;
 export const CACHE_KEY = `zen-stock-prophet-pro-cache-v${CACHE_VERSION}`;

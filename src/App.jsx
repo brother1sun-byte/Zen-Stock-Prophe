@@ -63,8 +63,10 @@ import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLe
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
-import { buildDisclosureEventSummary, buildMorningDisclosureCheck } from './utils/disclosureEvents';
+import { buildDisclosureEventSummary } from './utils/disclosureEvents';
 import { fetchEdinetDocumentsByDateRange } from './utils/edinetClient';
+import { buildPreopenCheckSummary, fetchEarningsCalendarByDateRange } from './utils/earningsCalendarClient';
+import { buildMorningCheckWindow } from './utils/japanBusinessCalendar';
 import { buildResearchCoverage } from './utils/researchCoverage';
 import { displayStockName } from './utils/stockNames';
 import './index.css';
@@ -608,6 +610,7 @@ export default function App() {
   const [alertReport, setAlertReport] = useState(cached?.alertReport || null);
   const [jquantsResearch, setJquantsResearch] = useState(cached?.jquantsResearch || null);
   const [edinetDisclosure, setEdinetDisclosure] = useState(null);
+  const [earningsCalendar, setEarningsCalendar] = useState(null);
   const [jquantsCode, setJquantsCode] = useState(cached?.jquantsCode || PINNED_WATCH_TICKER);
   const [rankingKind, setRankingKind] = useState('gainers');
   const [searchQuery, setSearchQuery] = useState(cached?.searchQuery || '');
@@ -646,6 +649,7 @@ export default function App() {
   }, []);
 
   const browserMarketStatus = useMemo(() => currentTokyoMarketStatus(), []);
+  const morningCheckWindow = useMemo(() => buildMorningCheckWindow(new Date()), []);
 
   const {
     stocks,
@@ -847,7 +851,13 @@ export default function App() {
       return undefined;
     }
     let active = true;
-    const morningCheck = buildMorningDisclosureCheck(selectedTicker);
+    const morningCheck = {
+      ticker: selectedTicker,
+      startDate: morningCheckWindow.startDate,
+      endDate: morningCheckWindow.endDate,
+      periodLabel: morningCheckWindow.periodLabel,
+      note: morningCheckWindow.note,
+    };
     setEdinetDisclosure({
       status: 'loading',
       configured: Boolean(import.meta.env.VITE_EDINET_API_KEY || import.meta.env.EDINET_API_KEY || globalThis.__ZEN_TEST_ENV__?.VITE_EDINET_API_KEY),
@@ -874,7 +884,43 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [selectedTicker]);
+  }, [morningCheckWindow.endDate, morningCheckWindow.note, morningCheckWindow.periodLabel, morningCheckWindow.startDate, selectedTicker]);
+
+  useEffect(() => {
+    let active = true;
+    setEarningsCalendar({
+      status: 'loading',
+      items: [],
+      sourceStatus: {
+        label: '確認中',
+        tone: 'neutral',
+        detail: '決算予定データを確認中です。',
+      },
+      message: '決算予定データを確認中です。',
+    });
+    fetchEarningsCalendarByDateRange(morningCheckWindow.startDate, morningCheckWindow.endDate)
+      .then((result) => {
+        if (!active) return;
+        setEarningsCalendar(result);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setEarningsCalendar({
+          status: 'fetch_failed',
+          items: [],
+          fetchedAt: new Date().toISOString(),
+          sourceStatus: {
+            label: '取得失敗',
+            tone: 'warn',
+            detail: `決算予定データを取得できませんでした。${error?.message || '通信エラー'}`,
+          },
+          message: '決算予定データは未取得です。',
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [morningCheckWindow.endDate, morningCheckWindow.startDate]);
 
   const rankedStocks = useMemo(() => buildRankedStocks({
     stocks,
@@ -1213,6 +1259,13 @@ export default function App() {
     edinetDisclosure,
     morningCheck: edinetDisclosure?.morningCheck,
   }), [cached, edinetDisclosure, jquantsResearch, jquantsView, selectedDetail, selectedStock]);
+
+  const preopenCheckSummary = useMemo(() => buildPreopenCheckSummary({
+    stock: selectedDetail || selectedStock,
+    businessWindow: morningCheckWindow,
+    earningsCalendar,
+    disclosureSummary: disclosureEventSummary,
+  }), [disclosureEventSummary, earningsCalendar, morningCheckWindow, selectedDetail, selectedStock]);
 
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
@@ -1891,6 +1944,74 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className={`preopen-check-panel ${preopenCheckSummary.risk}`} data-testid="preopen-check-panel">
+            <div className="preopen-check-head">
+              <div>
+                <span>寄り付き前チェック</span>
+                <strong>{preopenCheckSummary.status}</strong>
+              </div>
+              <StatusPill label={`注意度 ${preopenCheckSummary.riskLabel}`} tone={preopenCheckSummary.risk === 'high' ? 'danger' : preopenCheckSummary.risk === 'medium' ? 'warn' : preopenCheckSummary.risk === 'low' ? 'good' : 'neutral'} />
+            </div>
+            <p className="preopen-check-caution">{preopenCheckSummary.caution}</p>
+            <div className="preopen-check-grid">
+              <div>
+                <span>対象日</span>
+                <strong>{preopenCheckSummary.businessWindow.targetDate || '未設定'}</strong>
+                <small>{preopenCheckSummary.businessWindow.businessDay.label}</small>
+              </div>
+              <div>
+                <span>営業日判定</span>
+                <strong>{preopenCheckSummary.businessWindow.businessDay.reason}</strong>
+                <small>{preopenCheckSummary.businessWindow.businessDay.holidayDataStatus.label}</small>
+              </div>
+              <div>
+                <span>前営業日</span>
+                <strong>{preopenCheckSummary.businessWindow.previousBusinessDay || '判定不可'}</strong>
+                <small>次営業日 {preopenCheckSummary.businessWindow.nextBusinessDay || '判定不可'}</small>
+              </div>
+              <div>
+                <span>確認対象期間</span>
+                <strong>{preopenCheckSummary.businessWindow.periodLabel}</strong>
+                <small>前営業日引け後から当日寄り付き前まで</small>
+              </div>
+              <div>
+                <span>EDINET確認</span>
+                <strong>{disclosureEventSummary.sourceStatus.edinet.label}</strong>
+                <small>{disclosureEventSummary.edinetMeta.matchMethod}</small>
+              </div>
+              <div>
+                <span>決算予定確認</span>
+                <strong>{preopenCheckSummary.earningsSourceStatus.label}</strong>
+                <small>{preopenCheckSummary.earningsSourceStatus.detail}</small>
+              </div>
+            </div>
+            <div className="preopen-earnings-list">
+              {preopenCheckSummary.earnings.length ? preopenCheckSummary.earnings.map((item, index) => (
+                <div className="preopen-earnings-row" key={`${item.date}-${item.ticker}-${index}`}>
+                  <div>
+                    <span>{item.date || '-'}</span>
+                    <strong>{item.ticker || preopenCheckSummary.ticker} {item.companyName}</strong>
+                    <small>{item.fiscalPeriod} / {item.scheduledTime} / {item.source}{item.cached ? ' / キャッシュ利用' : ''}</small>
+                  </div>
+                  <div>
+                    <StatusPill label={item.date === preopenCheckSummary.businessWindow.targetDate ? '重要予定あり' : '予定確認'} tone={item.date === preopenCheckSummary.businessWindow.targetDate ? 'danger' : 'warn'} />
+                    {item.url ? <a href={item.url} target="_blank" rel="noreferrer">一次情報</a> : <small>URLなし</small>}
+                  </div>
+                </div>
+              )) : (
+                <div className="preopen-empty">
+                  <strong>決算予定データは未取得です</strong>
+                  <span>{preopenCheckSummary.earningsSourceStatus.detail}</span>
+                </div>
+              )}
+            </div>
+            {preopenCheckSummary.unknownInputs.length ? (
+              <div className="preopen-check-note">
+                <strong>確認不足</strong>
+                <span>{preopenCheckSummary.unknownInputs.join(' / ')}</span>
+              </div>
+            ) : null}
           </div>
           <div className={`disclosure-check-panel ${disclosureEventSummary.risk}`} data-testid="disclosure-check-panel">
             <div className="disclosure-check-head">
