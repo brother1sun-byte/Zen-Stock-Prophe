@@ -13,6 +13,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+try:
+    from ml_prediction import build_ml_prediction
+except Exception:  # pragma: no cover - advanced analysis must remain available without ML extras
+    build_ml_prediction = None
+
 ADVANCED_PRICE_MAX_AGE_DAYS = 7
 
 
@@ -436,6 +441,16 @@ def build_advanced_report(
     walk_forward = _walk_forward_validation(closes, highs, lows, volumes)
     data_quality = _data_quality(hist, closes, volumes)
     regime = _regime_fit(closes, highs, lows)
+    if build_ml_prediction is not None:
+        ml_prediction = build_ml_prediction(ticker, hist)
+    else:
+        ml_prediction = {
+            "roleLabel": "AI検証補助",
+            "status": "insufficient",
+            "label": "参考不足",
+            "warnings": ["AI検証補助モジュールを読み込めませんでした。"],
+            "disclaimer": "AI検証補助は投資助言ではありません。候補を疑うための参考材料として扱ってください。",
+        }
     wf_evidence = walk_forward.get("evidenceStrength", _walk_forward_evidence_strength(0, 0))
     latest = closes[-1]
     atr_pct = factors["atrPct"]
@@ -520,6 +535,7 @@ def build_advanced_report(
         "factors": factors,
         "monteCarlo": monte_carlo,
         "walkForward": walk_forward,
+        "mlPrediction": ml_prediction,
         "dataQuality": data_quality,
         "regime": regime,
         "analysisReliability": wf_evidence,

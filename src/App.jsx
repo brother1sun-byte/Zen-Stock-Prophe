@@ -456,6 +456,13 @@ function scoreTone(value) {
   return 'warn';
 }
 
+function mlPredictionTone(status) {
+  if (status === 'usable') return 'good';
+  if (status === 'contradiction' || status === 'reference_only') return 'warn';
+  if (status === 'review') return 'info';
+  return 'neutral';
+}
+
 function crossEngineTone(status) {
   if (status === 'aligned') return 'good';
   if (status === 'blocked') return 'bad';
@@ -1807,6 +1814,52 @@ export default function App() {
               </div>
             ))}
           </div>
+          {selectedAdvancedReport?.mlPrediction ? (
+            <div className={`ml-verification-card ${selectedAdvancedReport.mlPrediction.status || 'insufficient'}`} data-testid="ml-verification-card">
+              <div className="ml-verification-head">
+                <div>
+                  <span>{selectedAdvancedReport.mlPrediction.roleLabel || 'AI検証補助'}</span>
+                  <strong>{selectedAdvancedReport.mlPrediction.label || '参考不足'}</strong>
+                </div>
+                <StatusPill
+                  label={`補助判定 ${selectedAdvancedReport.mlPrediction.confidenceLabel || selectedAdvancedReport.mlPrediction.label || '参考不足'}`}
+                  tone={mlPredictionTone(selectedAdvancedReport.mlPrediction.status)}
+                />
+              </div>
+              <div className="ml-verification-grid">
+                <div>
+                  <span>{selectedAdvancedReport.mlPrediction.horizonDays || 5}営業日上昇確率</span>
+                  <strong>{Number(selectedAdvancedReport.mlPrediction.probabilityUpPct || 0).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <span>検証精度</span>
+                  <strong>{Number(selectedAdvancedReport.mlPrediction.walkForwardHitRatePct || 0).toFixed(1)}%</strong>
+                </div>
+                <div>
+                  <span>単純基準との差</span>
+                  <strong>{Number(selectedAdvancedReport.mlPrediction.edgePct || 0).toFixed(1)}pt</strong>
+                </div>
+                <div>
+                  <span>検証標本</span>
+                  <strong>{selectedAdvancedReport.mlPrediction.sampleCount || 0}件</strong>
+                </div>
+              </div>
+              <div className="ml-verification-note">
+                <ShieldCheck size={15} />
+                <span>{selectedAdvancedReport.mlPrediction.disclaimer || 'AI検証補助は投資助言ではありません。候補を疑うための参考材料として扱ってください。'}</span>
+              </div>
+              {(selectedAdvancedReport.mlPrediction.warnings || []).slice(0, 3).map((warning, index) => (
+                <div className="ml-verification-warning" key={`ml-warning-${index}-${warning}`}>{warning}</div>
+              ))}
+              {selectedAdvancedReport.mlPrediction.topFeatures?.length ? (
+                <div className="ml-feature-list">
+                  {selectedAdvancedReport.mlPrediction.topFeatures.slice(0, 4).map((feature) => (
+                    <span key={feature.feature}>{feature.label}</span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="advanced-analysis-body">
             <div>
               <h3>根拠</h3>

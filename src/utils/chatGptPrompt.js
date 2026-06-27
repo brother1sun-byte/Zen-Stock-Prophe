@@ -70,6 +70,10 @@ export function buildChatGptConsultationPrompt({
   const rsi = indicators.rsi != null ? Number(indicators.rsi).toFixed(1) : '未取得';
   const macd = indicators.macd?.macd != null ? Number(indicators.macd.macd).toFixed(2) : '未取得';
   const advancedLabel = selectedAdvancedReport?.actionLabel || selectedAdvancedReport?.verdict || '未取得';
+  const mlPrediction = selectedAdvancedReport?.mlPrediction;
+  const mlLabel = mlPrediction
+    ? `${safeText(mlPrediction.roleLabel, 'AI検証補助')}: ${safeText(mlPrediction.label)} / 上昇確率 ${safeNumber(mlPrediction.probabilityUpPct, 0)}% / 検証差 ${safeNumber(mlPrediction.edgePct, 0)}pt`
+    : 'AI検証補助: 未取得';
   const sourceEvidence = selectedSourceEvidence?.length
     ? selectedSourceEvidence.map((item) => `- ${item}`).join('\n')
     : '- 価格・ランキングの出所は画面上のデータ出所バッジを確認してください。';
@@ -107,6 +111,7 @@ export function buildChatGptConsultationPrompt({
     `RSI: ${rsi}`,
     `MACD: ${macd}`,
     `高度分析: ${safeText(advancedLabel)}`,
+    mlLabel,
     metricLines(topCandidateMetrics),
     '',
     '■良い点',
