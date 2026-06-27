@@ -1,4 +1,8 @@
 import { buildPreopenCheckPromptPayload } from './watchlistPreopenCheck';
+import {
+  buildSingleStockResearchInsight,
+  buildWatchlistResearchInsights,
+} from './researchInsightBuilder';
 
 const PROHIBITED_TERMS = [
   '買い',
@@ -75,6 +79,77 @@ function sourceStatusLines(sourceStatus = {}) {
 
 function sanitizePrompt(text) {
   return PROHIBITED_TERMS.reduce((current, term) => current.replaceAll(term, '確認'), text);
+}
+
+function bulletLines(items = [], fallback = '該当なし') {
+  const rows = safeArray(items).filter(Boolean);
+  if (!rows.length) return `- ${fallback}`;
+  return rows.map((item) => {
+    if (typeof item === 'string') return `- ${item}`;
+    return `- ${safeText(item.ticker)} ${safeText(item.companyName)} / 結論: ${safeText(item.conclusion)} / データ充足度: ${safeText(item.confidenceScore)}%`;
+  }).join('\n');
+}
+
+function formatResearchInsightForPrompt(insight = {}) {
+  if (!insight || !Object.keys(insight).length) {
+    return [
+      '■重要材料サマリー',
+      '- 材料整理: 未取得',
+      '- データ充足度: 未取得',
+    ].join('\n');
+  }
+  return [
+    '■重要材料サマリー',
+    `- 結論: ${safeText(insight.conclusion)}`,
+    `- 理由: ${safeText(insight.reason)}`,
+    `- 注意度: ${safeText(insight.attentionLevel || insight.attention)}`,
+    `- データ充足度: ${safeText(insight.confidenceScore)}% (${safeText(insight.confidenceLabel, '材料整理としてのデータ充足度')})`,
+    '',
+    '■強材料',
+    bulletLines(insight.positiveMaterials, '強材料は限定的です。'),
+    '',
+    '■弱材料・注意点',
+    bulletLines(insight.negativeMaterials, '弱材料または注意材料は限定的です。'),
+    '',
+    '■不足情報',
+    bulletLines(insight.missingInformation, '明確な不足情報は限定的です。'),
+    '',
+    '■根拠',
+    bulletLines(insight.evidence, '根拠データは未取得です。'),
+  ].join('\n');
+}
+
+function formatWatchlistInsightForPrompt(insights = {}) {
+  if (!insights || !Object.keys(insights).length) return formatResearchInsightForPrompt({});
+  const positiveMaterials = [...new Set(safeArray(insights.items).flatMap((item) => safeArray(item.positiveMaterials)))];
+  const negativeMaterials = [...new Set(safeArray(insights.items).flatMap((item) => safeArray(item.negativeMaterials)))];
+  return [
+    '■重要材料サマリー',
+    `- 結論: ${safeText(insights.conclusion)}`,
+    `- 理由: ${safeText(insights.reason)}`,
+    `- データ充足度: ${safeText(insights.confidenceScore)}% (${safeText(insights.confidenceLabel, '材料整理としてのデータ充足度')})`,
+    '',
+    '■強材料',
+    bulletLines(positiveMaterials, '強材料は限定的です。'),
+    '',
+    '■弱材料・注意点',
+    bulletLines(negativeMaterials, '弱材料または注意材料は限定的です。'),
+    '',
+    '■朝一で一次情報確認を優先する候補',
+    bulletLines(insights.importantTickers, '重要材料ありの銘柄は表示されていません。'),
+    '',
+    '■確認推奨の銘柄',
+    bulletLines(insights.reviewTickers, '確認推奨の銘柄は表示されていません。'),
+    '',
+    '■データ不足の銘柄',
+    bulletLines(insights.missingTickers, 'データ不足の銘柄は表示されていません。'),
+    '',
+    '■不足情報',
+    bulletLines(insights.missingInformation, '明確な不足情報は限定的です。'),
+    '',
+    '■根拠',
+    bulletLines(insights.evidence, '根拠データは未取得です。'),
+  ].join('\n');
 }
 
 export function formatDisclosureEventsForPrompt(events = []) {
@@ -168,6 +243,14 @@ export function buildPromptDataSummary(payload = {}) {
 
 export function buildSingleStockResearchPrompt(payload = {}) {
   const data = buildPromptDataSummary(payload);
+  const researchInsight = payload.researchInsight || buildSingleStockResearchInsight({
+    stock: payload.stock || payload.selectedStock,
+    disclosureEvents: data.disclosureEvents,
+    earningsItems: data.earningsItems,
+    preopenCheck: data.preopenCheck,
+    businessWindow: data.businessWindow,
+    sourceStatus: data.sourceStatus,
+  });
   const prompt = [
     '■目的',
     '選択中の銘柄について、調査前に確認すべき開示、決算予定、営業日上の注意点を整理します。',
@@ -197,6 +280,8 @@ export function buildSingleStockResearchPrompt(payload = {}) {
     '■寄り付き前チェック結果',
     formatPreopenCheckForPrompt(data.preopenCheck),
     '',
+    formatResearchInsightForPrompt(researchInsight),
+    '',
     buildPromptMissingDataNotice(data.sourceStatus),
     '',
     '■注意点',
@@ -221,6 +306,10 @@ export function buildWatchlistResearchPrompt(payload = {}) {
     businessCalendar: payload.businessCalendarSourceStatus,
     cache: payload.cacheSourceStatus,
   };
+  const researchInsights = payload.researchInsights || buildWatchlistResearchInsights({
+    watchlistResults: data.watchlistResults,
+    businessWindow: payload.businessWindow || data.businessWindow,
+  });
   const prompt = [
     '■目的',
     'ウォッチリスト全体について、今日の寄り付き前に一次情報確認を優先すべき材料を整理します。',
@@ -254,6 +343,8 @@ export function buildWatchlistResearchPrompt(payload = {}) {
     '',
     '■ウォッチリスト一括チェック結果',
     formatWatchlistCheckForPrompt(data.watchlistResults),
+    '',
+    formatWatchlistInsightForPrompt(researchInsights),
     '',
     buildPromptMissingDataNotice(sourceStatus),
     '',

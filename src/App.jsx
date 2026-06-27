@@ -69,6 +69,10 @@ import { fetchEdinetDocumentsByDateRange } from './utils/edinetClient';
 import { buildPreopenCheckSummary, fetchEarningsCalendarByDateRange } from './utils/earningsCalendarClient';
 import { buildMorningCheckWindow } from './utils/japanBusinessCalendar';
 import { buildResearchCoverage } from './utils/researchCoverage';
+import {
+  buildSingleStockResearchInsight,
+  buildWatchlistResearchInsights,
+} from './utils/researchInsightBuilder';
 import { displayStockName } from './utils/stockNames';
 import {
   buildWatchlistPreopenCheck,
@@ -1276,6 +1280,21 @@ export default function App() {
     disclosureSummary: disclosureEventSummary,
   }), [disclosureEventSummary, earningsCalendar, morningCheckWindow, selectedDetail, selectedStock]);
 
+  const selectedResearchInsight = useMemo(() => buildSingleStockResearchInsight({
+    stock: selectedDetail || selectedStock,
+    disclosureEvents: disclosureEventSummary.events,
+    earningsItems: preopenCheckSummary.earnings,
+    preopenCheck: preopenCheckSummary,
+    businessWindow: morningCheckWindow,
+    sourceStatus: {
+      ...disclosureEventSummary.sourceStatus,
+      earnings: preopenCheckSummary.earningsSourceStatus,
+      businessCalendar: preopenCheckSummary.businessWindow?.businessDay?.holidayDataStatus,
+      tdnet: disclosureEventSummary.sourceStatus?.tdnet,
+      cache: disclosureEventSummary.sourceStatus?.cache,
+    },
+  }), [disclosureEventSummary, morningCheckWindow, preopenCheckSummary, selectedDetail, selectedStock]);
+
   const watchlistPreopenResults = useMemo(() => buildWatchlistPreopenCheck(displayStocks, {
     businessWindow: morningCheckWindow,
     earningsCalendar,
@@ -1296,10 +1315,16 @@ export default function App() {
     [watchlistPreopenFilter, watchlistPreopenResults],
   );
 
+  const watchlistResearchInsights = useMemo(() => buildWatchlistResearchInsights({
+    watchlistResults: watchlistPreopenResults,
+    businessWindow: morningCheckWindow,
+  }), [morningCheckWindow, watchlistPreopenResults]);
+
   const watchlistResearchPrompt = useMemo(() => buildWatchlistResearchPrompt({
     watchlistResults: watchlistPreopenResults,
     watchlistSummary: watchlistPreopenSummary,
     businessWindow: morningCheckWindow,
+    researchInsights: watchlistResearchInsights,
     sourceStatus: watchlistPreopenResults[0]?.sourceStatus || {
       earnings: earningsCalendar?.sourceStatus,
       edinet: edinetDisclosure?.sourceStatus,
@@ -1308,6 +1333,7 @@ export default function App() {
     earningsCalendar,
     edinetDisclosure,
     morningCheckWindow,
+    watchlistResearchInsights,
     watchlistPreopenResults,
     watchlistPreopenSummary,
   ]);
@@ -2143,6 +2169,41 @@ export default function App() {
               )}
             </div>
           </div>
+          <div className={`research-insight-panel ${selectedResearchInsight.attentionLevel}`} data-testid="single-research-insight-panel">
+            <div className="research-insight-head">
+              <div>
+                <span>根拠付きリサーチ要約</span>
+                <strong>{selectedResearchInsight.conclusion}</strong>
+                <small>{selectedResearchInsight.primaryInfoMessage}</small>
+              </div>
+              <StatusPill
+                label={`データ充足度 ${selectedResearchInsight.confidenceScore}%`}
+                tone={selectedResearchInsight.confidenceScore >= 80 ? 'good' : selectedResearchInsight.confidenceScore >= 60 ? 'warn' : 'neutral'}
+              />
+            </div>
+            <p className="research-insight-reason">{selectedResearchInsight.reason}</p>
+            <div className="research-insight-grid">
+              <div className="research-insight-card good">
+                <strong>強材料</strong>
+                <ul>{selectedResearchInsight.positiveMaterials.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+              <div className="research-insight-card warn">
+                <strong>弱材料・注意点</strong>
+                <ul>{selectedResearchInsight.negativeMaterials.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+              <div className="research-insight-card neutral">
+                <strong>不足情報</strong>
+                <ul>{selectedResearchInsight.missingInformation.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+              <div className="research-insight-card neutral">
+                <strong>根拠</strong>
+                <ul>{selectedResearchInsight.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+            </div>
+            <div className="research-insight-sources">
+              {selectedResearchInsight.dataSources.map((item) => <span key={item}>{item}</span>)}
+            </div>
+          </div>
           {selectedAdvancedReport?.mlPrediction ? (
             <div className={`ml-verification-card ${selectedAdvancedReport.mlPrediction.status || 'insufficient'}`} data-testid="ml-verification-card">
               <div className="ml-verification-head">
@@ -2418,6 +2479,50 @@ export default function App() {
                 <div><span>データ未取得</span><strong>{watchlistPreopenSummary.missing}</strong></div>
                 <div><span>目立つ材料なし</span><strong>{watchlistPreopenSummary.quiet}</strong></div>
                 <div><span>エラー</span><strong>{watchlistPreopenSummary.errors}</strong></div>
+              </div>
+              <div className="research-insight-panel watchlist" data-testid="watchlist-research-insight-panel">
+                <div className="research-insight-head">
+                  <div>
+                    <span>重要材料サマリー</span>
+                    <strong>{watchlistResearchInsights.conclusion}</strong>
+                    <small>{watchlistResearchInsights.primaryInfoMessage}</small>
+                  </div>
+                  <StatusPill
+                    label={`データ充足度 ${watchlistResearchInsights.confidenceScore}%`}
+                    tone={watchlistResearchInsights.confidenceScore >= 80 ? 'good' : watchlistResearchInsights.confidenceScore >= 60 ? 'warn' : 'neutral'}
+                  />
+                </div>
+                <p className="research-insight-reason">{watchlistResearchInsights.reason}</p>
+                <div className="watchlist-insight-columns">
+                  <div>
+                    <strong>注意度 高</strong>
+                    {watchlistResearchInsights.importantTickers.length ? watchlistResearchInsights.importantTickers.map((item) => (
+                      <span key={item.ticker}>{item.ticker} {item.companyName}</span>
+                    )) : <span>該当銘柄は表示されていません。</span>}
+                  </div>
+                  <div>
+                    <strong>確認推奨</strong>
+                    {watchlistResearchInsights.reviewTickers.length ? watchlistResearchInsights.reviewTickers.map((item) => (
+                      <span key={item.ticker}>{item.ticker} {item.companyName}</span>
+                    )) : <span>該当銘柄は表示されていません。</span>}
+                  </div>
+                  <div>
+                    <strong>データ不足</strong>
+                    {watchlistResearchInsights.missingTickers.length ? watchlistResearchInsights.missingTickers.map((item) => (
+                      <span key={item.ticker}>{item.ticker} {item.companyName}</span>
+                    )) : <span>該当銘柄は表示されていません。</span>}
+                  </div>
+                </div>
+                <div className="research-insight-grid compact">
+                  <div className="research-insight-card neutral">
+                    <strong>不足情報</strong>
+                    <ul>{watchlistResearchInsights.missingInformation.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                  <div className="research-insight-card neutral">
+                    <strong>根拠</strong>
+                    <ul>{watchlistResearchInsights.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                </div>
               </div>
               <div className="watchlist-prompt-panel" data-testid="watchlist-chatgpt-prompt-panel">
                 <div className="watchlist-prompt-head">
