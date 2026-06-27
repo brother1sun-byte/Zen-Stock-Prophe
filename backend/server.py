@@ -80,6 +80,7 @@ from daytrade_context_service import (
     parse_event_timestamp as service_parse_event_timestamp,
     safe_float as service_safe_float,
 )
+from edinet_api_service import fetch_edinet_documents_by_date_range
 from market_data_api import build_market_search_response, build_market_universe_response
 from material_event_service import (
     MATERIAL_IMPORTANT_KEYWORDS,
@@ -4231,6 +4232,14 @@ def jquants_status() -> dict[str, Any]:
             else "J-Quants API is not configured; using public/free sources."
         ),
     }
+
+
+@app.get("/api/research/edinet/documents")
+def edinet_documents(
+    start_date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+) -> dict[str, Any]:
+    return fetch_edinet_documents_by_date_range(start_date, end_date)
 
 
 @app.get("/api/research/jquants/{code}")

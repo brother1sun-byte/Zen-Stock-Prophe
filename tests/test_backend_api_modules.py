@@ -15,6 +15,11 @@ from daytrade_context_service import (  # noqa: E402
     build_daytrade_quote_context,
     parse_event_timestamp,
 )
+from edinet_api_service import (  # noqa: E402
+    fetch_edinet_documents_by_date,
+    fetch_edinet_documents_by_date_range,
+    normalize_edinet_document,
+)
 from market_data_api import build_market_search_response, build_market_universe_response  # noqa: E402
 from material_event_service import (  # noqa: E402
     external_research_links,
@@ -30,6 +35,19 @@ def _identity(items, *_args, **_kwargs):
     return items
 
 
+class _FakeResponse:
+    def __init__(self, payload=None, status_code=200):
+        self.payload = payload or {}
+        self.status_code = status_code
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+    def json(self):
+        return self.payload
+
+
 class BackendApiModuleTests(unittest.TestCase):
     def _price_frame(self, close=100):
         return pd.DataFrame(
@@ -41,6 +59,56 @@ class BackendApiModuleTests(unittest.TestCase):
                 "Volume": [1000],
             }
         )
+
+    def test_edinet_missing_api_key_returns_safe_status(self):
+        payload = fetch_edinet_documents_by_date("2026-06-26", env={})
+        self.assertEqual(payload["status"], "api_key_missing")
+        self.assertEqual(payload["documents"], [])
+
+    def test_edinet_document_normalization_keeps_four_digit_security_code(self):
+        document = normalize_edinet_document({
+            "docID": "S100TEST",
+            "submitDateTime": "2026-06-26 15:30",
+            "filerName": "提出者",
+            "edinetCode": "E00001",
+            "secCode": "49800",
+            "docDescription": "大量保有報告書",
+        })
+        self.assertEqual(document["docID"], "S100TEST")
+        self.assertEqual(document["secCode"], "4980")
+        self.assertIn("S100TEST", document["url"])
+
+    def test_edinet_fetch_success_normalizes_results(self):
+        def fake_get(_url, **_kwargs):
+            return _FakeResponse({
+                "results": [{
+                    "docID": "S100TEST",
+                    "submitDateTime": "2026-06-26 15:30",
+                    "filerName": "提出者",
+                    "secCode": "49800",
+                    "docDescription": "大量保有報告書",
+                }]
+            })
+
+        payload = fetch_edinet_documents_by_date("2026-06-26", env={"EDINET_API_KEY": "test"}, http_get=fake_get)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["documents"][0]["secCode"], "4980")
+
+    def test_edinet_fetch_failed_is_reported_without_exception(self):
+        def fake_get(_url, **_kwargs):
+            return _FakeResponse(status_code=503)
+
+        payload = fetch_edinet_documents_by_date("2026-06-26", env={"EDINET_API_KEY": "test"}, http_get=fake_get)
+        self.assertEqual(payload["status"], "fetch_failed")
+
+    def test_edinet_range_is_capped_and_combines_documents(self):
+        def fake_get(_url, **_kwargs):
+            return _FakeResponse({"results": [{"docID": "S100TEST", "docDescription": "有価証券報告書", "secCode": "72030"}]})
+
+        payload = fetch_edinet_documents_by_date_range("2026-06-20", "2026-06-30", env={"EDINET_API_KEY": "test"}, http_get=fake_get)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(len(payload["days"]), 5)
+        self.assertEqual(len(payload["documents"]), 5)
 
     def test_price_history_prefers_yfinance_and_sets_source_flags(self):
         calls = []

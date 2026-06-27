@@ -63,7 +63,8 @@ import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLe
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
-import { buildDisclosureEventSummary } from './utils/disclosureEvents';
+import { buildDisclosureEventSummary, buildMorningDisclosureCheck } from './utils/disclosureEvents';
+import { fetchEdinetDocumentsByDateRange } from './utils/edinetClient';
 import { buildResearchCoverage } from './utils/researchCoverage';
 import { displayStockName } from './utils/stockNames';
 import './index.css';
@@ -606,6 +607,7 @@ export default function App() {
   const [aiFundDesk, setAiFundDesk] = useState(cached?.aiFundDesk || aiFundDeskFallback);
   const [alertReport, setAlertReport] = useState(cached?.alertReport || null);
   const [jquantsResearch, setJquantsResearch] = useState(cached?.jquantsResearch || null);
+  const [edinetDisclosure, setEdinetDisclosure] = useState(null);
   const [jquantsCode, setJquantsCode] = useState(cached?.jquantsCode || PINNED_WATCH_TICKER);
   const [rankingKind, setRankingKind] = useState('gainers');
   const [searchQuery, setSearchQuery] = useState(cached?.searchQuery || '');
@@ -838,6 +840,41 @@ export default function App() {
     // Short-term analysis follows the active ticker/interval only; other dashboard state should not refetch it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTicker, daytradeInterval]);
+
+  useEffect(() => {
+    if (!selectedTicker) {
+      setEdinetDisclosure(null);
+      return undefined;
+    }
+    let active = true;
+    const morningCheck = buildMorningDisclosureCheck(selectedTicker);
+    setEdinetDisclosure({
+      status: 'loading',
+      configured: Boolean(import.meta.env.VITE_EDINET_API_KEY || import.meta.env.EDINET_API_KEY || globalThis.__ZEN_TEST_ENV__?.VITE_EDINET_API_KEY),
+      documents: [],
+      morningCheck,
+      message: 'EDINET提出書類を確認中です。',
+    });
+    fetchEdinetDocumentsByDateRange(morningCheck.startDate, morningCheck.endDate, { env: import.meta.env })
+      .then((result) => {
+        if (!active) return;
+        setEdinetDisclosure({ ...result, morningCheck });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setEdinetDisclosure({
+          status: 'fetch_failed',
+          configured: Boolean(import.meta.env.VITE_EDINET_API_KEY || import.meta.env.EDINET_API_KEY || globalThis.__ZEN_TEST_ENV__?.VITE_EDINET_API_KEY),
+          documents: [],
+          fetchedAt: new Date().toISOString(),
+          morningCheck,
+          message: `EDINET確認に失敗しました。${error?.message || '通信エラー'}`,
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedTicker]);
 
   const rankedStocks = useMemo(() => buildRankedStocks({
     stocks,
@@ -1173,7 +1210,9 @@ export default function App() {
     jquantsView,
     cached,
     env: import.meta.env,
-  }), [cached, jquantsResearch, jquantsView, selectedDetail, selectedStock]);
+    edinetDisclosure,
+    morningCheck: edinetDisclosure?.morningCheck,
+  }), [cached, edinetDisclosure, jquantsResearch, jquantsView, selectedDetail, selectedStock]);
 
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
@@ -1862,6 +1901,20 @@ export default function App() {
               <StatusPill label={`注意度 ${disclosureEventSummary.riskLabel}`} tone={disclosureEventSummary.risk === 'high' ? 'danger' : disclosureEventSummary.risk === 'medium' ? 'warn' : disclosureEventSummary.risk === 'low' ? 'good' : 'neutral'} />
             </div>
             <p className="disclosure-check-caution">{disclosureEventSummary.caution}</p>
+            <div className="disclosure-meta-grid">
+              <div>
+                <span>対象期間</span>
+                <strong>{disclosureEventSummary.edinetMeta.periodLabel}</strong>
+              </div>
+              <div>
+                <span>EDINET最終確認</span>
+                <strong>{disclosureEventSummary.edinetMeta.fetchedAt ? shortDate(disclosureEventSummary.edinetMeta.fetchedAt) : '未確認'}</strong>
+              </div>
+              <div>
+                <span>照合方法</span>
+                <strong>{disclosureEventSummary.edinetMeta.matchMethod}</strong>
+              </div>
+            </div>
             <div className="disclosure-source-grid">
               {Object.entries(disclosureEventSummary.sourceStatus).map(([key, status]) => (
                 <div key={key} className={`disclosure-source ${status.tone}`}>
