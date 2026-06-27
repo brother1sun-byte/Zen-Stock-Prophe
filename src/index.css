@@ -1768,6 +1768,104 @@ h1 {
   border-color: rgba(245, 158, 11, 0.34);
 }
 
+.research-coverage-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 13, 24, 0.72);
+}
+
+.research-coverage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.research-coverage-head div {
+  display: grid;
+  gap: 3px;
+}
+
+.research-coverage-head span,
+.research-coverage-item span,
+.research-coverage-item small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.research-coverage-head strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.research-coverage-head small {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.5;
+}
+
+.research-coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-coverage-item {
+  display: grid;
+  gap: 7px;
+  min-height: 132px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.research-coverage-item div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.research-coverage-item strong {
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.research-coverage-item p {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
+.research-coverage-item em {
+  color: var(--accent);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.research-coverage-item.good {
+  border-color: rgba(22, 241, 164, 0.3);
+}
+
+.research-coverage-item.warn {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.research-coverage-item.danger {
+  border-color: rgba(251, 113, 133, 0.38);
+}
+
 .ml-verification-card {
   margin-top: 12px;
   padding: 14px;
@@ -4487,6 +4585,7 @@ button:disabled {
   .prophet-pro-panel,
   .advanced-analysis-head,
   .advanced-score-grid,
+  .research-coverage-grid,
   .advanced-detail-grid,
   .advanced-explainability,
   .advanced-guardrails,
@@ -4509,6 +4608,7 @@ button:disabled {
 
   .market-controls,
   .market-intel-head,
+  .research-coverage-head,
   .ai-fund-head,
   .intraday-analysis-head,
   .commute-routine-head,

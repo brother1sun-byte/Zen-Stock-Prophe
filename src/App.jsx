@@ -63,6 +63,7 @@ import { portfolioStatusLabel, usePortfolioLedger } from './hooks/usePortfolioLe
 import { PRACTICE_ORDER_STATUS, practiceOrderStatusLabel, usePracticeOrder } from './hooks/usePracticeOrder';
 import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
+import { buildResearchCoverage } from './utils/researchCoverage';
 import { displayStockName } from './utils/stockNames';
 import './index.css';
 
@@ -1158,6 +1159,14 @@ export default function App() {
     yen,
   });
 
+  const researchCoverageItems = useMemo(() => buildResearchCoverage({
+    selectedDetail,
+    selectedAdvancedReport,
+    selectedSourceContext,
+    jquantsView,
+    marketRankings,
+  }), [jquantsView, marketRankings, selectedAdvancedReport, selectedDetail, selectedSourceContext]);
+
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
     daytradeTopPick,
@@ -1813,6 +1822,28 @@ export default function App() {
                 <small>{note}</small>
               </div>
             ))}
+          </div>
+          <div className="research-coverage-panel" data-testid="research-coverage-panel">
+            <div className="research-coverage-head">
+              <div>
+                <span>無料リサーチ網羅度</span>
+                <strong>判断材料の揃い具合</strong>
+              </div>
+              <small>無料API・公開データ・ローカル検証の取得状況です。未確認項目は取引前の確認候補として扱ってください。</small>
+            </div>
+            <div className="research-coverage-grid">
+              {researchCoverageItems.map((item) => (
+                <div key={item.id} className={`research-coverage-item ${item.tone}`}>
+                  <div>
+                    <span>{item.label}</span>
+                    <strong>{item.status}</strong>
+                  </div>
+                  <small>{item.source}</small>
+                  <p>{item.detail}</p>
+                  <em>{item.action}</em>
+                </div>
+              ))}
+            </div>
           </div>
           {selectedAdvancedReport?.mlPrediction ? (
             <div className={`ml-verification-card ${selectedAdvancedReport.mlPrediction.status || 'insufficient'}`} data-testid="ml-verification-card">
