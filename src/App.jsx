@@ -65,6 +65,7 @@ import { useSelectedStock } from './hooks/useSelectedStock';
 import { buildChatGptConsultationPrompt } from './utils/chatGptPrompt';
 import { buildWatchlistResearchPrompt } from './utils/chatGptPromptBuilder';
 import { buildDisclosureEventSummary } from './utils/disclosureEvents';
+import { buildAppSettingsSummary } from './utils/appSettingsSummary';
 import { fetchEdinetDocumentsByDateRange } from './utils/edinetClient';
 import { buildPreopenCheckSummary, fetchEarningsCalendarByDateRange } from './utils/earningsCalendarClient';
 import { buildMorningCheckWindow } from './utils/japanBusinessCalendar';
@@ -1359,6 +1360,14 @@ export default function App() {
     watchlistPreopenSummary,
   ]);
 
+  const appSettingsSummary = useMemo(() => buildAppSettingsSummary({
+    edinetStatus: edinetDisclosure,
+    earningsStatus: earningsCalendar,
+    jquantsStatus: jquantsView,
+    tdnetStatus: tdnetSourceStatus,
+    cacheStatus: { enabled: Boolean(cached) },
+  }), [cached, earningsCalendar, edinetDisclosure, jquantsView, tdnetSourceStatus]);
+
   const chatGptConsultationPrompt = useMemo(() => buildChatGptConsultationPrompt({
     topPickTickerLabel,
     daytradeTopPick,
@@ -2534,6 +2543,38 @@ export default function App() {
               <strong>{tdnetSourceStatus.label}</strong>
               <span>{tdnetSourceStatus.detail}</span>
               <small>適時開示の最終確認は一次情報をご確認ください。規約リスクのあるスクレイピングは行いません。</small>
+            </div>
+            <div className="app-settings-panel" data-testid="app-settings-panel">
+              <div className="app-settings-head">
+                <div>
+                  <span>設定</span>
+                  <strong>{appSettingsSummary.title}</strong>
+                  <small>{appSettingsSummary.description}</small>
+                </div>
+                <StatusPill label="リサーチ専用" tone="neutral" />
+              </div>
+              <div className="app-settings-grid">
+                {appSettingsSummary.apiItems.map((item) => (
+                  <div key={`api-${item.name}`} className={`app-settings-item ${item.tone}`}>
+                    <span>{item.name}</span>
+                    <strong>{item.status}</strong>
+                  </div>
+                ))}
+                {appSettingsSummary.dataItems.map((item) => (
+                  <div key={`data-${item.name}`} className={`app-settings-item ${item.tone}`}>
+                    <span>{item.name}</span>
+                    <strong>{item.status}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="app-settings-guardrails">
+                {appSettingsSummary.guardrails.map((item) => <span key={item}>{item}</span>)}
+              </div>
+              <div className="app-settings-links" data-testid="sample-data-links">
+                {appSettingsSummary.sampleLinks.map((item) => (
+                  <code key={item.path}>{item.path}</code>
+                ))}
+              </div>
             </div>
             <div className="stock-rail">
               {displayStocks.map((stock) => (

@@ -1,0 +1,16 @@
+{
+  "note": "動作確認用サンプルです。実データとして扱わないでください。",
+  "source": "manual_sample",
+  "updatedAt": "2026-06-28T09:00:00+09:00",
+  "items": [
+    {
+      "code": "7203",
+      "companyName": "トヨタ自動車",
+      "date": "2026-07-31",
+      "fiscalPeriod": "第1四半期",
+      "scheduledTime": "15:00",
+      "source": "manual_sample",
+      "status": "動作確認用"
+    }
+  ]
+}

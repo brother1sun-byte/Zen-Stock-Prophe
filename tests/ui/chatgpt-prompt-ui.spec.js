@@ -246,3 +246,38 @@ test('CSVインポートでウォッチリストへ追加しTDnet未取得を表
   await expect(tdnetPanel).toContainText('スクレイピングは行いません');
   await expect(importPanel).not.toContainText(/今すぐ買うべき|エントリー推奨|利確推奨|損切り推奨|急騰確定|暴落確定|儲かる|勝てる|投資妙味|狙い目|仕込み|反発期待/);
 });
+
+test('データ設定パネルでAPI状態とサンプル導線を確認できる', async ({ page }) => {
+  await page.addInitScript(() => {
+    const fixedNow = new Date('2026-06-29T08:30:00+09:00').valueOf();
+    const RealDate = Date;
+    class MockDate extends RealDate {
+      constructor(...args) {
+        super(...(args.length ? args : [fixedNow]));
+      }
+      static now() {
+        return fixedNow;
+      }
+    }
+    MockDate.UTC = RealDate.UTC;
+    MockDate.parse = RealDate.parse;
+    window.Date = MockDate;
+  });
+  await mockPromptApi(page);
+  await page.goto('/');
+  await page.locator('.detail-toggle').click();
+
+  const panel = page.getByTestId('app-settings-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText('データ設定');
+  await expect(panel).toContainText('EDINET');
+  await expect(panel).toContainText('J-Quants');
+  await expect(panel).toContainText('TDnet相当データ');
+  await expect(panel).toContainText('日本祝日データ');
+  await expect(panel).toContainText('ChatGPT APIへ送信しません');
+  await expect(panel).toContainText('実注文機能はありません');
+  await expect(panel).toContainText('証券会社APIには接続しません');
+  await expect(page.getByTestId('sample-data-links')).toContainText('docs/samples/watchlist-sample.csv');
+  await expect(page.getByTestId('sample-data-links')).toContainText('docs/release-checklist.md');
+  await expect(panel).not.toContainText(/今すぐ買うべき|エントリー推奨|利確推奨|損切り推奨|急騰確定|暴落確定|儲かる|勝てる|投資妙味|狙い目|仕込み|反発期待/);
+});

@@ -1,0 +1,17 @@
+{
+  "note": "動作確認用サンプルです。実データとして扱わないでください。",
+  "source": "manual_sample",
+  "updatedAt": "2026-06-28T09:00:00+09:00",
+  "items": [
+    {
+      "date": "2026-06-28",
+      "ticker": "7203",
+      "companyName": "トヨタ自動車",
+      "classification": "その他重要開示",
+      "title": "動作確認用の開示サンプル",
+      "summary": "CSV/JSON読込の表示確認用です。一次情報ではありません。",
+      "source": "manual_sample",
+      "url": ""
+    }
+  ]
+}
