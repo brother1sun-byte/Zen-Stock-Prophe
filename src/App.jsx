@@ -2570,6 +2570,12 @@ export default function App() {
               <div className="app-settings-guardrails">
                 {appSettingsSummary.guardrails.map((item) => <span key={item}>{item}</span>)}
               </div>
+              <div className="app-settings-quickstart">
+                <strong>初回利用の流れ</strong>
+                <ol>
+                  {appSettingsSummary.quickStartSteps.map((item) => <li key={item}>{item}</li>)}
+                </ol>
+              </div>
               <div className="app-settings-links" data-testid="sample-data-links">
                 {appSettingsSummary.sampleLinks.map((item) => (
                   <code key={item.path}>{item.path}</code>

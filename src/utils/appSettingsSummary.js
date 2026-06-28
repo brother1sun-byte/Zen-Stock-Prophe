@@ -1,11 +1,20 @@
 import { getTdnetSourceStatus } from './tdnetSourceStatus';
 
 const SAMPLE_LINKS = [
+  { label: '操作マニュアル', path: 'docs/user-manual.md' },
   { label: 'ウォッチリスト正常サンプル', path: 'docs/samples/watchlist-sample.csv' },
   { label: 'ウォッチリスト不正行サンプル', path: 'docs/samples/watchlist-sample-invalid.csv' },
   { label: '手動決算予定JSON', path: 'docs/samples/manual-earnings-calendar-sample.json' },
   { label: '手動TDnet相当JSON', path: 'docs/samples/manual-tdnet-events-sample.json' },
   { label: 'リリース前チェックリスト', path: 'docs/release-checklist.md' },
+];
+
+const QUICK_START_STEPS = [
+  '操作マニュアルを確認する',
+  'サンプルCSVを取り込む',
+  'ウォッチリスト一括チェックを確認する',
+  '重要材料サマリーを見る',
+  'ChatGPT相談用プロンプトをコピーする',
 ];
 
 function safeText(value, fallback = '') {
@@ -101,6 +110,7 @@ export function buildAppSettingsSummary(context = {}) {
       '証券会社APIには接続しません。',
       'TDnet相当データは未取得で、規約リスクのあるスクレイピングは行いません。',
     ],
+    quickStartSteps: QUICK_START_STEPS,
     sampleLinks: SAMPLE_LINKS,
   };
 }

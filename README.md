@@ -1,5 +1,29 @@
 # Zen Stock Prophet Pro
 
+## P2.3 操作マニュアルと初回利用ガイド
+
+初回利用では、次の順番で確認してください。
+
+1. `.env` を設定する
+2. アプリを起動する
+3. `docs/user-manual.md` を確認する
+4. `docs/samples/watchlist-sample.csv` を取り込む
+5. ウォッチリスト一括チェックを確認する
+6. 重要材料サマリーを見る
+7. ChatGPT相談用プロンプトをコピーする
+
+主な導線:
+
+- 操作マニュアル: `docs/user-manual.md`
+- 正常系CSVサンプル: `docs/samples/watchlist-sample.csv`
+- 不正行確認CSVサンプル: `docs/samples/watchlist-sample-invalid.csv`
+- 手動決算予定JSONサンプル: `docs/samples/manual-earnings-calendar-sample.json`
+- 手動TDnet相当JSONサンプル: `docs/samples/manual-tdnet-events-sample.json`
+- リリース前チェックリスト: `docs/release-checklist.md`
+
+画面上の「データ設定」パネルでも、操作マニュアル、サンプルCSV、リリース前チェックリストへの導線を確認できます。
+このアプリは日本株の材料確認を支援するもので、実注文、証券会社API接続、ChatGPT APIへの直接送信は行いません。
+
 ## P2.2 完成版仕上げ
 
 Zen Stock Prophet / AI Investment Simulator は、日本株の朝チェック、開示確認、決算予定確認、ウォッチリスト整理、ChatGPT相談用コピー作成を支援する学習・リサーチ用アプリです。取引判断を自動化せず、一次情報確認と不足情報の見える化を優先します。

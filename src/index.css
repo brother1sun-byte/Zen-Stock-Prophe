@@ -3697,6 +3697,30 @@ h1 {
   line-height: 1.45;
 }
 
+.app-settings-quickstart {
+  padding: 9px 10px;
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(45, 212, 191, 0.06);
+}
+
+.app-settings-quickstart strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #ccfbf1;
+  font-size: 12px;
+}
+
+.app-settings-quickstart ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #d8f3ff;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .app-settings-links {
   display: flex;
   flex-wrap: wrap;
