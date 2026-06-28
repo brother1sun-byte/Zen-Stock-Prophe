@@ -63,6 +63,36 @@ test('設定サマリーを安全な表示項目へ変換できる', () => {
   expectNoRestrictedTerms(JSON.stringify(summary));
 });
 
+test('release docs are linked and keep safety boundaries visible', () => {
+  const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
+  const releaseNotes = fs.readFileSync(path.join(repoRoot, 'docs/release-notes.md'), 'utf8');
+  const finalQa = fs.readFileSync(path.join(repoRoot, 'docs/final-qa-report.md'), 'utf8');
+  const releaseChecklist = fs.readFileSync(path.join(repoRoot, 'docs/release-checklist.md'), 'utf8');
+  const plan = fs.readFileSync(path.join(repoRoot, 'docs/free-japan-stock-research-plan.md'), 'utf8');
+  const p24PlanSection = plan.split('## 追加実装: P2.4')[1]?.split('## 追加実装: P2.3')[0] ?? '';
+
+  for (const docPath of [
+    'docs/user-manual.md',
+    'docs/release-checklist.md',
+    'docs/release-notes.md',
+    'docs/final-qa-report.md',
+    'docs/samples/watchlist-sample.csv',
+  ]) {
+    expect(readme).toContain(docPath);
+  }
+
+  expect(p24PlanSection).toContain('リリースノート');
+  expect(p24PlanSection).toContain('最終QA記録');
+
+  for (const text of [releaseNotes, finalQa, releaseChecklist, p24PlanSection]) {
+    expect(text).toContain('ChatGPT API');
+    expect(text).toContain('実注文機能');
+    expect(text).toContain('証券会社API');
+    expect(text).not.toMatch(/APIキー.*(表示|記載).*your_|sk-|password/i);
+    expectNoRestrictedTerms(text);
+  }
+});
+
 test('API設定状態とデータ取得元の状態を統一表示できる', () => {
   const api = summarizeApiConfigurationStatus({
     edinetStatus: { status: 'api_key_missing' },

@@ -1,5 +1,18 @@
 # Zen Stock Prophet Pro
 
+## P2.4 リリースノートと最終QA記録
+
+完成版として共有する前に、次のドキュメントを確認してください。
+
+- 操作マニュアル: `docs/user-manual.md`
+- リリース前チェックリスト: `docs/release-checklist.md`
+- リリースノート: `docs/release-notes.md`
+- 最終QA記録: `docs/final-qa-report.md`
+- サンプルCSV: `docs/samples/watchlist-sample.csv`
+
+リリースノートには完成範囲、安全設計、データソース、未対応項目をまとめています。
+最終QA記録には確認コマンド、主要画面、安全境界、APIキー非表示、外部AI送信なし、実注文機能なし、証券会社API未接続の確認項目をまとめています。
+
 ## P2.3 操作マニュアルと初回利用ガイド
 
 初回利用では、次の順番で確認してください。
