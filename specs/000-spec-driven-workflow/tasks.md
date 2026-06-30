@@ -26,7 +26,7 @@ Zen Stock Prophet のAI実装依頼を、仕様・計画・タスクに基づく
 - [x] `specs/000-spec-driven-workflow/tasks.md` を追加
 
 ### T004: READMEに参照を追加する
-- [ ] READMEへ `docs/spec-kit-workflow.md` の参照を追記
+- [x] READMEへ `docs/spec-kit-workflow.md` の参照を追記
 
 ### T005: 後続候補
 - [ ] 次のP1系機能から、`specs/001-<feature>/` 形式で仕様を作成する
@@ -35,7 +35,7 @@ Zen Stock Prophet のAI実装依頼を、仕様・計画・タスクに基づく
 
 ## 検証
 - [x] ドキュメント追加のみのため、ランタイム影響なし
-- [ ] README更新後、リンク先のパスを確認する
+- [x] README更新後、リンク先のパスを確認する
 
 ## 完了条件
 - READMEからSpec Kit運用ガイドにアクセスできる
