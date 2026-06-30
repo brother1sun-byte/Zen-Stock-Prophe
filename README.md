@@ -72,6 +72,20 @@ npm run lint-check
 
 ---
 
+## Spec-Driven Development Workflow
+
+このリポジトリでは、GitHub Spec Kit の考え方を開発運用に取り入れています。
+
+- プロジェクト原則: `.specify/memory/constitution.md`
+- 運用ガイド: `docs/spec-kit-workflow.md`
+- 初期仕様: `specs/000-spec-driven-workflow/`
+
+新機能をCodex / Copilotへ依頼する前に、`specs/<feature>/spec.md`、`plan.md`、`tasks.md` を作成し、仕様・実装範囲・検証条件を固定してください。
+
+特に本アプリでは、売買推奨・投資助言に見える表現を避け、データ出所、取得時刻、欠損時の扱い、APIキーの安全管理を明確にします。
+
+---
+
 ## Phase 2 Key Features (Backend)
 - **Reproducible Analysis**: `asof` パラメータによる、過去の特定時点を基準とした再現可能な分析機能。
 - **Playbook Persistence**: 投資の教訓をディスク上に安全に保存し、再起動後も永続化。
