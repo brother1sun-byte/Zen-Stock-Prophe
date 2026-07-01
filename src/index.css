@@ -589,6 +589,24 @@ h1 {
   font-size: 13px;
 }
 
+.lifestyle-review-caution,
+.lifestyle-review-insights {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: var(--radius);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.lifestyle-review-caution span,
+.lifestyle-review-insights .lifestyle-bullets span {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.32);
+}
+
 @media (max-width: 760px) {
   .lifestyle-daytrade-panel {
     padding: 12px;

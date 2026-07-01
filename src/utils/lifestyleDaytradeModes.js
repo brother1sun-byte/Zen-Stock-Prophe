@@ -42,6 +42,19 @@ function safeNumber(value, fallback = null) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function textIncludes(record = {}, keywords = []) {
+  const text = [
+    record.originalReason,
+    record.workedReason,
+    record.missedReason,
+    record.missedSignal,
+    record.improvementMemo,
+    record.exitReason,
+    record.decisionResult,
+  ].filter(Boolean).join(' ');
+  return keywords.some((keyword) => text.includes(keyword));
+}
+
 function normalizeTicker(value) {
   const text = String(value || '').trim().toUpperCase();
   const match = text.match(/(\d{4})/);
@@ -171,29 +184,62 @@ export function buildVolumeSeasonality(detail = {}, report = {}) {
   detail = detail || {};
   report = report || {};
   const chart = Array.isArray(detail.chart) ? detail.chart : [];
-  if (chart.length < 4) {
+  if (chart.length < 6) {
     return {
-      status: '出来高季節性は取得不可',
+      status: '出来高季節性は推定精度低',
       label: '日中出来高不足',
       source: '取得不可',
       estimated: true,
-      notice: '前場・後場別の実出来高は無料データでは不足しています。必要に応じて証券アプリで確認してください。',
+      precision: '推定精度低',
+      sessions: {
+        open: '取得不可',
+        morning: '取得不可',
+        afternoon: '取得不可',
+        close: '取得不可',
+      },
+      evidence: ['同一時間帯で比較できる足数が不足しています。'],
+      notice: '前場・後場別の実出来高は無料データでは不足しています。推定精度低として扱い、必要に応じて証券アプリで確認してください。',
     };
   }
 
-  const recent = chart.slice(-8);
-  const midpoint = Math.max(1, Math.floor(recent.length / 2));
-  const firstHalfAvg = recent.slice(0, midpoint).reduce((sum, item) => sum + Number(item.volume || 0), 0) / midpoint;
-  const secondHalf = recent.slice(midpoint);
-  const secondHalfAvg = secondHalf.reduce((sum, item) => sum + Number(item.volume || 0), 0) / Math.max(1, secondHalf.length);
+  const recent = chart.slice(-12);
+  const bandSize = Math.max(1, Math.floor(recent.length / 4));
+  const bands = {
+    open: recent.slice(0, bandSize),
+    morning: recent.slice(bandSize, bandSize * 2),
+    afternoon: recent.slice(bandSize * 2, bandSize * 3),
+    close: recent.slice(bandSize * 3),
+  };
+  const avg = (items) => items.length
+    ? items.reduce((sum, item) => sum + Number(item.volume || 0), 0) / items.length
+    : 0;
+  const allAvg = avg(recent);
+  const bandRatio = (items) => (allAvg ? avg(items) / allAvg : 1);
+  const sessions = Object.fromEntries(Object.entries(bands).map(([key, items]) => {
+    const ratioValue = bandRatio(items);
+    const label = ratioValue >= 1.25 ? '高い' : ratioValue <= 0.75 ? '低い' : '通常';
+    return [key, label];
+  }));
+  const firstHalfAvg = avg([...bands.open, ...bands.morning]);
+  const secondHalfAvg = avg([...bands.afternoon, ...bands.close]);
   const ratio = secondHalfAvg && firstHalfAvg ? secondHalfAvg / firstHalfAvg : safeNumber(report.factors?.volumeRatio, 1);
   const label = ratio >= 1.25 ? '後半増加傾向' : ratio <= 0.8 ? '後半鈍化傾向' : '横ばい傾向';
+  const precision = chart.length >= 12 ? '推定精度中' : '推定精度低';
   return {
     status: '出来高季節性は推定',
     label,
     ratio,
+    sessions,
+    precision,
     source: '日足または短期足から推定',
     estimated: true,
+    evidence: [
+      `寄り直後: ${sessions.open}`,
+      `前場: ${sessions.morning}`,
+      `後場: ${sessions.afternoon}`,
+      `大引け前: ${sessions.close}`,
+      `${precision}: 同一時間帯の厳密比較ではなく取得済み足からの推定です。`,
+    ],
     notice: '前場・後場別の厳密な出来高ではなく、取得済み足データからの推定です。',
   };
 }
@@ -205,20 +251,177 @@ export function estimateSpreadRisk({ stock = {}, detail = {}, manualPrice, repor
   const price = roundPrice(manualPrice || stock.price || detail.price || latestChartPoint(detail).close);
   const volume = safeNumber(stock.volume || latestChartPoint(detail).volume, 0);
   const liquidityScore = safeNumber(report.factors?.liquidityScore ?? stock.liquidityScore, null);
+  const atrPct = safeNumber(report.factors?.atrPct, null);
+  const chart = Array.isArray(detail.chart) ? detail.chart : [];
+  const recentRanges = chart.slice(-6).map((item) => {
+    const high = safeNumber(item.high, null);
+    const low = safeNumber(item.low, null);
+    const close = safeNumber(item.close, price || 1);
+    return high !== null && low !== null && close ? ((high - low) / close) * 100 : null;
+  }).filter((value) => value !== null);
+  const rangePct = recentRanges.length
+    ? recentRanges.reduce((sum, value) => sum + value, 0) / recentRanges.length
+    : null;
+  const turnoverJpy = safeNumber(stock.turnoverJpy, price && volume ? price * volume : null);
   let risk = '不明';
   let estimatedSpreadPct = null;
+  const evidence = [];
   if (price && (volume || liquidityScore !== null)) {
     const liquidityBase = liquidityScore !== null ? liquidityScore : clamp(Math.log10(Math.max(1, volume)) * 13);
-    estimatedSpreadPct = Number(Math.max(0.03, (100 - liquidityBase) / 900).toFixed(2));
-    risk = estimatedSpreadPct >= 0.09 ? '高' : estimatedSpreadPct >= 0.06 ? '中' : '低';
+    let rawSpread = Math.max(0.03, (100 - liquidityBase) / 900);
+    if (price < 500) rawSpread += 0.02;
+    if (price > 10000) rawSpread += 0.01;
+    if (atrPct !== null && atrPct >= 4) rawSpread += 0.02;
+    if (rangePct !== null && rangePct >= 3.5) rawSpread += 0.015;
+    if (turnoverJpy !== null && turnoverJpy < 100000000) rawSpread += 0.025;
+    estimatedSpreadPct = Number(rawSpread.toFixed(2));
+    risk = estimatedSpreadPct >= 0.11 ? '高' : estimatedSpreadPct >= 0.07 ? '中' : '低';
+    evidence.push(`流動性スコア ${Math.round(liquidityBase)}/100`);
+    if (atrPct !== null) evidence.push(`ATR ${atrPct.toFixed(1)}%`);
+    if (rangePct !== null) evidence.push(`直近レンジ平均 ${rangePct.toFixed(1)}%`);
+    if (turnoverJpy !== null) evidence.push(`売買代金推定 ${Math.round(turnoverJpy).toLocaleString('ja-JP')}円`);
   }
   return {
     status: risk === '不明' ? 'スプレッド推定不可' : `スプレッド警戒 ${risk}`,
     risk,
     estimatedSpreadPct,
+    evidence: evidence.length ? evidence : ['板・気配値は取得できていません。'],
     source: '板情報なしの推定',
     estimated: true,
-    notice: '板厚・気配値は取得不可のため、流動性と出来高からの推定です。実際の発注前に証券アプリで確認してください。',
+    orderCaution: risk === '高'
+      ? 'スプレッド推定が広いため、成行ではなく価格確認を優先し、証券アプリで板・気配値を確認してください。'
+      : '推定値のため、証券アプリで板・気配値を確認してください。',
+    notice: '板厚・気配値は取得不可のため、流動性、値幅、出来高からの推定です。実際の発注前に証券アプリで確認してください。',
+  };
+}
+
+export function classifyAfterCloseReview(record = {}) {
+  const pnl = safeNumber(record.pnl, null);
+  const score = safeNumber(record.initialScore ?? record.nightScanScore ?? record.morningGateScore ?? record.workMonitorScore, null);
+  const resultText = String(record.decisionResult || '');
+  let key = 'decision_hold';
+  let label = '判断保留';
+  let nextCaution = '次回も根拠と不足情報を短く記録してください。';
+
+  if (resultText.includes('見送り') && pnl === 0) {
+    key = textIncludes(record, ['機会', '逃']) ? 'skip_failure' : 'skip_success';
+    label = key === 'skip_failure' ? '見送り失敗候補' : '見送り成功候補';
+    nextCaution = key === 'skip_failure'
+      ? '見送り理由と、その後に効いた条件を分けて確認してください。'
+      : '見送りが有効だった条件を翌朝確認リストに残してください。';
+  } else if (pnl !== null && pnl > 0 && textIncludes(record, ['早すぎ', '早過ぎ', '伸び', 'もう少し'])) {
+    key = 'take_profit_too_early';
+    label = '利確候補が早すぎた候補';
+    nextCaution = '利確候補到達後の出来高とVWAP維持を短時間で再確認してください。';
+  } else if (pnl !== null && pnl > 0) {
+    key = textIncludes(record, ['撤退', '損失回避', 'ライン']) ? 'exit_success' : 'take_profit_success';
+    label = key === 'exit_success' ? '撤退成功候補' : '利確候補成功';
+    nextCaution = '効いた根拠を次回の確認条件に残してください。';
+  } else if (pnl !== null && pnl < 0 && textIncludes(record, ['高値', '寄り付き直後', '急騰', '掴'])) {
+    key = 'bought_high';
+    label = '高値掴み候補';
+    nextCaution = '寄り付き直後の急伸後は、VWAPと出来高継続を確認してから判断してください。';
+  } else if (pnl !== null && pnl < 0 && textIncludes(record, ['遅', '保有継続', '撤退', 'VWAP割れ'])) {
+    key = 'holding_too_long';
+    label = '保有が長すぎた候補';
+    nextCaution = 'VWAP割れ、出来高低下、撤退ライン接近を仕事中チェックで優先してください。';
+  } else if (pnl !== null && pnl < 0) {
+    key = score !== null && score >= 70 ? 'high_score_failure' : 'decision_hold';
+    label = score !== null && score >= 70 ? '高スコア失敗候補' : '判断保留';
+    nextCaution = score !== null && score >= 70
+      ? '高スコアでも材料不足、スプレッド、寄り天リスクを再確認してください。'
+      : '失敗理由を根拠、材料、価格ラインに分けて記録してください。';
+  }
+
+  return {
+    key,
+    label,
+    pnl,
+    score,
+    improvementMemo: record.improvementMemo || record.missedSignal || '改善メモ未入力',
+    nextCaution,
+  };
+}
+
+export function buildReviewDrivenInsights(records = [], context = {}) {
+  const safeRecords = (Array.isArray(records) ? records : []).filter((record) => record && typeof record === 'object');
+  const classifiedRecords = safeRecords.map((record) => ({
+    ...record,
+    ticker: normalizeTicker(record.ticker),
+    classification: classifyAfterCloseReview(record),
+  }));
+  const targetTicker = context.ticker ? normalizeTicker(context.ticker) : '';
+  const relevantRecords = targetTicker
+    ? classifiedRecords.filter((record) => record.ticker === targetTicker)
+    : classifiedRecords;
+  const counts = classifiedRecords.reduce((acc, record) => {
+    const key = record.classification.key;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const highScoreFailures = classifiedRecords.filter((record) => record.classification.key === 'high_score_failure' || (record.classification.score >= 70 && record.classification.pnl < 0)).length;
+  const lowScoreSuccesses = classifiedRecords.filter((record) => record.classification.score !== null && record.classification.score < 50 && record.classification.pnl > 0).length;
+  const correctSkips = counts.skip_success || 0;
+  const wrongSkips = counts.skip_failure || 0;
+  const tendencyRules = [
+    ['take_profit_too_early', '利確候補到達後に短時間で再確認する癖を付けてください。'],
+    ['holding_too_long', 'VWAP割れ後の保有継続で失敗が多い傾向があります。'],
+    ['bought_high', '寄り付き直後の急伸後に入ったケースで、高値掴みが増えています。'],
+    ['high_score_failure', '高スコアでも材料不足、スプレッド、寄り天リスクを別枠で確認してください。'],
+  ];
+  const tendencies = tendencyRules
+    .filter(([key]) => (counts[key] || 0) > 0)
+    .map(([key, message]) => ({ key, count: counts[key], message }));
+  const keywordTendencies = [
+    [['VWAP割れ', 'VWAP'], '過去レビューでは、VWAP割れ後の保有継続に注意が必要です。'],
+    [['出来高低下', '出来高'], '出来高の低下や継続不足を次回の確認条件に入れてください。'],
+    [['決算', '材料', '開示'], '材料イベント前後の判断は一次情報確認を優先してください。'],
+    [['スプレッド', '板'], 'スプレッド推定が広い銘柄では、証券アプリで板・気配値を確認してください。'],
+  ];
+  keywordTendencies.forEach(([keywords, message]) => {
+    if (safeRecords.some((record) => textIncludes(record, keywords))) {
+      tendencies.push({ key: keywords[0], count: 1, message });
+    }
+  });
+  const tickerCautions = relevantRecords.slice(0, 3).map((record) => `過去レビュー: ${record.classification.label}。${record.classification.nextCaution}`);
+  const generalCautions = tendencies.slice(0, 3).map((item) => item.message);
+
+  return {
+    total: classifiedRecords.length,
+    classifiedRecords,
+    relevantRecords,
+    counts,
+    scoreSummary: {
+      highScoreFailures,
+      lowScoreSuccesses,
+      correctSkips,
+      wrongSkips,
+      summary: classifiedRecords.length
+        ? `高スコア失敗 ${highScoreFailures}件 / 低スコア成功 ${lowScoreSuccesses}件 / 見送り成功 ${correctSkips}件 / 見送り失敗 ${wrongSkips}件`
+        : '保存済みレビューはまだありません。',
+    },
+    tendencies,
+    improvementHints: [...tickerCautions, ...generalCautions].slice(0, 4),
+    emptyMessage: '保存済みレビューが増えると、翌朝確認・仕事中確認の注意点として軽く反映します。',
+  };
+}
+
+function reviewInsightsForTicker(ticker, reviewInsights = {}) {
+  if (!reviewInsights?.total) {
+    return {
+      cautions: [reviewInsights?.emptyMessage || '過去レビューはまだありません。'],
+      summary: 'レビュー未蓄積',
+    };
+  }
+  const normalized = normalizeTicker(ticker);
+  const relevant = (reviewInsights.classifiedRecords || []).filter((record) => record.ticker === normalized);
+  const source = relevant.length ? relevant : reviewInsights.classifiedRecords || [];
+  return {
+    cautions: [
+      ...source.slice(0, 2).map((record) => `過去レビュー: ${record.classification.label}。${record.classification.nextCaution}`),
+      ...(reviewInsights.tendencies || []).slice(0, 2).map((item) => item.message),
+    ].slice(0, 3),
+    summary: relevant.length ? `${normalized}のレビュー ${relevant.length}件を参照` : '全体レビュー傾向を参照',
   };
 }
 
@@ -362,6 +565,7 @@ export function buildNightScanRows({
   detailsByTicker = {},
   watchlistResults = [],
   advancedReportsByTicker = {},
+  reviewInsights = {},
   fetchedAt = '',
 } = {}) {
   return (Array.isArray(stocks) ? stocks : []).map((stock) => {
@@ -374,6 +578,7 @@ export function buildNightScanRows({
     const volumeSeasonality = buildVolumeSeasonality(detail, advancedReport);
     const spreadRisk = estimateSpreadRisk({ stock, detail, report: advancedReport });
     const priceLines = buildDaytradePriceLines({ stock, detail, candidate: stock });
+    const reviewCaution = reviewInsightsForTicker(ticker, reviewInsights);
     const price = priceLines.currentPrice.value || roundPrice(stock.price);
     const advancedScore = safeNumber(advancedSummary.score, stock.candidateScore ?? stock.preopenScore ?? 50);
     const validationScore = safeNumber(backtestSummary.walkForwardScore, 50);
@@ -425,6 +630,7 @@ export function buildNightScanRows({
       backtestSummary,
       volumeSeasonality,
       spreadRisk,
+      reviewCaution,
       dataSource: sourceSummary(stock, detail, preopen.sourceStatus?.earnings),
       fetchedAt,
     };
@@ -453,6 +659,7 @@ export function buildMorningGate({
   detail = {},
   preopenResult = {},
   advancedReport = {},
+  reviewInsights = {},
   manualPrice,
 } = {}) {
   const lines = buildDaytradePriceLines({ stock, detail, candidate: stock, manualPrice });
@@ -461,6 +668,7 @@ export function buildMorningGate({
   const backtestSummary = buildLifestyleBacktestSummary(advancedReport);
   const volumeSeasonality = buildVolumeSeasonality(detail, advancedReport);
   const spreadRisk = estimateSpreadRisk({ stock, detail, manualPrice, report: advancedReport });
+  const reviewCaution = reviewInsightsForTicker(stock.ticker || detail.ticker, reviewInsights);
   const score = scoreMorningGate({ price, lines, preopen: preopenResult, advancedSummary, backtestSummary, spreadRisk });
   const overLimit = price && lines.orderLimit.value ? price - lines.orderLimit.value : null;
   let decision = '待機';
@@ -487,6 +695,7 @@ export function buildMorningGate({
     backtestSummary,
     volumeSeasonality,
     spreadRisk,
+    reviewCaution,
     reasons: [
       lines.vwap.value && price ? (price >= lines.vwap.value ? 'VWAPより上を確認' : 'VWAPより下のため待機寄り') : 'VWAPは取得不可',
       lines.resistance.value && price ? `抵抗線まで ${Math.max(0, lines.resistance.value - price)}円` : '抵抗線は推定または取得不可',
@@ -495,6 +704,8 @@ export function buildMorningGate({
     cautions: [
       overLimit > 0 ? '注文上限を超えています。見送り優先で確認してください。' : '寄り付き直後の急な失速に注意してください。',
       preopenResult.risk === 'high' ? '重要予定があるため一次情報確認を優先してください。' : 'スプレッドと出来高は証券アプリで確認してください。',
+      spreadRisk.orderCaution,
+      ...reviewCaution.cautions.slice(0, 2),
     ],
     skipConditions: [
       '出来高が伴わない場合',
@@ -505,13 +716,14 @@ export function buildMorningGate({
   };
 }
 
-export function buildWorkMonitorRows({ holdings = [], manualPrices = {}, advancedReportsByTicker = {} } = {}) {
+export function buildWorkMonitorRows({ holdings = [], manualPrices = {}, advancedReportsByTicker = {}, reviewInsights = {} } = {}) {
   return (Array.isArray(holdings) ? holdings : []).map((holding) => {
     const ticker = normalizeTicker(holding.ticker || holding.stockCode);
     const advancedReport = advancedReportForTicker(ticker, advancedReportsByTicker);
     const advancedSummary = buildAdvancedConnectionSummary(advancedReport);
     const backtestSummary = buildLifestyleBacktestSummary(advancedReport);
     const spreadRisk = estimateSpreadRisk({ stock: holding, report: advancedReport });
+    const reviewCaution = reviewInsightsForTicker(ticker, reviewInsights);
     const manualPrice = manualPrices[ticker] ?? manualPrices[holding.ticker];
     const currentPrice = roundPrice(manualPrice || holding.currentPrice || holding.price);
     const target = roundPrice(holding.exitPlan?.targetPrice || holding.targetPrice || holding.takeProfit);
@@ -553,6 +765,7 @@ export function buildWorkMonitorRows({ holdings = [], manualPrices = {}, advance
       advancedSummary,
       backtestSummary,
       spreadRisk,
+      reviewCaution,
       dataSource: sourceSummary(holding),
     };
   });
@@ -576,10 +789,14 @@ export function buildAfterCloseReviewDraft(input = {}) {
     exitPrice,
     shares,
     pnl,
+    initialScore: safeNumber(input.initialScore, null),
+    decisionMode: input.decisionMode || '',
+    decisionResult: input.decisionResult || '',
     originalReason: input.originalReason || '',
     workedReason: input.workedReason || '',
     missedReason: input.missedReason || '',
     missedSignal: input.missedSignal || '',
+    exitReason: input.exitReason || '',
     improvementMemo: input.improvementMemo || '',
     reviewPurpose: '今後の判断材料を改善するためのローカル記録です。投資助言ではありません。',
     createdAt: input.createdAt || new Date().toISOString(),

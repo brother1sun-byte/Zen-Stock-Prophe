@@ -3,7 +3,9 @@ import {
   buildAfterCloseReviewDraft,
   buildMorningGate,
   buildNightScanRows,
+  buildReviewDrivenInsights,
   buildWorkMonitorRows,
+  classifyAfterCloseReview,
   loadAfterCloseReviewLog,
   saveAfterCloseReviewDraft,
 } from '../utils/lifestyleDaytradeModes';
@@ -57,7 +59,7 @@ function EvidenceStrip({ advancedSummary, backtestSummary, volumeSeasonality, sp
   const items = [
     ['高度分析', advancedSummary?.status || '未取得'],
     ['ウォークフォワード', backtestSummary?.summary || '検証材料未取得'],
-    ['出来高季節性', volumeSeasonality?.label || volumeSeasonality?.status || '取得不可'],
+    ['出来高季節性', `${volumeSeasonality?.label || volumeSeasonality?.status || '取得不可'}${volumeSeasonality?.precision ? ` / ${volumeSeasonality.precision}` : ''}`],
     ['スプレッド推定', spreadRisk?.status || '推定不可'],
   ];
   return (
@@ -68,6 +70,18 @@ function EvidenceStrip({ advancedSummary, backtestSummary, volumeSeasonality, sp
           <strong>{value}</strong>
         </div>
       ))}
+    </div>
+  );
+}
+
+function ReviewCautionCard({ title, cautions = [], testId }) {
+  const visible = (Array.isArray(cautions) ? cautions : []).filter(Boolean).slice(0, 3);
+  return (
+    <div className="lifestyle-review-caution" data-testid={testId}>
+      <strong>{title}</strong>
+      {visible.length ? visible.map((item, index) => (
+        <span key={`${title}-${index}-${item}`}>注意: {item}</span>
+      )) : <span>過去レビューはまだありません。</span>}
     </div>
   );
 }
@@ -105,6 +119,11 @@ function NightScanView({ rows }) {
               backtestSummary={row.backtestSummary}
               volumeSeasonality={row.volumeSeasonality}
               spreadRisk={row.spreadRisk}
+            />
+            <ReviewCautionCard
+              title="過去レビューからの翌朝注意"
+              cautions={row.reviewCaution?.cautions}
+              testId="night-review-caution"
             />
             <PriceLineList lines={row.priceLines} />
             <details className="lifestyle-details">
@@ -164,6 +183,11 @@ function MorningGateView({ gate, value, onChange }) {
           volumeSeasonality={gate.volumeSeasonality}
           spreadRisk={gate.spreadRisk}
         />
+        <ReviewCautionCard
+          title="過去レビューからの手動注文前チェック"
+          cautions={gate.reviewCaution?.cautions}
+          testId="morning-review-caution"
+        />
         <PriceLineList lines={gate.lines} />
         <div className="lifestyle-skip-box">
           <strong>見送り条件</strong>
@@ -208,6 +232,9 @@ function WorkMonitorView({ rows, manualPrices, onChange }) {
               {row.reasons.slice(0, 2).map((item, index) => <span key={`work-reason-${row.ticker}-${index}-${item}`}>{item}</span>)}
               <span>次に確認: {row.nextCheck}</span>
               <span>高度分析: {row.advancedSummary?.status || '未取得'} / {row.spreadRisk?.status || '推定不可'}</span>
+              {(row.reviewCaution?.cautions || []).slice(0, 2).map((item, index) => (
+                <span key={`work-review-${row.ticker}-${index}-${item}`}>過去レビュー注意: {item}</span>
+              ))}
             </div>
           </article>
         )) : (
@@ -218,7 +245,35 @@ function WorkMonitorView({ rows, manualPrices, onChange }) {
   );
 }
 
-function ReviewView({ form, setForm, draft, reviewLog, onSave, saveMessage }) {
+function ReviewInsightPanel({ reviewInsights }) {
+  const records = reviewInsights?.classifiedRecords || [];
+  return (
+    <div className="lifestyle-review-insights" data-testid="after-close-review-insights">
+      <div className="lifestyle-card-head">
+        <div>
+          <span>過去レビューの傾向</span>
+          <strong>{reviewInsights?.scoreSummary?.summary || '保存済みレビューはまだありません。'}</strong>
+        </div>
+        <b>{reviewInsights?.total || 0}件</b>
+      </div>
+      <div className="lifestyle-bullets">
+        {(reviewInsights?.improvementHints?.length ? reviewInsights.improvementHints : [reviewInsights?.emptyMessage || 'レビュー保存後に改善ヒントを表示します。']).map((item, index) => (
+          <span key={`review-hint-${index}-${item}`}>改善: {item}</span>
+        ))}
+      </div>
+      <div className="lifestyle-review-log" data-testid="after-close-review-classified-log">
+        <strong>保存済みログ分類</strong>
+        {records.length ? records.slice(0, 6).map((record) => (
+          <span key={`${record.ticker}-${record.createdAt}-classified`}>
+            {record.ticker} / {record.classification.label} / 損益 {yen(record.pnl)} / 初期スコア {record.classification.score ?? '未入力'}
+          </span>
+        )) : <span>分類できる保存ログはまだありません。</span>}
+      </div>
+    </div>
+  );
+}
+
+function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, saveMessage }) {
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   return (
     <div className="lifestyle-mode-body" data-testid="lifestyle-after-close-review">
@@ -228,21 +283,25 @@ function ReviewView({ form, setForm, draft, reviewLog, onSave, saveMessage }) {
           ['entryPrice', 'エントリー価格', '3000'],
           ['exitPrice', '売却価格', '3040'],
           ['shares', '株数', '100'],
+          ['initialScore', '当初スコア', '70'],
+          ['decisionMode', '判断モード', 'Morning Gate'],
+          ['decisionResult', '判断結果', '確認推奨'],
         ].map(([key, label, placeholder]) => (
           <label key={key}>
             <span>{label}</span>
-            <input value={form[key] || ''} onChange={(event) => update(key, event.target.value)} placeholder={placeholder} />
+            <input data-testid={`after-close-review-${key}`} value={form[key] || ''} onChange={(event) => update(key, event.target.value)} placeholder={placeholder} />
           </label>
         ))}
         {[
           ['originalReason', '当初の根拠'],
           ['workedReason', '実際に効いた根拠'],
+          ['exitReason', '売却・撤退理由'],
           ['missedSignal', '見送るべきだったサイン'],
           ['improvementMemo', '次回改善メモ'],
         ].map(([key, label]) => (
           <label key={key} className="wide">
             <span>{label}</span>
-            <textarea value={form[key] || ''} onChange={(event) => update(key, event.target.value)} />
+            <textarea data-testid={`after-close-review-${key}`} value={form[key] || ''} onChange={(event) => update(key, event.target.value)} />
           </label>
         ))}
       </div>
@@ -256,12 +315,13 @@ function ReviewView({ form, setForm, draft, reviewLog, onSave, saveMessage }) {
           <strong>保存済み改善ログ</strong>
           {reviewLog.length ? reviewLog.slice(0, 5).map((record) => (
             <span key={`${record.ticker}-${record.createdAt}`}>
-              {record.ticker} / 損益 {yen(record.pnl)} / {record.improvementMemo || '改善メモ未入力'}
+              {record.ticker} / {classifyAfterCloseReview(record).label} / 損益 {yen(record.pnl)} / {record.improvementMemo || '改善メモ未入力'}
             </span>
           )) : <span>この端末の保存ログはまだありません。</span>}
           <small>このログはローカル保存のみです。実注文や外部送信は行いません。</small>
         </div>
       </div>
+      <ReviewInsightPanel reviewInsights={reviewInsights} />
     </div>
   );
 }
@@ -283,6 +343,7 @@ export default function LifestyleDaytradePanel({
   const [reviewForm, setReviewForm] = useState({});
   const [reviewLog, setReviewLog] = useState(() => loadAfterCloseReviewLog());
   const [reviewSaveMessage, setReviewSaveMessage] = useState('');
+  const reviewInsights = useMemo(() => buildReviewDrivenInsights(reviewLog), [reviewLog]);
 
   const detailsByTicker = useMemo(() => {
     if (!selectedDetail?.ticker) return {};
@@ -294,8 +355,9 @@ export default function LifestyleDaytradePanel({
     detailsByTicker,
     watchlistResults: watchlistPreopenResults,
     advancedReportsByTicker,
+    reviewInsights,
     fetchedAt,
-  }), [advancedReportsByTicker, detailsByTicker, fetchedAt, stocks, watchlistPreopenResults]);
+  }), [advancedReportsByTicker, detailsByTicker, fetchedAt, reviewInsights, stocks, watchlistPreopenResults]);
 
   const selectedTicker = selectedStock?.ticker || selectedDetail?.ticker || nightRows[0]?.ticker;
   const selectedPreopen = useMemo(() => {
@@ -308,14 +370,16 @@ export default function LifestyleDaytradePanel({
     detail: selectedDetail || {},
     preopenResult: selectedPreopen,
     advancedReport: selectedAdvancedReport,
+    reviewInsights,
     manualPrice: morningManualPrice,
-  }), [morningManualPrice, nightRows, selectedAdvancedReport, selectedDetail, selectedPreopen, selectedStock]);
+  }), [morningManualPrice, nightRows, reviewInsights, selectedAdvancedReport, selectedDetail, selectedPreopen, selectedStock]);
 
   const workRows = useMemo(() => buildWorkMonitorRows({
     holdings,
     manualPrices: monitorPrices,
     advancedReportsByTicker,
-  }), [advancedReportsByTicker, holdings, monitorPrices]);
+    reviewInsights,
+  }), [advancedReportsByTicker, holdings, monitorPrices, reviewInsights]);
 
   const reviewDraft = useMemo(() => buildAfterCloseReviewDraft({
     ticker: reviewForm.ticker || selectedTicker || '',
@@ -373,6 +437,7 @@ export default function LifestyleDaytradePanel({
           setForm={setReviewForm}
           draft={reviewDraft}
           reviewLog={reviewLog}
+          reviewInsights={reviewInsights}
           onSave={saveReviewDraft}
           saveMessage={reviewSaveMessage}
         />
