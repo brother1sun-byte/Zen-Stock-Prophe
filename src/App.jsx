@@ -44,6 +44,7 @@ import {
 import { api, readFreshCache, writeCache } from './api/apiClient';
 import { DataSourceBadge, DataSourceWarning } from './components/DataSourceBadge';
 import DetailPanels from './components/DetailPanels';
+import LifestyleDaytradePanel from './components/LifestyleDaytradePanel';
 import PortfolioLedger from './components/PortfolioLedger';
 import PracticeDashboard from './components/PracticeDashboard';
 import TopCandidateCard from './components/TopCandidateCard';
@@ -1702,6 +1703,16 @@ export default function App() {
           onCopyChatGptPrompt={copyChatGptPrompt}
         />
 
+        <LifestyleDaytradePanel
+          stocks={displayStocks}
+          selectedStock={selectedStock}
+          selectedDetail={selectedDetail}
+          holdings={holdings}
+          watchlistPreopenResults={watchlistPreopenResults}
+          fetchedAt={edinetDisclosure?.fetchedAt || earningsCalendar?.fetchedAt || marketRankings?.fetchedAt || cached?.updatedAt || ''}
+          marketFreshnessLabel={marketStatusView.freshnessLabel}
+        />
+
         <PracticeDashboard>
           <div className="practice-chart-panel" data-testid="practice-chart-panel">
             <div className="practice-panel-head">
@@ -2250,23 +2261,23 @@ export default function App() {
             <div className="research-insight-grid">
               <div className="research-insight-card good">
                 <strong>強材料</strong>
-                <ul>{selectedResearchInsight.positiveMaterials.map((item) => <li key={item}>{item}</li>)}</ul>
+                <ul>{selectedResearchInsight.positiveMaterials.map((item, index) => <li key={`positive-${index}-${item}`}>{item}</li>)}</ul>
               </div>
               <div className="research-insight-card warn">
                 <strong>弱材料・注意点</strong>
-                <ul>{selectedResearchInsight.negativeMaterials.map((item) => <li key={item}>{item}</li>)}</ul>
+                <ul>{selectedResearchInsight.negativeMaterials.map((item, index) => <li key={`negative-${index}-${item}`}>{item}</li>)}</ul>
               </div>
               <div className="research-insight-card neutral">
                 <strong>不足情報</strong>
-                <ul>{selectedResearchInsight.missingInformation.map((item) => <li key={item}>{item}</li>)}</ul>
+                <ul>{selectedResearchInsight.missingInformation.map((item, index) => <li key={`missing-${index}-${item}`}>{item}</li>)}</ul>
               </div>
               <div className="research-insight-card neutral">
                 <strong>根拠</strong>
-                <ul>{selectedResearchInsight.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
+                <ul>{selectedResearchInsight.evidence.map((item, index) => <li key={`evidence-${index}-${item}`}>{item}</li>)}</ul>
               </div>
             </div>
             <div className="research-insight-sources">
-              {selectedResearchInsight.dataSources.map((item) => <span key={item}>{item}</span>)}
+              {selectedResearchInsight.dataSources.map((item, index) => <span key={`source-${index}-${item}`}>{item}</span>)}
             </div>
           </div>
           {selectedAdvancedReport?.mlPrediction ? (
@@ -2679,11 +2690,11 @@ export default function App() {
                 <div className="research-insight-grid compact">
                   <div className="research-insight-card neutral">
                     <strong>不足情報</strong>
-                    <ul>{watchlistResearchInsights.missingInformation.map((item) => <li key={item}>{item}</li>)}</ul>
+                    <ul>{watchlistResearchInsights.missingInformation.map((item, index) => <li key={`watch-missing-${index}-${item}`}>{item}</li>)}</ul>
                   </div>
                   <div className="research-insight-card neutral">
                     <strong>根拠</strong>
-                    <ul>{watchlistResearchInsights.evidence.map((item) => <li key={item}>{item}</li>)}</ul>
+                    <ul>{watchlistResearchInsights.evidence.map((item, index) => <li key={`watch-evidence-${index}-${item}`}>{item}</li>)}</ul>
                   </div>
                 </div>
               </div>

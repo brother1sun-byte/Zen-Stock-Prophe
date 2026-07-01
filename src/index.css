@@ -240,6 +240,337 @@ h1 {
   max-width: none;
 }
 
+.lifestyle-daytrade-panel {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: var(--radius);
+  background: rgba(8, 18, 18, 0.86);
+  box-shadow: var(--shadow);
+}
+
+.lifestyle-panel-head,
+.lifestyle-card-head,
+.lifestyle-morning-core,
+.lifestyle-summary-strip,
+.lifestyle-import-row {
+  display: flex;
+  align-items: center;
+}
+
+.lifestyle-panel-head {
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.lifestyle-panel-head span,
+.lifestyle-card-head span,
+.lifestyle-price-line span,
+.lifestyle-mini-line span,
+.lifestyle-manual-input span,
+.lifestyle-inline-input span,
+.lifestyle-review-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lifestyle-panel-head strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.lifestyle-panel-head small,
+.lifestyle-source small,
+.lifestyle-price-line small,
+.lifestyle-manual-input small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lifestyle-source {
+  min-width: 220px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+  text-align: right;
+}
+
+.lifestyle-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.lifestyle-mode-tabs button {
+  min-height: 54px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  text-align: left;
+}
+
+.lifestyle-mode-tabs button.active {
+  border-color: rgba(16, 185, 129, 0.62);
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.lifestyle-mode-tabs strong,
+.lifestyle-mode-tabs span {
+  display: block;
+}
+
+.lifestyle-mode-tabs span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lifestyle-mode-body {
+  display: grid;
+  gap: 12px;
+}
+
+.lifestyle-summary-strip,
+.lifestyle-morning-core {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lifestyle-mini-line {
+  min-width: 126px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lifestyle-mini-line strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+}
+
+.lifestyle-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.lifestyle-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.lifestyle-card-head {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.lifestyle-card-head strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 17px;
+}
+
+.lifestyle-card-head b {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-sm);
+  color: #99f6e4;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.lifestyle-score-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lifestyle-score-row span,
+.lifestyle-score-row small {
+  color: var(--muted);
+}
+
+.lifestyle-score-row small {
+  grid-column: 1 / -1;
+}
+
+.lifestyle-bullets,
+.lifestyle-skip-box {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.lifestyle-bullets span,
+.lifestyle-skip-box span,
+.lifestyle-details p {
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: #dbeafe;
+  font-size: 13px;
+}
+
+.lifestyle-price-lines {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lifestyle-price-line {
+  min-height: 104px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lifestyle-price-line strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 18px;
+}
+
+.lifestyle-details {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.lifestyle-details summary {
+  cursor: pointer;
+  color: #99f6e4;
+  font-weight: 850;
+}
+
+.lifestyle-details div {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lifestyle-manual-input {
+  padding: 12px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: var(--radius);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.lifestyle-manual-input label,
+.lifestyle-inline-input,
+.lifestyle-review-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.lifestyle-manual-input input,
+.lifestyle-inline-input input,
+.lifestyle-review-grid input,
+.lifestyle-review-grid textarea,
+.lifestyle-review-output textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: rgba(8, 11, 16, 0.9);
+}
+
+.lifestyle-manual-input input,
+.lifestyle-inline-input input,
+.lifestyle-review-grid input {
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.lifestyle-inline-input {
+  margin: 8px 0;
+}
+
+.lifestyle-short-note,
+.lifestyle-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.lifestyle-review-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lifestyle-review-grid label.wide {
+  grid-column: span 2;
+}
+
+.lifestyle-review-grid textarea {
+  min-height: 72px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.lifestyle-review-output {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lifestyle-review-output textarea {
+  min-height: 180px;
+  padding: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+@media (max-width: 760px) {
+  .lifestyle-daytrade-panel {
+    padding: 12px;
+  }
+
+  .lifestyle-panel-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lifestyle-source {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .lifestyle-mode-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lifestyle-price-lines,
+  .lifestyle-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lifestyle-review-grid label.wide {
+    grid-column: auto;
+  }
+}
+
 .app-shell.simple-mode .jobs-brief p {
   max-width: 920px;
 }
