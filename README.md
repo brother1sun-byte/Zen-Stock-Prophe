@@ -1,5 +1,45 @@
 # Zen Stock Prophet Pro
 
+## v1.1.0 Lifestyle Daytrade
+
+`v1.1.0-lifestyle-daytrade` は、忙しい会社員が帰宅後、翌朝、仕事中、引け後の生活導線に沿って日本株デイトレードの確認材料を整理するためのリリースです。
+
+起動方法:
+
+```bash
+cd C:\Users\BRB33\investment-simulator-pro
+python backend/server.py
+npm run dev
+```
+
+確認URL:
+
+```text
+http://127.0.0.1:5174/
+```
+
+生活導線4モード:
+
+- Night Scan: 帰宅後に翌日の確認候補を整理します。
+- Morning Gate: 翌朝に手入力価格、注文上限との差、見送り条件を確認します。
+- Work Monitor: 仕事中に利確候補、撤退ライン、危険サインを短時間で確認します。
+- After Close Review: 引け後に結果、根拠、改善メモを記録し、JSON/CSVでローカルにエクスポートできます。
+
+Release文書:
+
+- Release本文: `.workflow/lifestyle-daytrade-v1.1.0-release/release-notes.md`
+- 運用確認手順書: `.workflow/lifestyle-daytrade-v1.1.0-release/operation-checklist.md`
+- P5最終QA: `.workflow/lifestyle-daytrade-v1.1.0-qa/final-qa-report.md`
+
+注意:
+
+- 投資助言ではありません。
+- 利益保証ではありません。
+- 自動売買、実注文、証券会社API連携はありません。
+- ChatGPT APIや外部AIへ自動送信しません。
+- 取引ログを外部送信しません。
+- データは遅延、欠損、推定、取得不可を含むため、最終判断は利用者が一次情報を確認して手動で行ってください。
+
 ## P2.4 リリースノートと最終QA記録
 
 完成版として共有する前に、次のドキュメントを確認してください。
