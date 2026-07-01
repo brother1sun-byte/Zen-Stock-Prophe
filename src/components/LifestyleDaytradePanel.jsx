@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { buildAfterCloseReviewExport } from '../utils/afterCloseReviewExport';
 import {
   buildAfterCloseReviewDraft,
   buildMorningGate,
@@ -273,6 +274,48 @@ function ReviewInsightPanel({ reviewInsights }) {
   );
 }
 
+function downloadTextFile(filename, text, mimeType) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return false;
+  }
+  const blob = new Blob([text], { type: mimeType });
+  const url = window.URL?.createObjectURL?.(blob);
+  if (!url) return false;
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+}
+
+function ReviewExportPanel({ reviewLog }) {
+  const [message, setMessage] = useState('');
+  const exportBundle = useMemo(() => buildAfterCloseReviewExport(reviewLog), [reviewLog]);
+  const runExport = (format) => {
+    const ok = format === 'csv'
+      ? downloadTextFile(exportBundle.csvFilename, exportBundle.csv, 'text/csv;charset=utf-8')
+      : downloadTextFile(exportBundle.jsonFilename, exportBundle.json, 'application/json;charset=utf-8');
+    setMessage(ok ? `${format.toUpperCase()}エクスポートを作成しました。外部送信はありません。` : 'エクスポートを作成できませんでした。表示中のJSONを手動で保存してください。');
+  };
+  return (
+    <div className="lifestyle-review-export" data-testid="after-close-review-export">
+      <div>
+        <strong>After Close Reviewエクスポート</strong>
+        <span data-testid="after-close-review-export-count">保存レビュー: {exportBundle.count}件</span>
+        <small>{exportBundle.notice}</small>
+      </div>
+      <div className="lifestyle-export-actions">
+        <button type="button" className="secondary-button" onClick={() => runExport('json')} data-testid="after-close-review-export-json">JSONエクスポート</button>
+        <button type="button" className="secondary-button" onClick={() => runExport('csv')} data-testid="after-close-review-export-csv">CSVエクスポート</button>
+      </div>
+      {message ? <small data-testid="after-close-review-export-message">{message}</small> : null}
+    </div>
+  );
+}
+
 function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, saveMessage }) {
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   return (
@@ -321,6 +364,7 @@ function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, s
           <small>このログはローカル保存のみです。実注文や外部送信は行いません。</small>
         </div>
       </div>
+      <ReviewExportPanel reviewLog={reviewLog} />
       <ReviewInsightPanel reviewInsights={reviewInsights} />
     </div>
   );
