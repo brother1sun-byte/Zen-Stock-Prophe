@@ -1709,6 +1709,8 @@ export default function App() {
           selectedDetail={selectedDetail}
           holdings={holdings}
           watchlistPreopenResults={watchlistPreopenResults}
+          selectedAdvancedReport={selectedAdvancedReport}
+          advancedReportsByTicker={advancedReportsByTicker}
           fetchedAt={edinetDisclosure?.fetchedAt || earningsCalendar?.fetchedAt || marketRankings?.fetchedAt || cached?.updatedAt || ''}
           marketFreshnessLabel={marketStatusView.freshnessLabel}
         />

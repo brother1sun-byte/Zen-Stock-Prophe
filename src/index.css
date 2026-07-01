@@ -427,6 +427,36 @@ h1 {
   font-size: 13px;
 }
 
+.lifestyle-evidence-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lifestyle-evidence-item {
+  min-height: 74px;
+  padding: 9px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(96, 165, 250, 0.07);
+}
+
+.lifestyle-evidence-item span,
+.lifestyle-review-log small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lifestyle-evidence-item strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .lifestyle-price-lines {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -542,6 +572,23 @@ h1 {
   resize: vertical;
 }
 
+.lifestyle-review-log {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.lifestyle-review-log span {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: #dbeafe;
+  font-size: 13px;
+}
+
 @media (max-width: 760px) {
   .lifestyle-daytrade-panel {
     padding: 12px;
@@ -562,6 +609,7 @@ h1 {
   }
 
   .lifestyle-price-lines,
+  .lifestyle-evidence-strip,
   .lifestyle-review-grid {
     grid-template-columns: 1fr;
   }
