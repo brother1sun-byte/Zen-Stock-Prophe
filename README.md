@@ -1,5 +1,19 @@
 # Zen Stock Prophet Pro
 
+## P7 判断支援UXベンチマーク改善
+
+世界水準の短期売買支援ツールの情報設計を参考に、生活導線デイトレ画面の上部へ「今日見るべきポイント」を追加しました。目的、結論、判断範囲、材料、リスク、データ不足を先に確認し、その後に Night Scan / Morning Gate / Work Monitor / After Close Review の詳細へ進めます。
+
+- 追加表示: 目的、判断範囲、次に確認すること、材料・需給・テクニカル・リスクの4分類
+- 手動判断前チェック: 一次情報、現在価格、注文上限、撤退ライン、見送り条件
+- データ注意: 推定、遅延、キャッシュ、取得不可、手入力が必要な価格を明示
+- 安全境界: 投資助言、利益保証、自動売買、実注文、証券会社API連携、外部ログ送信は行いません
+
+調査と改善計画:
+
+- `.workflow/decision-support-ux-benchmark/research-summary.md`
+- `.workflow/decision-support-ux-benchmark/improvement-plan.md`
+
 ## v1.1.0 Lifestyle Daytrade
 
 `v1.1.0-lifestyle-daytrade` は、忙しい会社員が帰宅後、翌朝、仕事中、引け後の生活導線に沿って日本株デイトレードの確認材料を整理するためのリリースです。

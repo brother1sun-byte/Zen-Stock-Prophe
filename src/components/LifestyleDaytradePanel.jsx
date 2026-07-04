@@ -2,8 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { buildAfterCloseReviewExport } from '../utils/afterCloseReviewExport';
 import {
   buildAfterCloseReviewDraft,
+  buildDecisionSupportBrief,
   buildMorningGate,
   buildNightScanRows,
+  buildPreTradeChecklist,
   buildReviewDrivenInsights,
   buildWorkMonitorRows,
   classifyAfterCloseReview,
@@ -83,6 +85,46 @@ function ReviewCautionCard({ title, cautions = [], testId }) {
       {visible.length ? visible.map((item, index) => (
         <span key={`${title}-${index}-${item}`}>注意: {item}</span>
       )) : <span>過去レビューはまだありません。</span>}
+    </div>
+  );
+}
+
+function DecisionSupportBrief({ brief, checklist }) {
+  return (
+    <div className="lifestyle-decision-brief" data-testid="lifestyle-decision-brief">
+      <div className="lifestyle-brief-main">
+        <span>今日見るべきポイント</span>
+        <strong>{brief.conclusion}</strong>
+        <p>{brief.purpose}</p>
+        <small>{brief.scope}</small>
+      </div>
+      <div className="lifestyle-brief-next">
+        <span>次の確認</span>
+        <strong>{brief.nextAction}</strong>
+        <small>{brief.safetyNotice}</small>
+      </div>
+      <div className="lifestyle-material-grid" aria-label="判断材料カテゴリ">
+        {brief.materials.map((item) => (
+          <div className="lifestyle-material-card" key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <small>{item.note}</small>
+          </div>
+        ))}
+      </div>
+      <div className="lifestyle-pretrade-checklist" data-testid="lifestyle-pretrade-checklist">
+        <strong>手動判断前チェック</strong>
+        {checklist.map((item) => (
+          <div className="lifestyle-check-row" key={item.label}>
+            <span>{item.label}</span>
+            <b>{item.status}</b>
+            <small>{item.detail}</small>
+          </div>
+        ))}
+      </div>
+      <div className="lifestyle-data-notices" data-testid="lifestyle-data-notices">
+        {brief.dataNotices.map((notice) => <span key={notice}>{notice}</span>)}
+      </div>
     </div>
   );
 }
@@ -425,6 +467,19 @@ export default function LifestyleDaytradePanel({
     reviewInsights,
   }), [advancedReportsByTicker, holdings, monitorPrices, reviewInsights]);
 
+  const decisionBrief = useMemo(() => buildDecisionSupportBrief({
+    nightRows,
+    morningGate,
+    workRows,
+    fetchedAt,
+    marketFreshnessLabel,
+  }), [fetchedAt, marketFreshnessLabel, morningGate, nightRows, workRows]);
+
+  const preTradeChecklist = useMemo(() => buildPreTradeChecklist({
+    gate: morningGate,
+    topRow: nightRows[0] || {},
+  }), [morningGate, nightRows]);
+
   const reviewDraft = useMemo(() => buildAfterCloseReviewDraft({
     ticker: reviewForm.ticker || selectedTicker || '',
     companyName: selectedStock?.name || selectedDetail?.name || '',
@@ -454,6 +509,7 @@ export default function LifestyleDaytradePanel({
           <small>{fetchedAt ? `最終確認: ${fetchedAt}` : '取得不可の項目は手入力してください'}</small>
         </div>
       </div>
+      <DecisionSupportBrief brief={decisionBrief} checklist={preTradeChecklist} />
       <div className="lifestyle-mode-tabs" role="tablist" aria-label="生活導線モード">
         {MODES.map((mode) => (
           <button

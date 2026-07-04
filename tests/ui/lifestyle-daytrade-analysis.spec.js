@@ -2,9 +2,11 @@ import { expect, test } from '@playwright/test';
 import {
   buildAdvancedConnectionSummary,
   buildAfterCloseReviewDraft,
+  buildDecisionSupportBrief,
   buildLifestyleBacktestSummary,
   buildMorningGate,
   buildNightScanRows,
+  buildPreTradeChecklist,
   buildReviewDrivenInsights,
   buildVolumeSeasonality,
   classifyAfterCloseReview,
@@ -93,6 +95,38 @@ test('Morning Gateは手入力価格と高度分析証拠を同時に扱う', ()
   expect(gate.backtestSummary.summary).toContain('検証');
   expect(gate.spreadRisk.estimated).toBe(true);
   expect(gate.volumeSeasonality.estimated).toBe(true);
+});
+
+test('判断支援ブリーフは材料と不足情報を分けて返す', () => {
+  const rows = buildNightScanRows({
+    stocks: [sampleStock],
+    detailsByTicker: { '7203.T': sampleDetail },
+    advancedReportsByTicker: { '7203.T': sampleAdvancedReport },
+    watchlistResults: [{ ticker: '7203.T', status: '確認推奨', risk: 'low', unknownInputs: [] }],
+  });
+  const gate = buildMorningGate({
+    stock: sampleStock,
+    detail: sampleDetail,
+    advancedReport: sampleAdvancedReport,
+    preopenResult: { status: '確認推奨', risk: 'low', unknownInputs: [] },
+    manualPrice: 3005,
+  });
+
+  const brief = buildDecisionSupportBrief({
+    nightRows: rows,
+    morningGate: gate,
+    workRows: [],
+    fetchedAt: '2026-07-04T08:30:00+09:00',
+    marketFreshnessLabel: 'yfinance取得',
+  });
+  const checklist = buildPreTradeChecklist({ gate, topRow: rows[0] });
+
+  expect(brief.conclusion).toContain('7203.T');
+  expect(brief.materials.map((item) => item.label)).toEqual(['材料', '需給', 'テクニカル', 'リスク']);
+  expect(brief.safetyNotice).toContain('投資助言');
+  expect(brief.dataNotices.join(' ')).toContain('スプレッド');
+  expect(checklist.map((item) => item.label)).toContain('一次情報');
+  expect(checklist.map((item) => item.label)).toContain('撤退ライン');
 });
 
 test('高度分析・出来高季節性・スプレッド推定は単独でも安全に返る', () => {

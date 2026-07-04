@@ -307,6 +307,106 @@ h1 {
   margin-bottom: 14px;
 }
 
+.lifestyle-decision-brief {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: var(--radius);
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.lifestyle-brief-main,
+.lifestyle-brief-next {
+  display: grid;
+  gap: 5px;
+}
+
+.lifestyle-brief-main span,
+.lifestyle-brief-next span,
+.lifestyle-material-card span,
+.lifestyle-check-row span,
+.lifestyle-data-notices span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.lifestyle-brief-main strong,
+.lifestyle-brief-next strong {
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.lifestyle-brief-main p,
+.lifestyle-brief-main small,
+.lifestyle-brief-next small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.lifestyle-material-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lifestyle-material-card,
+.lifestyle-check-row {
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.lifestyle-material-card strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.lifestyle-material-card small,
+.lifestyle-check-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lifestyle-pretrade-checklist {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lifestyle-pretrade-checklist > strong {
+  grid-column: 1 / -1;
+  font-size: 14px;
+}
+
+.lifestyle-check-row b {
+  display: block;
+  margin: 4px 0;
+  color: #bfdbfe;
+}
+
+.lifestyle-data-notices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lifestyle-data-notices span {
+  padding: 6px 8px;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.08);
+}
+
 .lifestyle-mode-tabs button {
   min-height: 54px;
   padding: 9px 10px;
@@ -655,7 +755,9 @@ h1 {
 
   .lifestyle-price-lines,
   .lifestyle-evidence-strip,
-  .lifestyle-review-grid {
+  .lifestyle-review-grid,
+  .lifestyle-material-grid,
+  .lifestyle-pretrade-checklist {
     grid-template-columns: 1fr;
   }
 

@@ -406,6 +406,106 @@ export function buildReviewDrivenInsights(records = [], context = {}) {
   };
 }
 
+function decisionSupportValue(value, fallback = 'データ未取得') {
+  return value === null || value === undefined || value === '' ? fallback : String(value);
+}
+
+export function buildDecisionSupportBrief({
+  nightRows = [],
+  morningGate = {},
+  workRows = [],
+  fetchedAt = '',
+  marketFreshnessLabel = '',
+} = {}) {
+  const topRow = Array.isArray(nightRows) && nightRows.length ? nightRows[0] : {};
+  const activeWorkAlerts = (Array.isArray(workRows) ? workRows : []).filter((row) => row.status === '利確検討' || row.status === '撤退検討');
+  const dataNotices = [
+    fetchedAt ? `最終確認: ${fetchedAt}` : '最終確認時刻は未取得です。',
+    marketFreshnessLabel || 'データ鮮度は取得元表示を確認してください。',
+  ];
+  if (!topRow.ticker) dataNotices.push('翌朝候補は未取得です。');
+  if (morningGate.orderLimitDistance?.value === null) dataNotices.push('注文上限との差は手入力価格で確認してください。');
+  if (topRow.spreadRisk?.estimated || morningGate.spreadRisk?.estimated) dataNotices.push('スプレッドは板情報なしの推定です。');
+  if (topRow.volumeSeasonality?.estimated || morningGate.volumeSeasonality?.estimated) dataNotices.push('出来高季節性は取得済みデータからの推定です。');
+
+  const materials = [
+    {
+      label: '材料',
+      value: decisionSupportValue(topRow.preopenStatus || morningGate.preopenStatus),
+      note: 'EDINET、決算予定、寄り付き前チェックの確認状態です。',
+    },
+    {
+      label: '需給',
+      value: decisionSupportValue(topRow.volumeSeasonality?.label || morningGate.volumeSeasonality?.label),
+      note: decisionSupportValue(topRow.volumeSeasonality?.precision || morningGate.volumeSeasonality?.precision, '推定精度は未取得です。'),
+    },
+    {
+      label: 'テクニカル',
+      value: decisionSupportValue(topRow.trendDirection || morningGate.advancedSummary?.status),
+      note: decisionSupportValue(topRow.advancedSummary?.status || morningGate.advancedSummary?.status, '高度分析は未取得です。'),
+    },
+    {
+      label: 'リスク',
+      value: decisionSupportValue(topRow.spreadRisk?.status || morningGate.spreadRisk?.status),
+      note: activeWorkAlerts.length
+        ? `仕事中チェックで注意対象 ${activeWorkAlerts.length}件。`
+        : 'リスク要因は価格ライン、推定スプレッド、見送り条件で確認します。',
+    },
+  ];
+
+  const conclusion = topRow.ticker
+    ? `${topRow.ticker} ${topRow.companyName || ''} は ${topRow.rankLabel || '判断保留'}。まず一次情報と手入力価格を確認してください。`
+    : '判断保留。候補データ、価格、材料イベントを確認してください。';
+  const nextAction = morningGate.decision
+    ? `翌朝は「${morningGate.decision}」として、注文上限との差、VWAP、出来高、見送り条件だけを確認します。`
+    : '翌朝は手入力価格を入れて、注文上限との差と見送り条件を確認します。';
+
+  return {
+    purpose: '短時間で、今日見るポイントと不足情報を分けて確認するためのブリーフです。',
+    conclusion,
+    scope: '帰宅後、翌朝、仕事中、引け後レビューの手動判断支援に限定します。',
+    nextAction,
+    materials,
+    dataNotices: Array.from(new Set(dataNotices)).slice(0, 5),
+    safetyNotice: '投資助言、利益保証、自動売買、実注文、証券会社API連携は行いません。',
+  };
+}
+
+export function buildPreTradeChecklist({ gate = {}, topRow = {} } = {}) {
+  const hasManualOrReferencePrice = Boolean(gate.currentPrice || topRow.priceLines?.currentPrice?.value);
+  const hasOrderLimit = Boolean(gate.lines?.orderLimit?.value || topRow.priceLines?.orderLimit?.value);
+  const hasExitLine = Boolean(gate.lines?.exitLine?.value || topRow.priceLines?.exitLine?.value);
+  const hasEvidence = Boolean(gate.advancedSummary?.status || topRow.advancedSummary?.status);
+  const hasRiskNotice = Boolean((gate.cautions || []).length || (topRow.skipConditions || []).length || gate.spreadRisk?.status || topRow.spreadRisk?.status);
+  return [
+    {
+      label: '一次情報',
+      status: hasEvidence ? '確認材料あり' : '不足情報あり',
+      detail: hasEvidence ? '高度分析、寄り付き前材料、検証材料を分けて確認できます。' : 'EDINET、決算予定、価格データの取得状態を確認してください。',
+    },
+    {
+      label: '現在価格',
+      status: hasManualOrReferencePrice ? '確認可能' : '手入力してください',
+      detail: '無料データが遅延または未取得の場合は、証券アプリで確認した価格を手入力します。',
+    },
+    {
+      label: '注文上限',
+      status: hasOrderLimit ? '確認可能' : '判断保留',
+      detail: '上限との差が大きい場合だけでなく、VWAP、出来高、スプレッド推定も確認します。',
+    },
+    {
+      label: '撤退ライン',
+      status: hasExitLine ? '確認可能' : '判断保留',
+      detail: '撤退ラインが不明な場合は、短時間判断の対象から外します。',
+    },
+    {
+      label: '見送り条件',
+      status: hasRiskNotice ? '確認可能' : '不足情報あり',
+      detail: '寄り付き直後の失速、出来高不足、推定スプレッド、材料不足を別枠で確認します。',
+    },
+  ];
+}
+
 function reviewInsightsForTicker(ticker, reviewInsights = {}) {
   if (!reviewInsights?.total) {
     return {

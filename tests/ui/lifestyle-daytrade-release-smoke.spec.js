@@ -22,6 +22,11 @@ test('Lifestyle daytrade workflow remains readable at common mobile widths', asy
     await page.goto('/');
 
     await expect(page.getByTestId('lifestyle-daytrade-panel')).toBeVisible();
+    await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('今日見るべきポイント');
+    await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('手動判断前チェック');
+    await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('投資助言');
+    await expect(page.getByTestId('lifestyle-pretrade-checklist')).toContainText('一次情報');
+    await expect(page.getByTestId('lifestyle-data-notices')).toBeVisible();
     await expect(page.getByTestId('lifestyle-night-card').first()).toBeVisible();
     await page.getByTestId('lifestyle-mode-morning').click();
     await expect(page.getByTestId('lifestyle-morning-card')).toBeVisible();
