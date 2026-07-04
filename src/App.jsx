@@ -1513,9 +1513,9 @@ export default function App() {
 
   async function runAction(kind) {
     const paths = { auto: '/auto-trade', screen: '/screen', learn: '/learn', reset: '/reset' };
-    const labels = { auto: 'AI自動運用', screen: '全市場スクリーニング', learn: 'AI学習', reset: 'リセット' };
+    const labels = { auto: 'AI下書き確認', screen: '全市場スクリーニング', learn: 'AI学習', reset: 'リセット' };
     const warnings = {
-      auto: 'シミュレーション上の自動売買記録を作成します。実売買ではありませんが、履歴が変わります。続行しますか？',
+      auto: 'シミュレーション上の運用確認記録を作成します。実売買ではありませんが、履歴が変わります。続行しますか？',
       learn: '過去のシミュレーション結果からローカル学習値を更新します。続行しますか？',
       reset: 'ポートフォリオ、取引履歴、判断履歴を初期化します。取り消せません。続行しますか？',
     };
@@ -1867,7 +1867,7 @@ export default function App() {
             </div>
             <div className="ai-fund-status">
               <StatusPill label={aiFundReady ? '承認待ち下書きあり' : '監視中'} tone={aiFundReady ? 'warn' : 'info'} />
-              <StatusPill label={aiFundDesk?.liveBrokerOrdersEnabled ? '実注文ON' : '実注文OFF'} tone={aiFundDesk?.liveBrokerOrdersEnabled ? 'bad' : 'good'} />
+              <StatusPill label={aiFundDesk?.liveBrokerOrdersEnabled ? '実注文設定確認' : '実注文なし'} tone={aiFundDesk?.liveBrokerOrdersEnabled ? 'bad' : 'good'} />
             </div>
           </div>
           <div className="ai-fund-summary">

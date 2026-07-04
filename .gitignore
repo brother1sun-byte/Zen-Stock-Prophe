@@ -16,6 +16,7 @@ playwright-report/
 product-review-*.png
 selection-linkage-*.png
 *.local
+.env
 .env.local
 .env.*.local
 zen-*.png
