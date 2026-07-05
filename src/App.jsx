@@ -1711,6 +1711,10 @@ export default function App() {
           watchlistPreopenResults={watchlistPreopenResults}
           selectedAdvancedReport={selectedAdvancedReport}
           advancedReportsByTicker={advancedReportsByTicker}
+          daytradeSignals={daytradeSignals}
+          daytradeSource={daytradeSource}
+          alertReport={alertReport}
+          marketPhase={browserMarketStatus}
           fetchedAt={edinetDisclosure?.fetchedAt || earningsCalendar?.fetchedAt || marketRankings?.fetchedAt || cached?.updatedAt || ''}
           marketFreshnessLabel={marketStatusView.freshnessLabel}
         />

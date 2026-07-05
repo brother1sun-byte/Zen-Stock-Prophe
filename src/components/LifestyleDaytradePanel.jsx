@@ -12,6 +12,7 @@ import {
   loadAfterCloseReviewLog,
   saveAfterCloseReviewDraft,
 } from '../utils/lifestyleDaytradeModes';
+import { buildZenLoopDeskPayload } from '../utils/zenLoopDesk';
 
 const MODES = [
   { id: 'night', label: 'Night Scan', caption: '帰宅後' },
@@ -126,6 +127,99 @@ function DecisionSupportBrief({ brief, checklist }) {
         {brief.dataNotices.map((notice) => <span key={notice}>{notice}</span>)}
       </div>
     </div>
+  );
+}
+
+function ZenLoopDeskPanel({ payload }) {
+  const visibleCandidates = payload.candidates.slice(0, 4);
+  const actionableCount = payload.candidates.filter((candidate) => candidate.gate.isActionable).length;
+  const researchOnlyCount = payload.candidates.length - actionableCount;
+  return (
+    <section className="zen-loop-desk" data-testid="zen-loop-desk-panel" aria-label="Zen Loop Desk">
+      <div className="zen-loop-head">
+        <div>
+          <span>Research → Thesis → Verification → Alert → Review</span>
+          <strong>Zen Loop Desk</strong>
+          <p>手動判断支援のみ。外部注文・自動実行は行いません。</p>
+        </div>
+        <div className="zen-loop-json-badge">JSON source of truth</div>
+      </div>
+      <div className="zen-loop-summary">
+        <div>
+          <span>market phase</span>
+          <strong>{payload.marketBrief.marketPhase}</strong>
+        </div>
+        <div>
+          <span>検証済み候補</span>
+          <strong>{actionableCount}件</strong>
+        </div>
+        <div>
+          <span>調査のみ</span>
+          <strong>{researchOnlyCount}件</strong>
+        </div>
+        <div>
+          <span>alert-only</span>
+          <strong>{payload.alertOnly.alertCount}件</strong>
+        </div>
+      </div>
+      {actionableCount === 0 ? (
+        <div className="zen-loop-no-action" data-testid="zen-loop-no-actionable">
+          検証済み候補はありません。無理に候補を作らず、Research / Thesis の確認に限定します。
+        </div>
+      ) : null}
+      <div className="zen-loop-brief-grid">
+        <div>
+          <strong>今日の主要リスク</strong>
+          {payload.marketBrief.majorRisks.map((item) => <span key={item}>{item}</span>)}
+        </div>
+        <div>
+          <strong>今日やってはいけない取引</strong>
+          {payload.marketBrief.doNotDoToday.map((item) => <span key={item}>{item}</span>)}
+        </div>
+      </div>
+      <div className="zen-loop-candidates">
+        {visibleCandidates.map((candidate) => (
+          <article className="zen-loop-candidate" data-testid="zen-loop-candidate" key={`${candidate.ticker}-${candidate.mode}`}>
+            <div className="zen-loop-candidate-head">
+              <strong>{candidate.ticker} {candidate.name}</strong>
+              <b className={candidate.gate.isActionable ? 'is-ready' : 'is-research'}>{candidate.gate.label}</b>
+            </div>
+            <div className="zen-loop-thesis">
+              <div>
+                <span>bullish thesis</span>
+                {(candidate.thesis.bullishReasons.length ? candidate.thesis.bullishReasons : ['根拠は未取得です']).slice(0, 2).map((item) => <small key={item}>{item}</small>)}
+              </div>
+              <div>
+                <span>bearish thesis</span>
+                {(candidate.thesis.bearishReasons.length ? candidate.thesis.bearishReasons : ['未検証のため調査のみです']).slice(0, 2).map((item) => <small key={item}>{item}</small>)}
+              </div>
+            </div>
+            <details className="zen-loop-details">
+              <summary>検証ゲートと条件を見る</summary>
+              <div>
+                {candidate.gate.checks.map((check) => (
+                  <p key={`${candidate.ticker}-${check.id}`}>{check.ok ? 'OK' : '未達'}: {check.label}</p>
+                ))}
+                <strong>entry条件</strong>
+                {candidate.thesis.entryConditions.map((item) => <p key={`entry-${candidate.ticker}-${item}`}>{item}</p>)}
+                <strong>invalidation条件</strong>
+                {candidate.thesis.invalidationConditions.map((item) => <p key={`invalid-${candidate.ticker}-${item}`}>{item}</p>)}
+                <strong>risk/reward短評</strong>
+                <p>{candidate.thesis.riskRewardComment}</p>
+              </div>
+            </details>
+          </article>
+        ))}
+      </div>
+      <div className="zen-loop-alert-review">
+        <span>{payload.alertOnly.notice}</span>
+        <span>{payload.weeklyReview.purpose}</span>
+      </div>
+      <details className="zen-loop-json">
+        <summary>JSONソースを確認</summary>
+        <pre data-testid="zen-loop-json">{JSON.stringify(payload, null, 2)}</pre>
+      </details>
+    </section>
   );
 }
 
@@ -420,6 +514,10 @@ export default function LifestyleDaytradePanel({
   watchlistPreopenResults = [],
   selectedAdvancedReport = {},
   advancedReportsByTicker = {},
+  daytradeSignals = [],
+  daytradeSource = '',
+  alertReport = {},
+  marketPhase = {},
   fetchedAt = '',
   marketFreshnessLabel = '',
 }) {
@@ -480,6 +578,19 @@ export default function LifestyleDaytradePanel({
     topRow: nightRows[0] || {},
   }), [morningGate, nightRows]);
 
+  const zenLoopDesk = useMemo(() => buildZenLoopDeskPayload({
+    stocks,
+    nightRows,
+    daytradeSignals,
+    alertReport: {
+      ...alertReport,
+      source: daytradeSource,
+    },
+    reviewInsights,
+    marketPhase,
+    fetchedAt,
+  }), [alertReport, daytradeSignals, daytradeSource, fetchedAt, marketPhase, nightRows, reviewInsights, stocks]);
+
   const reviewDraft = useMemo(() => buildAfterCloseReviewDraft({
     ticker: reviewForm.ticker || selectedTicker || '',
     companyName: selectedStock?.name || selectedDetail?.name || '',
@@ -510,6 +621,7 @@ export default function LifestyleDaytradePanel({
         </div>
       </div>
       <DecisionSupportBrief brief={decisionBrief} checklist={preTradeChecklist} />
+      <ZenLoopDeskPanel payload={zenLoopDesk} />
       <div className="lifestyle-mode-tabs" role="tablist" aria-label="生活導線モード">
         {MODES.map((mode) => (
           <button
