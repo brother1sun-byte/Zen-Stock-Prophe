@@ -15,6 +15,33 @@
 
 調査サマリーと改善計画は `.workflow/decision-support-ux-benchmark/` に保存しています。
 
+## Zen Loop Desk 安全ワークフロー
+
+Zen Loop Desk は、Minara風の自律型クオンツデスク思想から、Research -> Thesis -> Verification -> Alert -> Review の検証付きループだけを安全に取り込んだ補助UIです。既存データを統合表示する薄いレイヤーであり、取引判断の自動化や外部実行は行いません。
+
+表示する内容:
+
+- 候補ごとの bullish thesis / bearish thesis
+- entry条件、invalidation条件、risk/reward短評
+- verified candidate gate の状態
+- 条件未達時の `research-only` 表示
+- no verified candidate 時に候補を無理に作らない理由
+
+verified candidate として扱う条件:
+
+- `tradeReadiness == ready`
+- `decisionAudit.verdict == PASS`
+- actionable size あり
+- cross-engine confirmation が必要な場合は `aligned`
+
+安全境界:
+
+- 自動売買、注文、broker / RPA 連携、外部通知は行いません。
+- `alerts=0` または `status=NO_ACTION` を送信や実行に変換しません。
+- 検証未達候補を actionable として扱いません。
+- 表示内容は調査補助であり、最終判断は利用者が一次情報を確認して手動で行います。
+- 実データ精度改善と市場時間中の実データ確認は別タスクです。
+
 ## リリース概要
 
 `v1.1.0-lifestyle-daytrade` は、忙しい会社員が帰宅後、翌朝、仕事中、引け後の生活導線に沿って日本株デイトレードの確認材料を短時間で整理するためのリリースです。

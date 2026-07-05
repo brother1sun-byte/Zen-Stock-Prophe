@@ -1,5 +1,35 @@
 # Zen Stock Prophet Pro
 
+## Zen Loop Desk
+
+Zen Loop Desk は、Research -> Thesis -> Verification -> Alert -> Review を一画面で確認するための補助UIです。既存の市場データ、生活導線デイトレ確認、アラート状態、レビュー傾向を統合表示する薄いレイヤーであり、新しい自動実行機能ではありません。
+
+主な表示:
+
+- 候補ごとの bullish thesis / bearish thesis を整理します。
+- entry条件、invalidation条件、risk/reward短評を表示します。
+- verification gate の状態を明示します。
+- 条件未達の候補は `research-only` として表示します。
+- no verified candidate の場合は候補を無理に作りません。
+
+verified candidate として扱う条件:
+
+- `tradeReadiness == ready`
+- `decisionAudit.verdict == PASS`
+- actionable size あり
+- cross-engine confirmation が必要な場合は `aligned`
+
+Zen Loop Desk が行わないこと:
+
+- 自動売買しません。
+- 注文しません。
+- broker / RPA と連携しません。
+- 外部通知しません。
+- `alerts=0` または `status=NO_ACTION` を送信や実行に変換しません。
+- 検証未達候補を actionable として扱いません。
+
+表示内容は調査補助であり、最終判断は利用者が一次情報を確認して手動で行います。実データ精度改善と市場時間中の実データ確認は別タスクとして扱います。
+
 ## P7 判断支援UXベンチマーク改善
 
 世界水準の短期売買支援ツールの情報設計を参考に、生活導線デイトレ画面の上部へ「今日見るべきポイント」を追加しました。目的、結論、判断範囲、材料、リスク、データ不足を先に確認し、その後に Night Scan / Morning Gate / Work Monitor / After Close Review の詳細へ進めます。

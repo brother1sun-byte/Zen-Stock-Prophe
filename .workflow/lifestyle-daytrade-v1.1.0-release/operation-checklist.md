@@ -11,6 +11,19 @@
 5. 取得不可、推定、キャッシュ、手入力が必要な価格が隠れていない。
 6. 投資助言、利益保証、自動売買、実注文、証券会社API連携、外部ログ送信を行わない旨が表示される。
 
+## Zen Loop Desk 運用確認
+
+Zen Loop Desk は、Research -> Thesis -> Verification -> Alert -> Review を一画面で確認するための補助UIです。既存データを統合表示する薄いレイヤーであり、自動売買、注文、broker / RPA 連携、外部通知は行いません。
+
+確認項目:
+
+1. 候補ごとの bullish thesis / bearish thesis、entry条件、invalidation条件、risk/reward短評が確認できる。
+2. verified candidate 条件として、`tradeReadiness == ready`、`decisionAudit.verdict == PASS`、actionable size あり、必要時の cross-engine confirmation `aligned` が明示される。
+3. 条件未達の候補は `research-only` として表示される。
+4. no verified candidate の場合、候補を無理に作らない旨が表示される。
+5. `alerts=0` または `status=NO_ACTION` は、送信、実行、外部通知へ変換されない。
+6. 表示内容は調査補助であり、最終判断は利用者が一次情報を確認して手動で行う。
+
 ## 1. 起動方法
 
 ```bash
