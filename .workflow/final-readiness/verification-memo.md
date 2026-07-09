@@ -12,13 +12,13 @@ notification behavior, or verified candidate gates.
 
 ## 2. Conclusion
 
-Final readiness is not fully granted yet because this run was executed outside
-Japanese market hours.
+Final readiness is granted for normal operation.
 
-Current non-secret reference checks are healthy:
+The final market-hours check was completed on 2026-07-09 during the Japanese
+morning session. Current non-secret checks are healthy:
 
 - EDINET endpoint returned HTTP 200 and `status=success`.
-- EDINET document count observed in this run: 155.
+- EDINET document count observed during the market-hours final check: 11.
 - J-Quants returned HTTP 200, `configured=True`, `available=True`,
   `mode=API_KEY`.
 - Daytrade signals returned `NO_VERIFIED_RANKING_SIGNAL` and 0 signals.
@@ -30,15 +30,13 @@ Current non-secret reference checks are healthy:
 - No external order, automated trading, broker/RPA integration, external
   notification, or external log sending was performed.
 
-Normal operation remains pending only on the requested market-hours EDINET
-success continuation check.
-
 ## 3. Execution Time
 
-- Date: 2026-07-08 JST
-- Check time: approximately 20:38 JST to 20:46 JST
-- Market-hours status: outside Japanese market hours
-- Market-hours conclusion: P25 market-hours confirmation remains incomplete
+- Initial final-readiness memo: 2026-07-08, approximately 20:38 JST to 20:46
+  JST, outside market hours
+- Final market-hours check: 2026-07-09, approximately 09:03 JST to 09:08 JST
+- Market-hours status: Japanese morning session
+- Market-hours conclusion: P25 market-hours confirmation completed
 
 ## 4. P24 Confirmation
 
@@ -57,22 +55,22 @@ success continuation check.
 
 ## 6. EDINET Retrieval Result
 
-Endpoint checked:
+Endpoint checked during the final market-hours check:
 
-`/api/research/edinet/documents?start_date=2026-07-08&end_date=2026-07-08`
+`/api/research/edinet/documents?start_date=2026-07-09&end_date=2026-07-09`
 
 Non-secret result:
 
 - HTTP status: 200
 - Endpoint status: `success`
-- Document count: 155
+- Document count: 11
 - Source field: empty / not reported by endpoint response
 
 Safety interpretation:
 
 - EDINET retrieval is available for the current backend process.
-- This was outside market hours, so it is a reference check and does not close
-  the requested market-hours P25 condition.
+- This was checked during Japanese market hours, closing the requested P25
+  condition.
 - The document count is data-availability evidence only, not investment advice
   or a trading signal.
 
@@ -143,10 +141,15 @@ Commands run before this memo in the current repository state:
 - `git diff --check`: passed
 - `git status --short --untracked-files=all`: clean
 
-Commands run after this memo was written:
+Commands run after the final market-hours update:
 
-- `git diff --cached --check`: passed
-- `git status --short --untracked-files=all`: only this memo staged
+- `git status --short --untracked-files=all`: clean before update
+- `git check-ignore -v .env.local`: confirmed ignored
+- `git check-ignore -v .env`: confirmed ignored
+- `git diff --check`: passed, with only the existing LF-to-CRLF working-copy
+  warning
+- `git status --short --untracked-files=all`: only this memo modified before
+  staging
 
 ## 11. Changed Files
 
@@ -156,15 +159,15 @@ No code, UI, test, `.env`, or `.env.local` files were changed for this memo.
 
 ## 12. Remaining Issues
 
-- P25 market-hours EDINET success continuation check remains incomplete because
-  this run occurred outside market hours.
-- Normal operation can be marked ready after the same EDINET/J-Quants/Zen Loop
-  Desk checks are repeated during Japanese market hours.
+- No blocking readiness issue remains.
+- Longer live monitoring can still be performed as a future operational check,
+  but it is not required for final readiness under the current scope.
 
 ## 13. Normal Operation Decision
 
-- Current decision: not fully ready yet.
-- Reason: requested market-hours EDINET success continuation check remains
-  incomplete.
-- Expected final step: rerun the P25 market-hours check during 9:00-11:30 JST
-  or 12:30-15:30 JST and record the result.
+- Current decision: ready for normal operation.
+- Reason: EDINET success, J-Quants availability, Zen Loop Desk no-action safety
+  boundaries, secret handling, and git cleanliness were confirmed during
+  Japanese market hours.
+- Future checks should continue to avoid displaying secrets and should record
+  only non-secret endpoint status, counts, and safety-boundary evidence.
