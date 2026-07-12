@@ -18,7 +18,7 @@ import sqlite3
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Callable
@@ -155,8 +155,12 @@ DEFAULT_INTRADAY_BUDGET_JPY = 500_000
 INTRADAY_SHARE_UNIT = 1
 DAYTRADE_ANALYSIS_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_ANALYSIS_CACHE_TTL_SEC", "180") or 180)
 DAYTRADE_ANALYSIS_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
+DAYTRADE_ANALYSIS_INFLIGHT: dict[tuple[str, str], threading.Event] = {}
+DAYTRADE_ANALYSIS_CACHE_LOCK = threading.Lock()
 DAYTRADE_CONTEXT_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_CONTEXT_CACHE_TTL_SEC", "900") or 900)
+DAYTRADE_CONTEXT_TIMEOUT_SEC = max(1.0, float(os.environ.get("ZEN_DAYTRADE_CONTEXT_TIMEOUT_SEC", "6") or 6))
 DAYTRADE_CONTEXT_CACHE: dict[str, dict[str, Any]] = {}
+DAYTRADE_CONTEXT_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="daytrade-context")
 PRICE_HISTORY_CACHE_TTL_SEC = int(os.environ.get("ZEN_PRICE_HISTORY_CACHE_TTL_SEC", "180") or 180)
 PRICE_HISTORY_CACHE: dict[tuple[str, str, str], dict[str, Any]] = {}
 PRICE_HISTORY_INFLIGHT: dict[tuple[str, str, str], threading.Event] = {}
@@ -4523,42 +4527,98 @@ def _fetch_daytrade_event_context(ticker: str) -> dict[str, Any]:
     return _daytrade_cache_set(cache_key, payload)
 
 
+def _fetch_daytrade_contexts(ticker: str, timeout_sec: float | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Fetch optional quote/news context without blocking the core analysis path."""
+    timeout = max(0.01, float(timeout_sec or DAYTRADE_CONTEXT_TIMEOUT_SEC))
+    futures = {
+        "quote": DAYTRADE_CONTEXT_EXECUTOR.submit(_fetch_daytrade_quote_context, ticker),
+        "events": DAYTRADE_CONTEXT_EXECUTOR.submit(_fetch_daytrade_event_context, ticker),
+    }
+    deadline = time.monotonic() + timeout
+    results: dict[str, dict[str, Any]] = {}
+    fallbacks = {
+        "quote": {"source": "UNAVAILABLE", "bid": None, "ask": None, "quoteAgeSec": 999, "errorCode": "OPTIONAL_CONTEXT_TIMEOUT"},
+        "events": {
+            "source": "UNAVAILABLE",
+            "tone": "unknown",
+            "hasRecentMaterial": False,
+            "hasUpcomingEarnings": False,
+            "items": [],
+            "errorCode": "OPTIONAL_CONTEXT_TIMEOUT",
+        },
+    }
+    for key, future in futures.items():
+        remaining = max(0.01, deadline - time.monotonic())
+        try:
+            results[key] = future.result(timeout=remaining)
+        except FutureTimeoutError:
+            results[key] = fallbacks[key]
+        except Exception as exc:
+            results[key] = {**fallbacks[key], "errorCode": "OPTIONAL_CONTEXT_FAILED", "error": str(exc)[:160]}
+    return results["quote"], results["events"]
+
+
 @app.get("/api/daytrade/analysis/{ticker}")
 def get_daytrade_analysis(ticker: str, interval: str = Query("5m", pattern="^(1m|5m|15m|1d)$")) -> dict[str, Any]:
     ticker = validate_market_ticker(ticker)
     if build_daytrade_analysis is None:
         raise HTTPException(status_code=503, detail="Daytrade analysis engine unavailable")
-    now = dt.datetime.now(dt.timezone.utc)
     cache_key = (ticker, interval)
-    cached = DAYTRADE_ANALYSIS_CACHE.get(cache_key)
-    if cached:
-        cached_at = cached.get("cachedAt")
-        age_sec = (now - cached_at).total_seconds() if isinstance(cached_at, dt.datetime) else DAYTRADE_ANALYSIS_CACHE_TTL_SEC + 1
-        if age_sec <= DAYTRADE_ANALYSIS_CACHE_TTL_SEC:
-            return {
-                **cached["payload"],
-                "cacheStatus": "HIT",
-                "cacheAgeSec": round(max(0, age_sec), 1),
-                "cacheTtlSec": DAYTRADE_ANALYSIS_CACHE_TTL_SEC,
-            }
-    period = INTERVAL_PERIODS.get(interval, "60d")
-    hist = get_stock_data(ticker, period=period, interval=interval)
-    if hist is None or hist.empty:
-        raise HTTPException(status_code=404, detail=f"No {interval} history for {ticker}")
+    while True:
+        now = dt.datetime.now(dt.timezone.utc)
+        with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            cached = DAYTRADE_ANALYSIS_CACHE.get(cache_key)
+            if cached:
+                cached_at = cached.get("cachedAt")
+                age_sec = (now - cached_at).total_seconds() if isinstance(cached_at, dt.datetime) else DAYTRADE_ANALYSIS_CACHE_TTL_SEC + 1
+                if age_sec <= DAYTRADE_ANALYSIS_CACHE_TTL_SEC:
+                    return {
+                        **cached["payload"],
+                        "cacheStatus": "HIT",
+                        "cacheAgeSec": round(max(0, age_sec), 1),
+                        "cacheTtlSec": DAYTRADE_ANALYSIS_CACHE_TTL_SEC,
+                    }
+            in_flight = DAYTRADE_ANALYSIS_INFLIGHT.get(cache_key)
+            if in_flight is None:
+                in_flight = threading.Event()
+                DAYTRADE_ANALYSIS_INFLIGHT[cache_key] = in_flight
+                is_owner = True
+            else:
+                is_owner = False
+        if is_owner:
+            break
+        in_flight.wait()
     try:
-        quote_context = _fetch_daytrade_quote_context(ticker)
-        event_context = _fetch_daytrade_event_context(ticker)
+        period = INTERVAL_PERIODS.get(interval, "60d")
+        hist = get_stock_data(ticker, period=period, interval=interval)
+        if hist is None or hist.empty:
+            raise HTTPException(status_code=404, detail=f"No {interval} history for {ticker}")
+        quote_context, event_context = _fetch_daytrade_contexts(ticker)
         payload = build_daytrade_analysis(ticker, hist, interval=interval, quote_context=quote_context, event_context=event_context)
-        DAYTRADE_ANALYSIS_CACHE[cache_key] = {"cachedAt": now, "payload": payload}
+        with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_CACHE[cache_key] = {"cachedAt": dt.datetime.now(dt.timezone.utc), "payload": payload}
+            DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
         return {
             **payload,
             "cacheStatus": "MISS",
             "cacheAgeSec": 0,
             "cacheTtlSec": DAYTRADE_ANALYSIS_CACHE_TTL_SEC,
         }
+    except HTTPException:
+        with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
+        raise
     except ValueError as exc:
+        with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
+        with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
+            in_flight.set()
         raise HTTPException(status_code=502, detail=f"Daytrade analysis failed: {exc}") from exc
 
 

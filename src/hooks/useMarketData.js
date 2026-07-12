@@ -154,6 +154,28 @@ export function useMarketData({
     return { stocks: nextStocks, portfolio: nextPortfolio, transactions: nextTransactions, marketUniverse: nextMarketUniverse, marketRankings: activeRankings, errors };
   }, [addLog, ensureStocks, marketRankings, marketUniverse, portfolio, rankingKind, selectedTicker, setBusy, setSelectedTicker, setStatus, stocks, transactions, writeMarketCache]);
 
+  const refreshPortfolioLedger = useCallback(async () => {
+    const [portfolioResult, transactionsResult] = await Promise.allSettled([
+      api('/portfolio', { timeout: 20000 }),
+      api('/transactions', { timeout: 12000 }),
+    ]);
+    const nextPortfolio = portfolioResult.status === 'fulfilled' ? portfolioResult.value : null;
+    const nextTransactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : null;
+    const errors = [portfolioResult, transactionsResult]
+      .filter((result) => result.status === 'rejected')
+      .map((result) => result.reason?.message || '台帳の表示更新に失敗しました。');
+    if (nextPortfolio) setPortfolio(nextPortfolio);
+    if (nextTransactions) setTransactions(nextTransactions);
+    if (nextPortfolio || nextTransactions) {
+      setLastUpdated(new Date());
+      writeMarketCache({
+        ...(nextPortfolio ? { portfolio: nextPortfolio } : {}),
+        ...(nextTransactions ? { transactions: nextTransactions } : {}),
+      });
+    }
+    return { portfolio: nextPortfolio, transactions: nextTransactions, errors };
+  }, [writeMarketCache]);
+
   const loadDetail = useCallback((ticker) => {
     if (!ticker) return Promise.resolve(null);
     const activeRequest = detailRequestsRef.current.get(ticker);
@@ -285,6 +307,7 @@ export function useMarketData({
     marketFreshness,
     marketStatusView,
     hydrateMarketData,
+    refreshPortfolioLedger,
     loadDetail,
     loadMarketRankings,
     searchMarket,

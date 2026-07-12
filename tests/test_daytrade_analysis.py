@@ -1,7 +1,9 @@
 import json
 import math
 import sys
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -108,6 +110,18 @@ class DaytradeAnalysisTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_daytrade_analysis("6503.T", self.make_intraday_frame(), interval="30m")
 
+    def test_unavailable_event_context_remains_cautionary(self):
+        report = build_daytrade_analysis(
+            "6503.T",
+            self.make_intraday_frame(),
+            interval="5m",
+            event_context={"source": "UNAVAILABLE", "tone": "unknown", "items": []},
+        )
+
+        event_risk = report["indicators"]["eventRisk"]
+        self.assertEqual(event_risk["verdict"], "CAUTION")
+        self.assertTrue(any("一次情報" in reason for reason in event_risk["reasons"]))
+
     def test_daytrade_api_uses_requested_interval_period(self):
         frame = self.make_intraday_frame()
         calls = []
@@ -153,6 +167,59 @@ class DaytradeAnalysisTests(unittest.TestCase):
         self.assertEqual(first["cacheStatus"], "MISS")
         self.assertEqual(second["cacheStatus"], "HIT")
         self.assertEqual(second["score"], first["score"])
+
+    def test_daytrade_api_coalesces_concurrent_analysis_requests(self):
+        frame = self.make_intraday_frame()
+        calls = []
+        original_get_stock_data = server.get_stock_data
+        original_build = server.build_daytrade_analysis
+        original_contexts = server._fetch_daytrade_contexts
+        try:
+            server.DAYTRADE_ANALYSIS_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_INFLIGHT.clear()
+            server.get_stock_data = lambda ticker, period, interval: frame
+            server._fetch_daytrade_contexts = lambda ticker: ({"source": "TEST"}, {"source": "TEST"})
+
+            def slow_build(ticker, hist, **kwargs):
+                calls.append(ticker)
+                time.sleep(0.05)
+                return {"ticker": ticker, "interval": kwargs["interval"], "score": 50}
+
+            server.build_daytrade_analysis = slow_build
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                results = list(executor.map(lambda _index: server.get_daytrade_analysis("6503.T", interval="5m"), range(2)))
+        finally:
+            server.get_stock_data = original_get_stock_data
+            server.build_daytrade_analysis = original_build
+            server._fetch_daytrade_contexts = original_contexts
+            server.DAYTRADE_ANALYSIS_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_INFLIGHT.clear()
+
+        self.assertEqual(calls, ["6503.T"])
+        self.assertEqual(sorted(item["cacheStatus"] for item in results), ["HIT", "MISS"])
+
+    def test_optional_daytrade_context_timeout_does_not_block_analysis(self):
+        original_quote = server._fetch_daytrade_quote_context
+        original_events = server._fetch_daytrade_event_context
+        try:
+            server.DAYTRADE_CONTEXT_CACHE.clear()
+            server._fetch_daytrade_quote_context = lambda ticker: time.sleep(0.2) or {"source": "LATE_QUOTE"}
+            server._fetch_daytrade_event_context = lambda ticker: time.sleep(0.2) or {"source": "LATE_EVENTS"}
+            started = time.perf_counter()
+            quote, events = server._fetch_daytrade_contexts("6503.T", timeout_sec=0.02)
+            elapsed = time.perf_counter() - started
+        finally:
+            server._fetch_daytrade_quote_context = original_quote
+            server._fetch_daytrade_event_context = original_events
+            server.DAYTRADE_CONTEXT_CACHE.clear()
+
+        self.assertLess(elapsed, 0.15)
+        self.assertEqual(quote["source"], "UNAVAILABLE")
+        self.assertEqual(events["source"], "UNAVAILABLE")
+        self.assertEqual(quote["errorCode"], "OPTIONAL_CONTEXT_TIMEOUT")
+        self.assertEqual(events["errorCode"], "OPTIONAL_CONTEXT_TIMEOUT")
+        self.assertNotIn("quote:6503.T", server.DAYTRADE_CONTEXT_CACHE)
+        self.assertNotIn("events:6503.T", server.DAYTRADE_CONTEXT_CACHE)
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ export function usePortfolioLedger({
   chartData = [],
   selectedDetail,
   persistLifecycle,
-  hydrate,
+  refreshLedger,
   addLog,
   setBusy,
   setStatus,
@@ -113,11 +113,22 @@ export function usePortfolioLedger({
     return acc;
   }, {}), [lifecycleEvents]);
 
-  const lifecycleFeed = useMemo(() => lifecycleEvents.map((event) => ({
-    ...event,
-    title: event.ok ? '台帳更新完了' : '台帳更新失敗',
-    subtitle: event.ok ? `${event.actionLabel}完了` : event.actionLabel,
-  })), [lifecycleEvents]);
+  const lifecycleFeed = useMemo(() => {
+    const pending = lifecycleEvents.map((event) => ({
+      ...event,
+      title: event.ok ? '台帳更新完了' : '台帳更新失敗',
+      subtitle: event.ok ? `${event.actionLabel}完了` : event.actionLabel,
+    }));
+    const persisted = archivedHoldings.map((holding) => ({
+      id: `archived-${holding.ticker}-${holding.updatedAt || holding.closedAt || holding.status}`,
+      ok: true,
+      ticker: holding.ticker,
+      title: `${holding.ticker} ${holding.name || ''}`.trim(),
+      subtitle: portfolioStatusLabel(holding.status),
+      message: [holding.closedAt || holding.updatedAt, holding.lifecycleReason].filter(Boolean).join(' / '),
+    }));
+    return [...pending, ...persisted].slice(0, 20);
+  }, [archivedHoldings, lifecycleEvents]);
 
   const riskMetrics = useMemo(() => ([
     ['年率変動', `${portfolioHealth.volatility.toFixed(1)}%`],
@@ -172,8 +183,13 @@ export function usePortfolioLedger({
         actionLabel,
         message,
       });
-      await hydrate?.(true);
-      setStatus?.({ tone: 'good', text: `${actionLabel}完了` });
+      const refreshResult = await refreshLedger?.();
+      if (refreshResult?.errors?.length) {
+        addLog?.('SYS', `${actionLabel}は保存済みですが、最新の台帳表示を取得できませんでした。再読込してください。`);
+        setStatus?.({ tone: 'warn', text: `${actionLabel}保存済み・表示更新待ち` });
+      } else {
+        setStatus?.({ tone: 'good', text: `${actionLabel}完了` });
+      }
       return { ok: true, result };
     } catch (error) {
       const message = `${ticker} の台帳状態更新に失敗しました: ${error.message}`;
@@ -191,7 +207,7 @@ export function usePortfolioLedger({
       setPendingLifecycle(null);
       setBusy?.('');
     }
-  }, [addLog, hydrate, persistLifecycle, recordLifecycleEvent, setBusy, setStatus]);
+  }, [addLog, persistLifecycle, recordLifecycleEvent, refreshLedger, setBusy, setStatus]);
 
   return {
     holdings,

@@ -697,6 +697,7 @@ export default function App() {
     marketFreshness,
     marketStatusView,
     hydrateMarketData,
+    refreshPortfolioLedger,
     loadDetail,
     loadMarketRankings,
     searchMarket: searchMarketData,
@@ -1053,7 +1054,6 @@ export default function App() {
 
   const {
     holdings,
-    archivedHoldings,
     allocation,
     portfolioHealth,
     lifecycleFeed,
@@ -1074,7 +1074,7 @@ export default function App() {
         reason,
       }),
     }),
-    hydrate,
+    refreshLedger: refreshPortfolioLedger,
     addLog,
     setBusy,
     setStatus,
@@ -1625,7 +1625,10 @@ export default function App() {
       }),
       onSaved: async (response) => {
         addLog('PORT', response?.message || '練習注文を約定済みとして台帳へ保存しました。');
-        await hydrate(true);
+        const refreshResult = await refreshPortfolioLedger();
+        if (refreshResult.errors.length) {
+          addLog('SYS', '練習注文は保存済みですが、最新の台帳表示を取得できませんでした。再読込してください。');
+        }
       },
       onError: (error) => {
         addLog('SYS', error?.message || '練習注文の保存に失敗しました。');
@@ -1654,7 +1657,6 @@ export default function App() {
   void exitPlanTone;
   void selectedQuality;
   void selectedDataQuality;
-  void archivedHoldings;
   void dataProvenance;
   return (
     <div className={`app-shell ${showDetails ? 'detail-mode' : 'simple-mode'}`}>
@@ -1847,7 +1849,7 @@ export default function App() {
               <div><span>現金</span><strong>{yen(portfolio?.cash)}</strong></div>
               <div><span>含み損益</span><strong className={practicePnl >= 0 ? 'up' : 'down'}>{yen(practicePnl)}</strong></div>
             </div>
-            <div className="practice-position-list">
+            <div className="practice-position-list" data-testid="practice-position-list">
               {practiceHoldings.slice(0, 3).map((holding) => (
                 <div key={`practice-holding-${holding.ticker}`}>
                   <span>{holding.ticker}</span>
@@ -3051,9 +3053,14 @@ export default function App() {
               </div>
             )) : <small>保有銘柄の更新履歴はまだありません。</small>}
           </div>
-          <div className="activity-log">
+          <div className="activity-log" data-testid="portfolio-transaction-history">
             <div className="section-title"><Archive size={16} /><span>操作履歴</span></div>
-            {log.slice(0, 8).map((log, index) => <small key={`log-${index}-${log.time || ''}`}>{log.time} {log.type}: {log.message}</small>)}
+            {transactions.slice(0, 20).map((transaction) => (
+              <small key={`transaction-${transaction.id || transaction.createdAt || `${transaction.ticker}-${transaction.action}`}`}>
+                {String(transaction.createdAt || '').slice(0, 16).replace('T', ' ')} {tradeActionLabel(transaction.action)}: {transaction.ticker} {transaction.shares}株 / {yen(transaction.price)} / {yen(transaction.total)}{transaction.reason ? ` / ${transaction.reason}` : ''}
+              </small>
+            ))}
+            {!transactions.length && <small>保存された操作履歴はまだありません。</small>}
           </div>
         </section>
         </PortfolioLedger>

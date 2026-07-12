@@ -243,7 +243,10 @@ def _event_risk(event_context: dict[str, Any] | None = None) -> dict[str, Any]:
     has_recent_material = bool(event_context.get("hasRecentMaterial"))
     has_earnings = bool(event_context.get("hasUpcomingEarnings"))
     tone = str(event_context.get("tone") or "unknown")
+    source = str(event_context.get("source") or "UNCONFIRMED")
     risk_reasons: list[str] = []
+    if source in {"UNAVAILABLE", "UNCONFIRMED"}:
+        risk_reasons.append("イベント情報を取得できないため、一次情報の確認が必要です。")
     if has_earnings:
         risk_reasons.append("決算または予定イベントが近づいています。")
     if has_recent_material and tone == "negative":
@@ -260,7 +263,7 @@ def _event_risk(event_context: dict[str, Any] | None = None) -> dict[str, Any]:
         "latestPublishedAt": str(event_context.get("latestPublishedAt") or ""),
         "items": items[:3],
         "reasons": risk_reasons,
-        "source": str(event_context.get("source") or "UNCONFIRMED"),
+        "source": source,
     }
 
 
