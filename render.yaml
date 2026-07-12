@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: zen-stock-prophet-pro
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ZEN_API_HOST
+        value: 0.0.0.0

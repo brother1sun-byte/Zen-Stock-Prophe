@@ -29,6 +29,8 @@ import requests
 import yfinance as yf
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -4616,6 +4618,31 @@ def get_daytrade_autopilot_status() -> dict[str, Any]:
 def get_daytrade_risk_state() -> dict[str, Any]:
     from daytrade_engine import risk_state
     return _json_safe(risk_state())
+
+
+FRONTEND_DIST_DIR = ROOT_DIR / "dist"
+FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
+
+if FRONTEND_ASSETS_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_ASSETS_DIR), name="frontend-assets")
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend(full_path: str):
+    """Serve the production SPA without intercepting unknown API routes."""
+    if full_path == "api" or full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
+    if not FRONTEND_DIST_DIR.is_dir():
+        raise HTTPException(status_code=404, detail="Frontend build is unavailable")
+
+    requested = (FRONTEND_DIST_DIR / full_path).resolve()
+    try:
+        requested.relative_to(FRONTEND_DIST_DIR.resolve())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Frontend asset not found") from exc
+    if full_path and requested.is_file():
+        return FileResponse(requested)
+    return FileResponse(FRONTEND_DIST_DIR / "index.html")
 
 
 if __name__ == "__main__":
