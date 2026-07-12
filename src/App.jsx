@@ -673,7 +673,10 @@ export default function App() {
   ]);
 
   const addLog = useCallback((tag, text) => {
-    setLog((items) => [{ tag, text }, ...items].slice(0, 12));
+    setLog((items) => [
+      { tag, text },
+      ...items.filter((item) => item.tag !== tag || item.text !== text),
+    ].slice(0, 12));
   }, []);
 
   const browserMarketStatus = useMemo(() => currentTokyoMarketStatus(), []);
@@ -736,13 +739,21 @@ export default function App() {
       const marketResult = await hydrateMarketData(background);
       const [daytradePlanResult, daytradeSignalsResult, daytradeRiskResult, brokerStatusResult, autopilotResult, aiFundDeskResult, alertResult, jquantsResult] = await Promise.allSettled([
         api('/daytrade/plan'),
-        api(`/daytrade/signals?kind=${encodeURIComponent(rankingKind)}`),
+        background
+          ? Promise.resolve({ signals: daytradeSignals, source: daytradeSource })
+          : api(`/daytrade/signals?kind=${encodeURIComponent(rankingKind)}`),
         api('/daytrade/risk-state'),
         api('/daytrade/broker-status'),
         api('/daytrade/autopilot/status'),
-        api(`/ai-fund/desk?kind=${encodeURIComponent(rankingKind)}`, { timeout: 30000 }),
-        api('/alerts/watchlist', { timeout: 12000 }),
-        api('/research/jquants/status'),
+        background
+          ? Promise.resolve(aiFundDesk)
+          : api(`/ai-fund/desk?kind=${encodeURIComponent(rankingKind)}`, { timeout: 30000 }),
+        background
+          ? Promise.resolve(alertReport)
+          : api('/alerts/watchlist', { timeout: 12000 }),
+        background
+          ? Promise.resolve(jquantsResearch)
+          : api('/research/jquants/status'),
       ]);
       const nextDaytradePlan = daytradePlanResult.status === 'fulfilled' && daytradePlanResult.value ? daytradePlanResult.value : daytradePlan;
       const signalPayload = daytradeSignalsResult.status === 'fulfilled' ? daytradeSignalsResult.value : null;

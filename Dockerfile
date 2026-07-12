@@ -13,7 +13,8 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ZEN_API_HOST=0.0.0.0 \
-    ZEN_DB_PATH=/tmp/simulator.db
+    ZEN_DB_PATH=/tmp/simulator.db \
+    ZEN_SCREEN_MAX_UNIVERSE=80
 
 WORKDIR /app
 COPY requirements-render.txt ./

@@ -13,3 +13,5 @@ services:
         value: 0.0.0.0
       - key: ZEN_DB_PATH
         value: /tmp/simulator.db
+      - key: ZEN_SCREEN_MAX_UNIVERSE
+        value: "80"

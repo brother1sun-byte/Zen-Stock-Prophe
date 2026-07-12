@@ -85,7 +85,9 @@ export function useMarketData({
       api('/stocks'),
       api('/portfolio'),
       api('/transactions'),
-      api('/market/universe', { timeout: 12000 }),
+      background
+        ? Promise.resolve(marketUniverse)
+        : api('/market/universe', { timeout: 12000 }),
       background
         ? Promise.resolve(marketRankings)
         : api(`/market/rankings?kind=${rankingKind}&limit=30`, { timeout: 90000 }),
