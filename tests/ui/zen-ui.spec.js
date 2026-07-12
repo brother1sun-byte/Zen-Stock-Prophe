@@ -1042,6 +1042,8 @@ test('バックグラウンド更新は重い市場APIを再取得しない', as
   const heavyRequestCounts = new Map([
     ['/api/market/rankings', 0],
     ['/api/market/universe', 0],
+    ['/api/portfolio', 0],
+    ['/api/transactions', 0],
     ['/api/daytrade/signals', 0],
     ['/api/ai-fund/desk', 0],
     ['/api/alerts/watchlist', 0],

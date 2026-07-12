@@ -83,8 +83,12 @@ export function useMarketData({
       : ++rankingRequestIdRef.current;
     const [stockResult, portfolioResult, txResult, universeResult, rankingResult] = await Promise.allSettled([
       api('/stocks'),
-      api('/portfolio'),
-      api('/transactions'),
+      background
+        ? Promise.resolve(portfolio)
+        : api('/portfolio', { timeout: 20000 }),
+      background
+        ? Promise.resolve(transactions)
+        : api('/transactions', { timeout: 12000 }),
       background
         ? Promise.resolve(marketUniverse)
         : api('/market/universe', { timeout: 12000 }),
