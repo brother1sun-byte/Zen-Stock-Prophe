@@ -198,6 +198,39 @@ class DaytradeAnalysisTests(unittest.TestCase):
         self.assertEqual(calls, ["6503.T"])
         self.assertEqual(sorted(item["cacheStatus"] for item in results), ["HIT", "MISS"])
 
+    def test_daytrade_api_coalesces_concurrent_missing_history(self):
+        calls = []
+        original_get_stock_data = server.get_stock_data
+        try:
+            server.DAYTRADE_ANALYSIS_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_FAILURE_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_INFLIGHT.clear()
+
+            def missing_history(ticker, period, interval):
+                calls.append((ticker, period, interval))
+                time.sleep(0.05)
+                return None
+
+            server.get_stock_data = missing_history
+
+            def request_analysis(_index):
+                try:
+                    server.get_daytrade_analysis("6503.T", interval="5m")
+                except Exception as exc:
+                    return getattr(exc, "status_code", None), getattr(exc, "detail", None)
+                return None, None
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                results = list(executor.map(request_analysis, range(2)))
+        finally:
+            server.get_stock_data = original_get_stock_data
+            server.DAYTRADE_ANALYSIS_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_FAILURE_CACHE.clear()
+            server.DAYTRADE_ANALYSIS_INFLIGHT.clear()
+
+        self.assertEqual(calls, [("6503.T", "60d", "5m")])
+        self.assertEqual(results, [(404, "No 5m history for 6503.T"), (404, "No 5m history for 6503.T")])
+
     def test_optional_daytrade_context_timeout_does_not_block_analysis(self):
         original_quote = server._fetch_daytrade_quote_context
         original_events = server._fetch_daytrade_event_context

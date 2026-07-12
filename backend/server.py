@@ -154,7 +154,9 @@ MARKET_TICKER_PATTERN = re.compile(r"^(\^?[A-Z0-9]{1,10}|[0-9A-Z]{4,5}\.T)$")
 DEFAULT_INTRADAY_BUDGET_JPY = 500_000
 INTRADAY_SHARE_UNIT = 1
 DAYTRADE_ANALYSIS_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_ANALYSIS_CACHE_TTL_SEC", "180") or 180)
+DAYTRADE_ANALYSIS_FAILURE_TTL_SEC = max(1, int(os.environ.get("ZEN_DAYTRADE_ANALYSIS_FAILURE_TTL_SEC", "3") or 3))
 DAYTRADE_ANALYSIS_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
+DAYTRADE_ANALYSIS_FAILURE_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
 DAYTRADE_ANALYSIS_INFLIGHT: dict[tuple[str, str], threading.Event] = {}
 DAYTRADE_ANALYSIS_CACHE_LOCK = threading.Lock()
 DAYTRADE_CONTEXT_CACHE_TTL_SEC = int(os.environ.get("ZEN_DAYTRADE_CONTEXT_CACHE_TTL_SEC", "900") or 900)
@@ -4567,6 +4569,13 @@ def get_daytrade_analysis(ticker: str, interval: str = Query("5m", pattern="^(1m
     while True:
         now = dt.datetime.now(dt.timezone.utc)
         with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            failure = DAYTRADE_ANALYSIS_FAILURE_CACHE.get(cache_key)
+            if failure:
+                failed_at = failure.get("failedAt")
+                failure_age_sec = (now - failed_at).total_seconds() if isinstance(failed_at, dt.datetime) else DAYTRADE_ANALYSIS_FAILURE_TTL_SEC + 1
+                if failure_age_sec <= DAYTRADE_ANALYSIS_FAILURE_TTL_SEC:
+                    raise HTTPException(status_code=failure["statusCode"], detail=failure["detail"])
+                DAYTRADE_ANALYSIS_FAILURE_CACHE.pop(cache_key, None)
             cached = DAYTRADE_ANALYSIS_CACHE.get(cache_key)
             if cached:
                 cached_at = cached.get("cachedAt")
@@ -4596,6 +4605,7 @@ def get_daytrade_analysis(ticker: str, interval: str = Query("5m", pattern="^(1m
         quote_context, event_context = _fetch_daytrade_contexts(ticker)
         payload = build_daytrade_analysis(ticker, hist, interval=interval, quote_context=quote_context, event_context=event_context)
         with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_FAILURE_CACHE.pop(cache_key, None)
             DAYTRADE_ANALYSIS_CACHE[cache_key] = {"cachedAt": dt.datetime.now(dt.timezone.utc), "payload": payload}
             DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
             in_flight.set()
@@ -4605,21 +4615,37 @@ def get_daytrade_analysis(ticker: str, interval: str = Query("5m", pattern="^(1m
             "cacheAgeSec": 0,
             "cacheTtlSec": DAYTRADE_ANALYSIS_CACHE_TTL_SEC,
         }
-    except HTTPException:
+    except HTTPException as exc:
         with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_FAILURE_CACHE[cache_key] = {
+                "failedAt": dt.datetime.now(dt.timezone.utc),
+                "statusCode": exc.status_code,
+                "detail": exc.detail,
+            }
             DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
             in_flight.set()
         raise
     except ValueError as exc:
         with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_FAILURE_CACHE[cache_key] = {
+                "failedAt": dt.datetime.now(dt.timezone.utc),
+                "statusCode": 422,
+                "detail": str(exc),
+            }
             DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
             in_flight.set()
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
+        detail = f"Daytrade analysis failed: {exc}"
         with DAYTRADE_ANALYSIS_CACHE_LOCK:
+            DAYTRADE_ANALYSIS_FAILURE_CACHE[cache_key] = {
+                "failedAt": dt.datetime.now(dt.timezone.utc),
+                "statusCode": 502,
+                "detail": detail,
+            }
             DAYTRADE_ANALYSIS_INFLIGHT.pop(cache_key, None)
             in_flight.set()
-        raise HTTPException(status_code=502, detail=f"Daytrade analysis failed: {exc}") from exc
+        raise HTTPException(status_code=502, detail=detail) from exc
 
 
 @app.get("/api/daytrade/routine/{ticker}")
