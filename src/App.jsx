@@ -43,6 +43,7 @@ import {
 } from 'recharts';
 import { api, readFreshCache, writeCache } from './api/apiClient';
 import { DataSourceBadge, DataSourceWarning } from './components/DataSourceBadge';
+import DailyWorkspacePanel from './components/DailyWorkspacePanel';
 import DetailPanels from './components/DetailPanels';
 import LifestyleDaytradePanel from './components/LifestyleDaytradePanel';
 import PortfolioLedger from './components/PortfolioLedger';
@@ -77,6 +78,7 @@ import {
 } from './utils/researchInsightBuilder';
 import { displayStockName } from './utils/stockNames';
 import { getTdnetSourceStatus } from './utils/tdnetSourceStatus';
+import { loadPersonalWorkspace, mergeWorkspaceWatchlist, savePersonalWorkspace } from './utils/personalWorkspace';
 import {
   buildImportPreview,
   mergeWatchlistItems,
@@ -613,7 +615,10 @@ export default function App() {
   const cached = useMemo(() => {
     return readFreshCache();
   }, []);
-  const [importedWatchlistItems, setImportedWatchlistItems] = useState(cached?.importedWatchlistItems || []);
+  const personalWorkspace = useMemo(() => loadPersonalWorkspace(), []);
+  const [importedWatchlistItems, setImportedWatchlistItems] = useState(
+    personalWorkspace.watchlistItems.length ? personalWorkspace.watchlistItems : cached?.importedWatchlistItems || [],
+  );
   const cachedSelectedTicker = cached?.selectedTicker || PINNED_WATCH_TICKER;
   const cachedDaytradeAnalysis = cached?.daytradeAnalysis?.ticker === cachedSelectedTicker ? cached.daytradeAnalysis : null;
   const cachedDaytradeRoutine = cached?.daytradeRoutine?.ticker === cachedSelectedTicker ? cached.daytradeRoutine : null;
@@ -1492,12 +1497,16 @@ export default function App() {
     setImportedWatchlistItems((current) => {
       const merged = mergeWatchlistItems(current, itemsToAdd);
       writeCache(buildMarketCachePayload(cached || {}, { importedWatchlistItems: merged.items }));
+      savePersonalWorkspace({
+        ...personalWorkspace,
+        watchlistItems: mergeWorkspaceWatchlist(personalWorkspace.watchlistItems, merged.items),
+      });
       return merged.items;
     });
     setWatchlistImportMessage(
       `ウォッチリストへ ${watchlistImportPreview.mergePreview.addedCount}件を追加しました。重複 ${watchlistImportPreview.mergePreview.duplicateCount}件は統合しました。`,
     );
-  }, [cached, displayStocks, watchlistImportPreview]);
+  }, [cached, displayStocks, personalWorkspace, watchlistImportPreview]);
 
   function safeStageLabel(label) {
     if (!label) return '';
@@ -1717,6 +1726,13 @@ export default function App() {
           marketPhase={browserMarketStatus}
           fetchedAt={edinetDisclosure?.fetchedAt || earningsCalendar?.fetchedAt || marketRankings?.fetchedAt || cached?.updatedAt || ''}
           marketFreshnessLabel={marketStatusView.freshnessLabel}
+        />
+
+        <DailyWorkspacePanel
+          stocks={displayStocks}
+          settingsSummary={appSettingsSummary}
+          onWorkspaceChange={(nextWorkspace) => setImportedWatchlistItems(nextWorkspace.watchlistItems)}
+          onRetry={() => hydrate(false)}
         />
 
         <PracticeDashboard>

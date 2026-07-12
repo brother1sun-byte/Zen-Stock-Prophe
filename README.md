@@ -1,5 +1,19 @@
 # Zen Stock Prophet Pro
 
+## v1.2.0 個人利用版
+
+最初に「今日の確認」を開き、候補、見送り理由、データ不足を確認してください。日常利用パネルでは、ウォッチリストのタグ・絞り込み、「今日確認する銘柄」、手動データ、キャッシュ、API再取得を端末内で管理できます。
+
+ワンクリック起動:
+
+```bash
+python launcher.py
+```
+
+詳細: [v1.2.0 リリースノート](docs/release-notes-v1.2.0.md)
+
+verified candidateの条件は従来どおり厳格です。条件未達はresearch-onlyとして扱い、verified signalがない場合は候補やactionable boardを作りません。自動売買、実注文、証券会社API連携、外部通知、外部ログ送信は行いません。
+
 ## Zen Loop Desk
 
 Zen Loop Desk は、Research -> Thesis -> Verification -> Alert -> Review を一画面で確認するための補助UIです。既存の市場データ、生活導線デイトレ確認、アラート状態、レビュー傾向を統合表示する薄いレイヤーであり、新しい自動実行機能ではありません。

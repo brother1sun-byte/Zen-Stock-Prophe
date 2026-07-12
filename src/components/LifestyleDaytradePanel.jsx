@@ -13,6 +13,7 @@ import {
   saveAfterCloseReviewDraft,
 } from '../utils/lifestyleDaytradeModes';
 import { buildZenLoopDeskPayload } from '../utils/zenLoopDesk';
+import { filterReviewHistory, restoreReviewBackup, summarizeReviewOutcomes } from '../utils/reviewHistory';
 
 const MODES = [
   { id: 'night', label: 'Night Scan', caption: '帰宅後' },
@@ -29,6 +30,12 @@ function yen(value) {
 
 function numberInputValue(value) {
   return value === null || value === undefined ? '' : value;
+}
+
+function conciseReason(reason) {
+  const text = String(reason || '').trim();
+  const firstSentence = text.split('。')[0];
+  return firstSentence ? `${firstSentence}。` : '根拠は詳細データで確認してください。';
 }
 
 function smallLine(label, value) {
@@ -51,10 +58,27 @@ function PriceLineList({ lines }) {
           <div className="lifestyle-price-line" key={key}>
             <span>{line.label}</span>
             <strong>{yen(line.value)}</strong>
-            <small>{line.estimated ? '推定: ' : ''}{line.reason}</small>
+            <small>{line.estimated ? '推定: ' : ''}{conciseReason(line.reason)}</small>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function DataQualityLegend({ notices = [] }) {
+  const text = notices.join(' ');
+  const items = [
+    ['推定', text.includes('推定')],
+    ['遅延', text.includes('遅延') || text.includes('鮮度')],
+    ['キャッシュ', text.includes('キャッシュ')],
+    ['補完データ', text.includes('補完')],
+    ['データ不足', notices.length > 2],
+  ];
+  return (
+    <div className="lifestyle-data-quality" data-testid="lifestyle-data-quality" aria-label="データ品質">
+      <strong>データ品質</strong>
+      {items.map(([label, active]) => <span key={label} className={active ? 'active' : ''}>{label}: {active ? '要確認' : '該当なし'}</span>)}
     </div>
   );
 }
@@ -126,7 +150,55 @@ function DecisionSupportBrief({ brief, checklist }) {
       <div className="lifestyle-data-notices" data-testid="lifestyle-data-notices">
         {brief.dataNotices.map((notice) => <span key={notice}>{notice}</span>)}
       </div>
+      <DataQualityLegend notices={brief.dataNotices} />
     </div>
+  );
+}
+
+function TodayCheckDashboard({ brief, checklist, zenLoopDesk, showVerification, onToggleVerification }) {
+  const verifiedCount = zenLoopDesk.candidates.filter((candidate) => candidate.gate.isActionable).length;
+  const researchOnlyCount = zenLoopDesk.candidates.length - verifiedCount;
+  const skipReasons = zenLoopDesk.candidates
+    .flatMap((candidate) => candidate.gate.researchOnlyReasons || [])
+    .filter(Boolean);
+  const dataNotices = Array.isArray(brief.dataNotices) ? brief.dataNotices : [];
+
+  return (
+    <section className="today-check-dashboard" data-testid="today-check-dashboard" aria-labelledby="today-check-title">
+      <div className="today-check-head">
+        <div>
+          <span>最初にここを確認</span>
+          <strong id="today-check-title">今日の確認</strong>
+          <p>{brief.purpose}</p>
+        </div>
+        <button type="button" className="secondary-button" onClick={onToggleVerification} data-testid="today-check-detail-toggle">
+          {showVerification ? '要点表示に戻す' : '検証詳細を表示'}
+        </button>
+      </div>
+      <div className="today-check-grid">
+        <div className="today-check-item primary">
+          <span>結論</span>
+          <strong>{brief.conclusion}</strong>
+          <small>{brief.nextAction}</small>
+        </div>
+        <div className="today-check-item">
+          <span>候補</span>
+          <strong>{verifiedCount ? `検証済み ${verifiedCount}件` : '検証済み候補なし'}</strong>
+          <small>調査のみ {researchOnlyCount}件</small>
+        </div>
+        <div className="today-check-item warning">
+          <span>見送り理由</span>
+          <strong>{skipReasons[0] || zenLoopDesk.marketBrief.majorRisks[0] || '目立つ見送り理由なし'}</strong>
+          <small>条件未達はresearch-onlyを維持します。</small>
+        </div>
+        <div className="today-check-item muted">
+          <span>データ不足</span>
+          <strong>{dataNotices.length ? `${dataNotices.length}項目を確認` : '目立つ不足なし'}</strong>
+          <small>{dataNotices[0] || '取得元と更新時刻を確認してください。'}</small>
+        </div>
+      </div>
+      <DecisionSupportBrief brief={brief} checklist={checklist} />
+    </section>
   );
 }
 
@@ -452,7 +524,60 @@ function ReviewExportPanel({ reviewLog }) {
   );
 }
 
-function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, saveMessage }) {
+function ReviewHistoryPanel({ reviewLog, onRestore }) {
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState('all');
+  const [date, setDate] = useState('');
+  const [restoreText, setRestoreText] = useState('');
+  const [message, setMessage] = useState('');
+  const filtered = useMemo(() => filterReviewHistory(reviewLog, { query, result, date }), [date, query, result, reviewLog]);
+  const summary = useMemo(() => summarizeReviewOutcomes(reviewLog), [reviewLog]);
+
+  const restore = () => {
+    const restored = restoreReviewBackup(restoreText);
+    setMessage(restored.message);
+    if (restored.ok) onRestore(restored.records);
+  };
+
+  const loadFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setRestoreText(await file.text());
+    setMessage(`${file.name} を読み込みました。内容を確認して復元してください。`);
+  };
+
+  return (
+    <div className="review-history-panel" data-testid="after-close-review-history">
+      <div className="review-history-head"><div><span>履歴検索</span><strong>保存済みレビューを絞り込む</strong></div><b>{filtered.length}/{summary.total}件</b></div>
+      <div className="review-history-controls">
+        <input aria-label="レビュー銘柄検索" placeholder="銘柄コード・名称" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <input aria-label="レビュー日付" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        <select aria-label="レビュー結果" value={result} onChange={(event) => setResult(event.target.value)}><option value="all">すべての結果</option><option value="verified">verified candidate</option><option value="research-only">research-only</option><option value="skipped">見送り</option></select>
+      </div>
+      <div className="review-outcome-grid" aria-label="結果比較">
+        <div><span>結果比較</span><strong>全体 {summary.total}</strong></div>
+        <div><span>verified candidate</span><strong>{summary.verified}</strong></div>
+        <div><span>research-only</span><strong>{summary.researchOnly}</strong></div>
+        <div><span>見送り</span><strong>{summary.skipped}</strong></div>
+        <div><span>改善傾向</span><strong>プラス {summary.positive} / マイナス {summary.negative}</strong></div>
+      </div>
+      <div className="review-history-list">
+        {filtered.slice(0, 20).map((record) => <span key={`${record.ticker}-${record.createdAt}`}>{String(record.createdAt || '').slice(0, 10) || '日付なし'} / {record.ticker} / {record.decisionResult || '判断結果未入力'} / 損益 {yen(record.pnl)}</span>)}
+        {!filtered.length ? <span>条件に一致する履歴はありません。</span> : null}
+      </div>
+      <details className="review-restore-panel">
+        <summary>JSON/CSVバックアップを復元</summary>
+        <input type="file" accept=".json,.csv,application/json,text/csv" onChange={loadFile} />
+        <textarea aria-label="レビュー復元データ" value={restoreText} onChange={(event) => setRestoreText(event.target.value)} />
+        <button type="button" className="secondary-button" onClick={restore} data-testid="after-close-review-restore">端末内へ復元</button>
+        <small>復元は現在のローカル履歴を置き換えます。外部送信はありません。</small>
+        {message ? <p>{message}</p> : null}
+      </details>
+    </div>
+  );
+}
+
+function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, onRestore, saveMessage }) {
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   return (
     <div className="lifestyle-mode-body" data-testid="lifestyle-after-close-review">
@@ -501,6 +626,7 @@ function ReviewView({ form, setForm, draft, reviewLog, reviewInsights, onSave, s
         </div>
       </div>
       <ReviewExportPanel reviewLog={reviewLog} />
+      <ReviewHistoryPanel reviewLog={reviewLog} onRestore={onRestore} />
       <ReviewInsightPanel reviewInsights={reviewInsights} />
     </div>
   );
@@ -527,6 +653,7 @@ export default function LifestyleDaytradePanel({
   const [reviewForm, setReviewForm] = useState({});
   const [reviewLog, setReviewLog] = useState(() => loadAfterCloseReviewLog());
   const [reviewSaveMessage, setReviewSaveMessage] = useState('');
+  const [showVerification, setShowVerification] = useState(false);
   const reviewInsights = useMemo(() => buildReviewDrivenInsights(reviewLog), [reviewLog]);
 
   const detailsByTicker = useMemo(() => {
@@ -612,7 +739,7 @@ export default function LifestyleDaytradePanel({
       <div className="lifestyle-panel-head">
         <div>
           <span>生活導線デイトレ確認</span>
-          <strong>帰宅後・翌朝・仕事中・引け後を1画面で整理</strong>
+          <strong>今日の確認から必要な時間帯へ進む</strong>
           <small>手動判断のための材料整理です。実注文、自動売却、証券会社API接続は行いません。</small>
         </div>
         <div className="lifestyle-source">
@@ -620,8 +747,14 @@ export default function LifestyleDaytradePanel({
           <small>{fetchedAt ? `最終確認: ${fetchedAt}` : '取得不可の項目は手入力してください'}</small>
         </div>
       </div>
-      <DecisionSupportBrief brief={decisionBrief} checklist={preTradeChecklist} />
-      <ZenLoopDeskPanel payload={zenLoopDesk} />
+      <TodayCheckDashboard
+        brief={decisionBrief}
+        checklist={preTradeChecklist}
+        zenLoopDesk={zenLoopDesk}
+        showVerification={showVerification}
+        onToggleVerification={() => setShowVerification((current) => !current)}
+      />
+      {showVerification ? <ZenLoopDeskPanel payload={zenLoopDesk} /> : null}
       <div className="lifestyle-mode-tabs" role="tablist" aria-label="生活導線モード">
         {MODES.map((mode) => (
           <button
@@ -651,6 +784,7 @@ export default function LifestyleDaytradePanel({
           reviewLog={reviewLog}
           reviewInsights={reviewInsights}
           onSave={saveReviewDraft}
+          onRestore={setReviewLog}
           saveMessage={reviewSaveMessage}
         />
       ) : null}

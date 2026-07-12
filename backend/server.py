@@ -3795,7 +3795,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Zen Stock Prophet Pro", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Zen Stock Prophet Pro", version="1.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_CORS_ORIGINS,
@@ -3804,6 +3804,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/api/health")
+def get_health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "version": app.version,
+        "mode": "manual_decision_support",
+        "liveOrdersEnabled": LIVE_BROKER_ORDERS_ENABLED,
+    }
 
 @app.get("/api/stocks")
 def get_stocks() -> list[dict[str, Any]]:

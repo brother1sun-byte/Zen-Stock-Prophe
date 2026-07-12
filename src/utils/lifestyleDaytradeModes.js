@@ -909,7 +909,7 @@ export function buildAfterCloseReviewDraft(input = {}) {
   };
 }
 
-const AFTER_CLOSE_REVIEW_KEY = 'zen_lifestyle_after_close_reviews_v1';
+export const AFTER_CLOSE_REVIEW_KEY = 'zen_lifestyle_after_close_reviews_v1';
 
 function storageAvailable(storage) {
   return storage && typeof storage.getItem === 'function' && typeof storage.setItem === 'function';

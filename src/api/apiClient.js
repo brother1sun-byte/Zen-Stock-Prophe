@@ -118,3 +118,28 @@ export function writeCache(payload) {
     return false;
   }
 }
+
+export function getCacheMetadata(storage = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    const parsed = JSON.parse(storage?.getItem(CACHE_KEY) || 'null');
+    if (!parsed) return { exists: false, updatedAt: '', ageLabel: '未取得' };
+    const cachedAt = Number(parsed.cachedAt || 0);
+    const ageMinutes = cachedAt ? Math.max(0, Math.round((Date.now() - cachedAt) / 60000)) : null;
+    return {
+      exists: true,
+      updatedAt: cachedAt ? new Date(cachedAt).toLocaleString('ja-JP') : '時刻不明',
+      ageLabel: ageMinutes === null ? '時刻不明' : `${ageMinutes}分前`,
+    };
+  } catch {
+    return { exists: false, updatedAt: '', ageLabel: '破損のため利用不可' };
+  }
+}
+
+export function clearCache(storage = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    storage?.removeItem(CACHE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}

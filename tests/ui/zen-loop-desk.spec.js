@@ -66,6 +66,17 @@ test('Zen Loop Desk does not manufacture actionable candidates when verified sig
 test('Zen Loop Desk UI shows no actionable board when verified candidates are absent', async ({ page }) => {
   await page.goto('/');
 
+  await expect(page.getByTestId('today-check-dashboard')).toBeVisible();
+  await expect(page.getByTestId('today-check-dashboard')).toContainText('今日の確認');
+  await expect(page.getByTestId('today-check-dashboard')).toContainText('見送り理由');
+  await expect(page.getByTestId('today-check-dashboard')).toContainText('データ不足');
+  await expect(page.getByTestId('lifestyle-data-quality')).toContainText('推定');
+  await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('材料');
+  await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('需給');
+  await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('テクニカル');
+  await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('リスク');
+  await expect(page.getByTestId('zen-loop-desk-panel')).toBeHidden();
+  await page.getByTestId('today-check-detail-toggle').click();
   await expect(page.getByTestId('zen-loop-desk-panel')).toBeVisible();
   await expect(page.getByTestId('zen-loop-no-actionable')).toContainText('検証済み候補はありません');
   await expect(page.getByTestId('zen-loop-desk-panel')).toContainText('手動判断支援のみ');
