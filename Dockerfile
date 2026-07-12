@@ -13,7 +13,7 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ZEN_API_HOST=0.0.0.0 \
-    ZEN_DB_PATH=/tmp/zen-stock-prophet/simulator.db
+    ZEN_DB_PATH=/tmp/simulator.db
 
 WORKDIR /app
 COPY requirements-render.txt ./
@@ -21,9 +21,8 @@ RUN pip install --no-cache-dir -r requirements-render.txt
 
 COPY backend ./backend
 COPY --from=frontend-build /app/dist ./dist
-RUN mkdir -p /tmp/zen-stock-prophet && \
-    useradd --create-home --uid 10001 appuser && \
-    chown -R appuser:appuser /app /tmp/zen-stock-prophet
+RUN useradd --create-home --uid 10001 appuser && \
+    chown -R appuser:appuser /app
 
 USER appuser
 EXPOSE 10000

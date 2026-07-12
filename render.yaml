@@ -11,3 +11,5 @@ services:
         value: "1"
       - key: ZEN_API_HOST
         value: 0.0.0.0
+      - key: ZEN_DB_PATH
+        value: /tmp/simulator.db

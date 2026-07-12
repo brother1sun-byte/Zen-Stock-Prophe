@@ -110,7 +110,7 @@ try:
 except Exception:
     pass
 
-DB_PATH = Path(os.environ.get("ZEN_DB_PATH", BACKEND_DIR / "simulator.db"))
+DB_PATH = Path(os.environ.get("ZEN_DB_PATH", "").strip() or BACKEND_DIR / "simulator.db")
 INITIAL_CASH = 1_000_000
 NUM_SELECTED = 12
 API_HOST = os.environ.get("ZEN_API_HOST", "0.0.0.0")
@@ -3761,6 +3761,7 @@ def _stock_payload(ticker: str, info: dict[str, Any]) -> dict[str, Any]:
 
 
 def init_db() -> None:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.execute("CREATE TABLE IF NOT EXISTS portfolio (id INTEGER PRIMARY KEY AUTOINCREMENT, cash REAL NOT NULL DEFAULT 1000000, created_at TEXT DEFAULT CURRENT_TIMESTAMP)")
     conn.execute("CREATE TABLE IF NOT EXISTS holdings (ticker TEXT PRIMARY KEY, shares INTEGER DEFAULT 0, avg_cost REAL DEFAULT 0, manual_name TEXT, updated_at TEXT)")
