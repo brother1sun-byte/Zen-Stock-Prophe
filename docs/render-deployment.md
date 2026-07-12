@@ -7,13 +7,13 @@ origin.
 ## Deployment settings
 
 - Repository: `brother1sun-byte/Zen-Stock-Prophe`
-- Branch: `codex/render-v1.2.0`
+- Branch: `master`
 - Runtime: Docker
 - Plan: Free
 - Health check: `/api/health`
 
-Do not select the repository default branch. It has a separate history from the
-personal-use v1.2 application.
+The repository default branch contains the verified personal-use v1.2
+application and is the deployment source of truth.
 
 ## Secrets
 
