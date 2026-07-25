@@ -8,6 +8,7 @@ import {
   buildNightScanRows,
   buildPreTradeChecklist,
   buildReviewDrivenInsights,
+  buildShadowCalibration,
   buildVolumeSeasonality,
   classifyAfterCloseReview,
   estimateSpreadRisk,
@@ -129,6 +130,18 @@ test('判断支援ブリーフは材料と不足情報を分けて返す', () =>
   expect(checklist.map((item) => item.label)).toContain('撤退ライン');
 });
 
+test('検証済み候補がない判断支援ブリーフは翌朝も調査のみに固定する', () => {
+  const brief = buildDecisionSupportBrief({
+    nightRows: [{ ticker: '7203.T', companyName: 'トヨタ自動車', rankLabel: 'A：翌朝必ず確認' }],
+    morningGate: { decision: '条件付きで手動注文候補' },
+    hasVerifiedCandidate: false,
+  });
+
+  expect(brief.nextAction).toContain('調査のみ');
+  expect(brief.nextAction).toContain('検証未達の候補は実行対象として扱いません');
+  expect(brief.nextAction).not.toContain('条件付きで手動注文候補');
+});
+
 test('高度分析・出来高季節性・スプレッド推定は単独でも安全に返る', () => {
   expect(buildAdvancedConnectionSummary(sampleAdvancedReport).items.join(' ')).toContain('流動性');
   expect(buildLifestyleBacktestSummary(sampleAdvancedReport).notice).toContain('利益保証ではなく');
@@ -246,4 +259,45 @@ test('保存レビューの傾向は翌朝と仕事中の注意として使え�
     manualPrice: 3005,
   });
   expect(gate.cautions.join(' ')).toContain('過去レビュー');
+});
+
+test('シャドー評価は標本不足を明示し安全ゲートやスコアを自動変更しない', () => {
+  const calibration = buildShadowCalibration([
+    { ticker: '7203.T', initialScore: 88, pnl: 3000 },
+    { ticker: '6758.T', initialScore: 82, pnl: -1000 },
+    { ticker: '9984.T', initialScore: '', pnl: 5000 },
+    { ticker: '8306.T', initialScore: 62, pnl: 0, decisionResult: '判断保留' },
+  ]);
+
+  expect(calibration.status).toBe('insufficient');
+  expect(calibration.statusLabel).toBe('標本不足');
+  expect(calibration.sampleSize).toBe(2);
+  expect(calibration.bands.find((band) => band.key === 'very_high')).toMatchObject({
+    count: 1,
+    positive: 1,
+    hitRatePct: 100,
+  });
+  expect(calibration.bands.find((band) => band.key === 'high')).toMatchObject({
+    count: 1,
+    negative: 1,
+    hitRatePct: 0,
+  });
+  expect(calibration.autoScoreAdjustment).toBe(false);
+  expect(calibration.manualDecisionSupportOnly).toBe(true);
+  expect(calibration.notice).toContain('外部送信');
+});
+
+test('シャドー評価は十分なレビューがある場合だけ校正材料として扱う', () => {
+  const records = Array.from({ length: 30 }, (_, index) => ({
+    ticker: '7203.T',
+    initialScore: index < 15 ? 76 : 58,
+    pnl: index % 3 === 0 ? -1000 : 2000,
+  }));
+  const calibration = buildShadowCalibration(records);
+
+  expect(calibration.status).toBe('usable');
+  expect(calibration.statusLabel).toBe('校正材料あり');
+  expect(calibration.sampleSize).toBe(30);
+  expect(calibration.bands.reduce((sum, band) => sum + band.count, 0)).toBe(30);
+  expect(calibration.autoScoreAdjustment).toBe(false);
 });

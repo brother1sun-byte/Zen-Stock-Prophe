@@ -343,6 +343,78 @@ export function classifyAfterCloseReview(record = {}) {
   };
 }
 
+const SHADOW_SCORE_BANDS = [
+  { key: 'very_high', label: '85-100', min: 85, max: 100 },
+  { key: 'high', label: '70-84', min: 70, max: 84 },
+  { key: 'middle', label: '50-69', min: 50, max: 69 },
+  { key: 'low', label: '0-49', min: 0, max: 49 },
+];
+
+function reviewScore(record = {}) {
+  const raw = record.initialScore ?? record.nightScanScore ?? record.morningGateScore ?? record.workMonitorScore;
+  if (raw === null || raw === undefined || raw === '') return null;
+  const score = Number(raw);
+  return Number.isFinite(score) && score >= 0 && score <= 100 ? score : null;
+}
+
+function reviewOutcome(record = {}) {
+  const classification = classifyAfterCloseReview(record);
+  if (classification.key === 'skip_success') return 'positive';
+  if (classification.key === 'skip_failure') return 'negative';
+  const pnl = safeNumber(record.pnl, null);
+  if (pnl > 0) return 'positive';
+  if (pnl < 0) return 'negative';
+  return null;
+}
+
+export function buildShadowCalibration(records = []) {
+  const evaluable = (Array.isArray(records) ? records : [])
+    .filter((record) => record && typeof record === 'object')
+    .map((record) => ({
+      score: reviewScore(record),
+      outcome: reviewOutcome(record),
+      pnl: safeNumber(record.pnl, null),
+    }))
+    .filter((record) => record.score !== null && record.outcome);
+
+  const bands = SHADOW_SCORE_BANDS.map((band) => {
+    const matches = evaluable.filter((record) => record.score >= band.min && record.score <= band.max);
+    const positive = matches.filter((record) => record.outcome === 'positive').length;
+    const negative = matches.filter((record) => record.outcome === 'negative').length;
+    const pnlValues = matches.map((record) => record.pnl).filter((value) => value !== null);
+    return {
+      ...band,
+      count: matches.length,
+      positive,
+      negative,
+      hitRatePct: matches.length ? Number(((positive / matches.length) * 100).toFixed(1)) : null,
+      averagePnl: pnlValues.length
+        ? Math.round(pnlValues.reduce((sum, value) => sum + value, 0) / pnlValues.length)
+        : null,
+    };
+  });
+
+  const sampleSize = evaluable.length;
+  const status = sampleSize >= 30 ? 'usable' : sampleSize >= 10 ? 'provisional' : 'insufficient';
+  const statusLabel = status === 'usable' ? '校正材料あり' : status === 'provisional' ? '仮評価' : '標本不足';
+  const summary = status === 'usable'
+    ? `${sampleSize}件をスコア帯別に比較できます。次回の調査条件を見直す材料として使います。`
+    : status === 'provisional'
+      ? `${sampleSize}件の参考傾向です。安全ゲートやスコアは変更しません。`
+      : `${sampleSize}件です。精度評価やスコア調整には使いません。`;
+
+  return {
+    status,
+    statusLabel,
+    summary,
+    sampleSize,
+    bands,
+    manualDecisionSupportOnly: true,
+    autoScoreAdjustment: false,
+    notice: '端末内の振り返りだけを集計します。自動売買・外部送信・自動スコア変更は行いません。',
+  };
+}
+
 export function buildReviewDrivenInsights(records = [], context = {}) {
   const safeRecords = (Array.isArray(records) ? records : []).filter((record) => record && typeof record === 'object');
   const classifiedRecords = safeRecords.map((record) => ({
@@ -402,6 +474,7 @@ export function buildReviewDrivenInsights(records = [], context = {}) {
     },
     tendencies,
     improvementHints: [...tickerCautions, ...generalCautions].slice(0, 4),
+    shadowCalibration: buildShadowCalibration(safeRecords),
     emptyMessage: '保存済みレビューが増えると、翌朝確認・仕事中確認の注意点として軽く反映します。',
   };
 }
@@ -416,6 +489,7 @@ export function buildDecisionSupportBrief({
   workRows = [],
   fetchedAt = '',
   marketFreshnessLabel = '',
+  hasVerifiedCandidate = null,
 } = {}) {
   const topRow = Array.isArray(nightRows) && nightRows.length ? nightRows[0] : {};
   const activeWorkAlerts = (Array.isArray(workRows) ? workRows : []).filter((row) => row.status === '利確検討' || row.status === '撤退検討');
@@ -456,9 +530,11 @@ export function buildDecisionSupportBrief({
   const conclusion = topRow.ticker
     ? `${topRow.ticker} ${topRow.companyName || ''} は ${topRow.rankLabel || '判断保留'}。まず一次情報と手入力価格を確認してください。`
     : '判断保留。候補データ、価格、材料イベントを確認してください。';
-  const nextAction = morningGate.decision
-    ? `翌朝は「${morningGate.decision}」として、注文上限との差、VWAP、出来高、見送り条件だけを確認します。`
-    : '翌朝は手入力価格を入れて、注文上限との差と見送り条件を確認します。';
+  const nextAction = hasVerifiedCandidate === false
+    ? '翌朝は調査のみです。一次情報、手入力価格、VWAP、出来高、見送り条件を確認し、検証未達の候補は実行対象として扱いません。'
+    : morningGate.decision
+      ? `翌朝は「${morningGate.decision}」として、注文上限との差、VWAP、出来高、見送り条件だけを確認します。`
+      : '翌朝は手入力価格を入れて、注文上限との差と見送り条件を確認します。';
 
   return {
     purpose: '短時間で、今日見るポイントと不足情報を分けて確認するためのブリーフです。',

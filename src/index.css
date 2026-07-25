@@ -1103,6 +1103,67 @@ h1 {
   background: rgba(15, 23, 42, 0.32);
 }
 
+.shadow-calibration-panel {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.shadow-calibration-panel.insufficient {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.shadow-calibration-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shadow-calibration-head span,
+.shadow-calibration-panel > small,
+.shadow-calibration-grid span,
+.shadow-calibration-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 820;
+}
+
+.shadow-calibration-head strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.shadow-calibration-panel p {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.shadow-calibration-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.shadow-calibration-grid > div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-sm);
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.shadow-calibration-grid strong {
+  display: block;
+  margin: 4px 0 2px;
+}
+
 .lifestyle-review-export {
   display: grid;
   gap: 10px;
@@ -1289,6 +1350,10 @@ h1 {
 
   .review-history-controls,
   .review-outcome-grid { grid-template-columns: 1fr; }
+
+  .shadow-calibration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
   .lifestyle-card-head,
   .lifestyle-score-row {
@@ -1632,6 +1697,18 @@ h1 {
   grid-template-columns: repeat(5, minmax(120px, 1fr));
   gap: 10px;
   margin-top: 14px;
+}
+
+.simple-daytrade-board.research-only {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  padding: 10px;
+  border: 1px dashed rgba(245, 158, 11, 0.34);
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.045);
+}
+
+.simple-daytrade-board.research-only .simple-decision-card {
+  border-color: rgba(245, 158, 11, 0.22);
 }
 
 .simple-decision-card {

@@ -456,6 +456,7 @@ function WorkMonitorView({ rows, manualPrices, onChange }) {
 
 function ReviewInsightPanel({ reviewInsights }) {
   const records = reviewInsights?.classifiedRecords || [];
+  const calibration = reviewInsights?.shadowCalibration;
   return (
     <div className="lifestyle-review-insights" data-testid="after-close-review-insights">
       <div className="lifestyle-card-head">
@@ -477,6 +478,26 @@ function ReviewInsightPanel({ reviewInsights }) {
             {record.ticker} / {record.classification.label} / 損益 {yen(record.pnl)} / 初期スコア {record.classification.score ?? '未入力'}
           </span>
         )) : <span>分類できる保存ログはまだありません。</span>}
+      </div>
+      <div className={`shadow-calibration-panel ${calibration?.status || 'insufficient'}`} data-testid="shadow-calibration-panel">
+        <div className="shadow-calibration-head">
+          <div>
+            <span>シャドー評価</span>
+            <strong>{calibration?.statusLabel || '標本不足'}</strong>
+          </div>
+          <b>{calibration?.sampleSize || 0}件</b>
+        </div>
+        <p>{calibration?.summary || '0件です。精度評価やスコア調整には使いません。'}</p>
+        <div className="shadow-calibration-grid" aria-label="スコア帯別の振り返り">
+          {(calibration?.bands || []).map((band) => (
+            <div key={band.key}>
+              <span>スコア {band.label}</span>
+              <strong>{band.count}件</strong>
+              <small>{band.hitRatePct === null ? '評価対象なし' : `プラス結果 ${band.hitRatePct}%`}</small>
+            </div>
+          ))}
+        </div>
+        <small>{calibration?.notice || '自動売買・外部送信・自動スコア変更は行いません。'}</small>
       </div>
     </div>
   );
@@ -692,14 +713,6 @@ export default function LifestyleDaytradePanel({
     reviewInsights,
   }), [advancedReportsByTicker, holdings, monitorPrices, reviewInsights]);
 
-  const decisionBrief = useMemo(() => buildDecisionSupportBrief({
-    nightRows,
-    morningGate,
-    workRows,
-    fetchedAt,
-    marketFreshnessLabel,
-  }), [fetchedAt, marketFreshnessLabel, morningGate, nightRows, workRows]);
-
   const preTradeChecklist = useMemo(() => buildPreTradeChecklist({
     gate: morningGate,
     topRow: nightRows[0] || {},
@@ -717,6 +730,15 @@ export default function LifestyleDaytradePanel({
     marketPhase,
     fetchedAt,
   }), [alertReport, daytradeSignals, daytradeSource, fetchedAt, marketPhase, nightRows, reviewInsights, stocks]);
+
+  const decisionBrief = useMemo(() => buildDecisionSupportBrief({
+    nightRows,
+    morningGate,
+    workRows,
+    fetchedAt,
+    marketFreshnessLabel,
+    hasVerifiedCandidate: zenLoopDesk.candidates.some((candidate) => candidate.mode === 'actionable'),
+  }), [fetchedAt, marketFreshnessLabel, morningGate, nightRows, workRows, zenLoopDesk]);
 
   const reviewDraft = useMemo(() => buildAfterCloseReviewDraft({
     ticker: reviewForm.ticker || selectedTicker || '',

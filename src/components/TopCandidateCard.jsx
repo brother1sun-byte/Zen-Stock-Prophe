@@ -8,18 +8,18 @@ import {
 } from 'lucide-react';
 import CandidateSummary from './CandidateSummary';
 import { DataSourceBadge, DataSourceWarning } from './DataSourceBadge';
+import { buildCandidateEvidencePresentation } from '../utils/candidateEvidence';
 
 const copy = {
   heading: 'デイトレ候補レビュー',
-  title: '本日の最有力候補',
   noCandidateTitle: '本日の判定保留',
   analysis: '分析結果:',
-  expectedPnl: '期待損益',
+  expectedPnl: '参考損益',
   decision: '判断',
-  entry: '注文目安',
-  target: '利確',
-  stop: '損切',
-  shares: '株数',
+  entry: '確認上限',
+  target: '利確候補',
+  stop: '撤退ライン',
+  shares: '検証サイズ',
   quantityZero: '0株',
   risk: 'リスク',
   whyCandidate: 'なぜ候補か',
@@ -32,8 +32,8 @@ const copy = {
   sourceEvidence: '価格とランキングのソース',
   crossEngine: 'クロスチェック状況',
   summaryPnl: 'シミュレーション期待損益',
-  fallbackNotice: '参考候補です。実データと条件の再確認を前提に扱ってください。',
-  liveNotice: '分析条件に沿った候補です。寄り付き直後の気配と板の確認を前提にしてください。',
+  fallbackNotice: '調査対象です。実データと検証条件が揃うまで手動判断候補として扱いません。',
+  liveNotice: '検証条件を通過しています。手動判断前に寄り付き直後の気配と板を確認してください。',
   entryHelp: '寄り付き後は見送り判定も含みます',
   targetHelp: '想定利益',
   stopHelp: '最大損失',
@@ -43,10 +43,14 @@ const copy = {
   below: '以下',
   freshStrip: '鮮度と出所',
   trustGate: '信頼ゲート',
-  noTradeBody: '今日は強く推せる候補がありません。判定保留は失敗ではなく、誤った行動を止めた結果として扱います。',
+  noTradeBody: '検証条件を満たす候補がありません。判定保留は失敗ではなく、根拠の弱い判断を止めた結果として扱います。',
 };
 
-function buildVerdict({ daytradeTopPick, decisionGate, crossEngineCheck, isFallbackTopPick }) {
+function buildVerdict({
+  daytradeTopPick,
+  crossEngineCheck,
+  verifiedForDisplay,
+}) {
   if (!daytradeTopPick) {
     return {
       tone: 'block',
@@ -58,7 +62,7 @@ function buildVerdict({ daytradeTopPick, decisionGate, crossEngineCheck, isFallb
   }
 
   const crossStatus = crossEngineCheck?.status || daytradeTopPick?.advancedCrossEngineCheck?.status;
-  if (decisionGate?.ready && crossStatus === 'aligned' && !isFallbackTopPick && daytradeTopPick.tradeReadiness === 'ready') {
+  if (verifiedForDisplay) {
     return {
       tone: 'pass',
       label: '条件通過',
@@ -92,7 +96,6 @@ export default function TopCandidateCard({
   topPickTickerLabel,
   topPickReason,
   daytradeTopPick,
-  simpleTopPickAction,
   isFallbackTopPick,
   scoreTone,
   marketStatusTopLabel,
@@ -123,7 +126,6 @@ export default function TopCandidateCard({
   jobsCandidate,
   selectedAdvancedReport,
   decisionGate,
-  jobsVerdictHeadline,
   selectedDetail,
   valueDisciplineLens,
   chatGptPrompt,
@@ -132,11 +134,16 @@ export default function TopCandidateCard({
 }) {
   const StatusPillComponent = StatusPill;
   const metrics = topCandidateMetrics;
-  const verdict = buildVerdict({
-    daytradeTopPick,
+  const evidencePresentation = buildCandidateEvidencePresentation({
+    opportunity: daytradeTopPick,
     decisionGate,
     crossEngineCheck,
-    isFallbackTopPick,
+    isFallbackCandidate: isFallbackTopPick,
+  });
+  const verdict = buildVerdict({
+    daytradeTopPick,
+    crossEngineCheck,
+    verifiedForDisplay: evidencePresentation.verified,
   });
   const VerdictIcon = verdict.icon;
   const crossStatus = crossEngineCheck?.status || daytradeTopPick?.advancedCrossEngineCheck?.status || 'pending';
@@ -194,7 +201,7 @@ export default function TopCandidateCard({
           <ShieldCheck size={18} />
           <span>{copy.heading}</span>
         </div>
-        <h2>{daytradeTopPick ? copy.title : copy.noCandidateTitle} {topPickTickerLabel}</h2>
+        <h2>{daytradeTopPick ? evidencePresentation.title : copy.noCandidateTitle} {topPickTickerLabel}</h2>
         <p>
           <strong>{copy.analysis}</strong> {topPickReason}
         </p>
@@ -210,7 +217,11 @@ export default function TopCandidateCard({
             ) : null}
           </div>
           <strong className="candidate-verdict-title">{verdict.title}</strong>
-          <p>{jobsVerdictHeadline || verdict.summary}</p>
+          <p>
+            {evidencePresentation.verified
+              ? '検証条件を満たしました。手動判断前に板・出来高・気配を確認してください。'
+              : verdict.summary}
+          </p>
           <small>{verdict.summary}</small>
           {decisionGate?.items?.length ? (
             <div className="candidate-audit-gates" aria-label={copy.trustGate}>
@@ -226,18 +237,20 @@ export default function TopCandidateCard({
         <div className="decision-pill-row">
           {daytradeTopPick ? (
             <StatusPillComponent
-              label={simpleTopPickAction}
-              tone={isFallbackTopPick ? 'warn' : scoreTone(daytradeTopPick.score)}
+              label={evidencePresentation.decisionLabel}
+              tone={evidencePresentation.verified ? 'good' : 'warn'}
             />
           ) : null}
           {daytradeTopPick ? (
             <StatusPillComponent
-              label={`短期スコア ${daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100`}
-              tone={scoreTone(daytradeTopPick.score)}
+              label={`${evidencePresentation.scoreLabel} ${daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100`}
+              tone={evidencePresentation.verified ? scoreTone(daytradeTopPick.score) : 'warn'}
             />
           ) : null}
           <StatusPillComponent
-            label={`${copy.expectedPnl} ${daytradeTopPick ? yen(daytradeTopPick.probabilityAdjustedProfit) : '-'}`}
+            label={evidencePresentation.verified
+              ? `${evidencePresentation.pnlLabel} ${daytradeTopPick ? yen(daytradeTopPick.probabilityAdjustedProfit) : '-'}`
+              : evidencePresentation.pnlLabel}
             tone="info"
           />
           <StatusPillComponent label={marketStatusTopLabel} tone={daytradeTopPick?.tradeReadiness === 'ready' ? 'good' : 'warn'} />
@@ -331,12 +344,12 @@ export default function TopCandidateCard({
           </div>
         ) : null}
 
-        {daytradeTopPick ? (
-          <div className="simple-daytrade-board">
+        {daytradeTopPick && evidencePresentation.verified ? (
+          <div className="simple-daytrade-board" data-testid="verified-candidate-board">
             <div className="simple-decision-card main">
               <span>{copy.decision}</span>
-              <strong>{simpleTopPickAction}</strong>
-              <small>{isFallbackTopPick ? copy.fallbackNotice : copy.liveNotice}</small>
+              <strong>{evidencePresentation.decisionLabel}</strong>
+              <small>{copy.liveNotice}</small>
             </div>
             <div className="simple-decision-card">
               <span>{copy.entry}</span>
@@ -362,11 +375,41 @@ export default function TopCandidateCard({
           </div>
         ) : null}
 
+        {daytradeTopPick && !evidencePresentation.verified ? (
+          <div className="simple-daytrade-board research-only" data-testid="research-only-reference-board">
+            <div className="simple-decision-card main">
+              <span>調査区分</span>
+              <strong>調査のみ</strong>
+              <small>{copy.fallbackNotice}</small>
+            </div>
+            <div className="simple-decision-card">
+              <span>参考上限</span>
+              <strong>{yen(daytradeTopPick.entry)}</strong>
+              <small>実データと検証条件が揃うまで注文条件として扱いません。</small>
+              <DataSourceBadge source={topPickSource} compact />
+            </div>
+            <div className="simple-decision-card">
+              <span>参考抵抗線</span>
+              <strong>{yen(daytradeTopPick.target)}</strong>
+              <small>値幅余地を調べるための参考値です。</small>
+            </div>
+            <div className="simple-decision-card danger">
+              <span>参考無効化ライン</span>
+              <strong>{yen(daytradeTopPick.stop)}</strong>
+              <small>仮説が崩れる条件の確認用です。</small>
+            </div>
+          </div>
+        ) : null}
+
         {daytradeTopPick ? (
           <div className="simple-reason-grid">
             <div>
               <span>{copy.whyCandidate}</span>
-              <strong>{copy.expectedPnl} {yen(daytradeTopPick.probabilityAdjustedProfit)} / 損益比率 {daytradeTopPick.rr}</strong>
+              <strong>
+                {evidencePresentation.verified
+                  ? `${copy.expectedPnl} ${yen(daytradeTopPick.probabilityAdjustedProfit)} / 損益比率 ${daytradeTopPick.rr}`
+                  : '数値の強さだけでは手動判断候補にしません'}
+              </strong>
               {(daytradeTopPick.whyBuy?.length ? daytradeTopPick.whyBuy : [daytradeTopPick.candidateReason])
                 .slice(0, 2)
                 .map((item, index) => (
@@ -383,7 +426,7 @@ export default function TopCandidateCard({
             </div>
             <div>
               <span>{copy.memo}</span>
-              <small>短期スコア {daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100, {copy.risk} {riskLevelLabel(daytradeTopPick.expertRiskLevel)}</small>
+              <small>{evidencePresentation.scoreLabel} {daytradeTopPick.score?.toFixed?.(1) ?? '-'} / 100, {copy.risk} {riskLevelLabel(daytradeTopPick.expertRiskLevel)}</small>
               <small>{copy.material}: {topPickMaterial}</small>
               <button className="inline-action" type="button" onClick={focusTopPick} data-testid="top-candidate-detail-button">
                 <Target size={14} />

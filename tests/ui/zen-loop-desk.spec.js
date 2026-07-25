@@ -3,6 +3,10 @@ import {
   buildVerificationGate,
   buildZenLoopDeskPayload,
 } from '../../src/utils/zenLoopDesk';
+import {
+  buildCandidateEvidencePresentation,
+  isVerifiedCandidateForDisplay,
+} from '../../src/utils/candidateEvidence';
 
 const sampleStock = {
   ticker: '7203.T',
@@ -61,6 +65,42 @@ test('Zen Loop Desk does not manufacture actionable candidates when verified sig
   expect(payload.marketBrief.majorRisks.join(' ')).toContain('検証済み候補がない');
   expect(payload.marketBrief.doNotDoToday.join(' ')).toContain('verification gate 未達');
   expect(JSON.stringify(payload)).not.toContain('actionable trade board');
+});
+
+test('top candidate evidence stays research-only until every display gate passes', () => {
+  const baseOpportunity = {
+    ticker: '7203.T',
+    tradeReadiness: 'ready',
+    positionSizingVerdict: 'normal',
+    decisionAudit: { verdict: 'PASS' },
+    shares: 100,
+    advancedCrossEngineCheck: { status: 'aligned' },
+  };
+  const verifiedInput = {
+    opportunity: baseOpportunity,
+    decisionGate: { ready: true },
+    crossEngineCheck: { status: 'aligned' },
+    isFallbackCandidate: false,
+  };
+
+  expect(isVerifiedCandidateForDisplay(verifiedInput)).toBe(true);
+  expect(buildCandidateEvidencePresentation(verifiedInput).decisionLabel).toBe('手動判断候補');
+
+  [
+    { opportunity: { ...baseOpportunity, tradeReadiness: 'review' } },
+    { opportunity: { ...baseOpportunity, decisionAudit: { verdict: 'REVIEW' } } },
+    { opportunity: { ...baseOpportunity, shares: 0 } },
+    { opportunity: { ...baseOpportunity, advancedCrossEngineCheck: { status: 'review' } } },
+    { decisionGate: { ready: false } },
+    { isFallbackCandidate: true },
+  ].forEach((override) => {
+    const input = {
+      ...verifiedInput,
+      ...override,
+    };
+    expect(isVerifiedCandidateForDisplay(input)).toBe(false);
+    expect(buildCandidateEvidencePresentation(input).decisionLabel).toBe('調査のみ');
+  });
 });
 
 test('Zen Loop Desk UI shows no actionable board when verified candidates are absent', async ({ page }) => {

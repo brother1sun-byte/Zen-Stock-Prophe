@@ -976,12 +976,12 @@ test('weak confirmation stays in review mode', async ({ page }) => {
   await expect(page.getByTestId('candidate-caution-strip')).toBeVisible();
   await expect(summary.locator('h2')).toContainText(data.ticker);
   await expect(summary).toBeVisible();
-  await expect(summary.locator('.simple-daytrade-board')).toHaveCount(1);
+  await expect(page.getByTestId('verified-candidate-board')).toHaveCount(0);
+  await expect(page.getByTestId('research-only-reference-board')).toBeVisible();
+  await expect(page.getByTestId('research-only-reference-board')).toContainText('調査のみ');
+  await expect(summary).toContainText('損益計算は検証前のため非表示');
+  await expect(summary).not.toContainText('検証サイズ');
   await expect(page.getByTestId('opening-scenario-plan')).toBeVisible();
-  await expect(page.getByTestId('opening-scenario-plan')).toBeVisible();
-  await expect(page.getByTestId('opening-scenario-plan')).toBeVisible();
-  await expect(page.getByTestId('opening-scenario-plan')).toBeVisible();
-  await expect(summary.locator('.simple-daytrade-board')).toHaveCount(1);
 });
 
 test('cached data shows caution', async ({ page }) => {
@@ -1343,6 +1343,7 @@ test('生活導線4モードで手入力価格と引け後レビューを確認�
   await expect(panel).toContainText('実注文、自動売却、証券会社API接続は行いません');
   await expect(panel.getByTestId('lifestyle-evidence-strip').first()).toContainText('高度分析');
   await expect(panel.getByTestId('lifestyle-evidence-strip').first()).toContainText('スプレッド推定');
+  await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('翌朝は調査のみです');
 
   await page.getByTestId('lifestyle-mode-morning').click();
   await expect(page.getByTestId('lifestyle-morning-gate')).toBeVisible();
@@ -1369,4 +1370,6 @@ test('生活導線4モードで手入力価格と引け後レビューを確認�
   await expect(page.getByTestId('after-close-review-log')).toContainText('ローカル保存のみ');
   await expect(page.getByTestId('after-close-review-classified-log')).toContainText(/保有が長すぎた候補|高スコア失敗候補/);
   await expect(page.getByTestId('after-close-review-insights')).toContainText('改善');
+  await expect(page.getByTestId('shadow-calibration-panel')).toContainText('標本不足');
+  await expect(page.getByTestId('shadow-calibration-panel')).toContainText('自動スコア変更は行いません');
 });
