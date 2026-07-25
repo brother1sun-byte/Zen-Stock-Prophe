@@ -107,10 +107,72 @@ test('寄り付き前サマリーは前日引け時点の最上位候補と不�
   expect(summary.available).toBe(true);
   expect(summary.ticker).toBe('7203.T');
   expect(summary.preopenScore).toBe(76);
+  expect(summary.scoreAvailable).toBe(true);
+  expect(summary.metricLabel).toBe('寄り付き前スコア');
   expect(summary.safePriorClose).toBe(true);
   expect(summary.unavailableInputs).toContain('PTS・寄り前気配');
   expect(summary.notice).toContain('相対順位');
   expect(summary.calibrationNotice).toContain('30件');
+});
+
+test('正式な寄り付き前レポートがない場合は暫定順位をスコアとして表示しない', () => {
+  const summary = buildPreopenLeaderSummary([
+    {
+      ticker: '4980.T',
+      companyName: 'デクセリアルズ',
+      score: 100,
+      preopenModelScore: null,
+      preopenReport: null,
+      reasons: ['短期強弱 70/100'],
+      morningConditions: ['寄り後の出来高を確認'],
+      skipConditions: ['データ不足なら見送り優先'],
+    },
+  ]);
+
+  expect(summary.available).toBe(true);
+  expect(summary.ticker).toBe('4980.T');
+  expect(summary.preopenScore).toBeNull();
+  expect(summary.scoreAvailable).toBe(false);
+  expect(summary.metricLabel).toBe('比較順位');
+  expect(summary.candidateCount).toBe(1);
+  expect(summary.evidenceLabel).toBe('根拠データ要確認');
+});
+
+test('前日引け基準を満たす候補を未検証の高い暫定値より優先する', () => {
+  const summary = buildPreopenLeaderSummary([
+    {
+      ticker: '4980.T',
+      companyName: 'デクセリアルズ',
+      score: 100,
+      preopenModelScore: 99,
+      preopenReport: {
+        score: 99,
+        dataLeakGuard: {
+          inputCutoff: 'previous_session_close',
+          usesOnlyPreopenSafeInputs: true,
+          usesSyntheticHistory: true,
+        },
+      },
+    },
+    {
+      ticker: '7203.T',
+      companyName: 'トヨタ自動車',
+      score: 60,
+      preopenModelScore: 70,
+      preopenReport: {
+        score: 70,
+        dataLeakGuard: {
+          inputCutoff: 'previous_session_close',
+          usesOnlyPreopenSafeInputs: true,
+          usesSyntheticHistory: false,
+        },
+      },
+    },
+  ]);
+
+  expect(summary.ticker).toBe('7203.T');
+  expect(summary.safePriorClose).toBe(true);
+  expect(summary.preopenScore).toBe(70);
 });
 
 test('比較対象がない場合は寄り付き前予想を判断保留にする', () => {

@@ -41,6 +41,7 @@ def test_preopen_report_excludes_missing_pts_and_news_boosts():
     assert "news_disclosure" in report["dataLeakGuard"]["unavailableInputs"]
     assert report["scoreBreakdown"]["material"] == 0
     assert report["scoreBreakdown"]["indicationPts"] == 0
+    assert report["scoreBreakdown"]["marketSector"] == 0
     assert report["decisionLabel"] in {"高騰候補", "監視候補", "リスク確認"}
 
 

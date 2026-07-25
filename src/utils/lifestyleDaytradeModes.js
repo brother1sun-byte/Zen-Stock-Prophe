@@ -836,7 +836,16 @@ export function buildPreopenLeaderSummary(rows = []) {
   const nullableNumber = (value) => (
     value === null || value === undefined || value === '' ? null : safeNumber(value, null)
   );
-  const ranked = [...candidates].sort((left, right) => (
+  const isSafePriorClose = (row) => {
+    const leakGuard = row?.preopenReport?.dataLeakGuard || {};
+    return leakGuard.inputCutoff === 'previous_session_close'
+      && leakGuard.usesOnlyPreopenSafeInputs === true
+      && leakGuard.usesSyntheticHistory !== true
+      && nullableNumber(row?.preopenModelScore) !== null;
+  };
+  const safeCandidates = candidates.filter(isSafePriorClose);
+  const rankingPool = safeCandidates.length ? safeCandidates : candidates;
+  const ranked = [...rankingPool].sort((left, right) => (
     ((nullableNumber(right.preopenModelScore) ?? -1) - (nullableNumber(left.preopenModelScore) ?? -1))
     || (safeNumber(right.score, 0) - safeNumber(left.score, 0))
     || String(left.ticker).localeCompare(String(right.ticker), 'ja')
@@ -844,9 +853,8 @@ export function buildPreopenLeaderSummary(rows = []) {
   const leader = ranked[0];
   const report = leader.preopenReport || {};
   const leakGuard = report.dataLeakGuard || {};
-  const safePriorClose = leakGuard.inputCutoff === 'previous_session_close'
-    && leakGuard.usesOnlyPreopenSafeInputs === true
-    && leakGuard.usesSyntheticHistory !== true;
+  const safePriorClose = isSafePriorClose(leader);
+  const scoreAvailable = safePriorClose && nullableNumber(leader.preopenModelScore) !== null;
   const unavailableInputs = (Array.isArray(leakGuard.unavailableInputs) ? leakGuard.unavailableInputs : [])
     .map((input) => PREOPEN_INPUT_LABELS[input] || input);
   const reasons = (Array.isArray(report.keyReasons) && report.keyReasons.length
@@ -859,7 +867,11 @@ export function buildPreopenLeaderSummary(rows = []) {
     companyName: leader.companyName,
     label: safePriorClose ? '寄り付き前の最有力調査候補' : '候補内の最上位（データ要確認）',
     relativeScore: nullableNumber(leader.score),
-    preopenScore: nullableNumber(leader.preopenModelScore),
+    preopenScore: scoreAvailable ? nullableNumber(leader.preopenModelScore) : null,
+    scoreAvailable,
+    metricLabel: scoreAvailable ? '寄り付き前スコア' : '比較順位',
+    candidateCount: rankingPool.length,
+    evidenceLabel: safePriorClose ? '前日引けデータ確認済み' : '根拠データ要確認',
     asOfDate: report.asOfDate || leader.fetchedAt || '',
     historySource: leakGuard.historySource || leader.dataSource?.value || '取得元未確認',
     safePriorClose,

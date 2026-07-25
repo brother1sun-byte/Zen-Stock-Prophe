@@ -178,7 +178,7 @@ def build_preopen_report(
     technical_score = _clip(trend_points, 0.0, POSITIVE_WEIGHTS["technical"])
 
     market_available = feeds.get("marketSectorScore") is not None
-    market_sector_score = _clip(_finite(feeds.get("marketSectorScore"), 4.0), 0.0, 10.0)
+    market_sector_score = _clip(_finite(feeds.get("marketSectorScore"), 0.0), 0.0, 10.0) if market_available else 0.0
     liquidity_score = 0.0
     if avg_turnover_20 >= 500_000_000:
         liquidity_score += 5.0

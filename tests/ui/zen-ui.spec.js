@@ -965,6 +965,10 @@ test('synthetic data shows caution', async ({ page }) => {
   await expect(page.getByTestId('candidate-caution-strip')).toBeVisible();
   await expect(page.getByTestId('candidate-summary')).toBeVisible();
   await expect(page.getByTestId('data-source-badge').first()).toBeVisible();
+  const preopenLeader = page.getByTestId('preopen-leader-card');
+  await expect(preopenLeader).toContainText('比較順位');
+  await expect(preopenLeader).toContainText('根拠データ要確認');
+  await expect(preopenLeader).not.toContainText('寄り付き前スコア');
 });
 
 test('weak confirmation stays in review mode', async ({ page }) => {

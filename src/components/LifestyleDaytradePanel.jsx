@@ -193,15 +193,15 @@ function TodayCheckDashboard({
                 <small>前営業日引けまでのデータで比較</small>
               </div>
               <div className="preopen-leader-score">
-                <span>寄り付き前スコア</span>
-                <strong>{preopenLeader.preopenScore ?? preopenLeader.relativeScore ?? '-'}</strong>
-                <small>/ 100</small>
+                <span>{preopenLeader.metricLabel}</span>
+                <strong>{preopenLeader.scoreAvailable ? preopenLeader.preopenScore : '1位'}</strong>
+                <small>{preopenLeader.scoreAvailable ? '/ 100' : `/ ${preopenLeader.candidateCount}銘柄`}</small>
               </div>
             </div>
             <div className="preopen-leader-meta">
               <span>基準日: {preopenLeader.asOfDate || '未取得'}</span>
               <span>取得元: {preopenLeader.historySource}</span>
-              <span>{preopenLeader.safePriorClose ? '前日までのデータ確認済み' : 'データ条件の確認が必要'}</span>
+              <span>{preopenLeader.evidenceLabel}</span>
             </div>
             <div className="preopen-leader-evidence">
               <div>
