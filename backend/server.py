@@ -750,8 +750,17 @@ def _market_item_from_history(
         data_quality = _candidate_data_quality(hist, closes, volumes)
     if quality is None:
         quality = build_candidate_quality(closes, highs, lows, volumes, rr=rr, data_quality=data_quality)
-    if preopen_report is _MISSING:
+    history_only_preopen = preopen_report is _MISSING
+    if history_only_preopen:
         preopen_report = preopen_for_ticker(ticker, info, hist)
+    if history_only_preopen and preopen_report:
+        preopen_report = {
+            **preopen_report,
+            "dataLeakGuard": {
+                **(preopen_report.get("dataLeakGuard") or {}),
+                "inputCutoff": "previous_session_close",
+            },
+        }
     preopen_score = preopen_report["score"] if preopen_report else 0
     candidate_score = round(float(np.mean([quality["qualityScore"], preopen_score or quality["qualityScore"]])), 1)
     if not _candidate_data_quality_ok(data_quality):
@@ -799,6 +808,7 @@ def _market_item_from_history(
         "candidateQuality": quality,
         "dataQuality": data_quality,
         "preopenScore": preopen_score or None,
+        "preopenReport": preopen_report,
         "popularityScore": popularity_score,
         **surge_profile,
         "rrRatio": rr.get("rr_ratio"),
@@ -1262,6 +1272,8 @@ def _build_intraday_opportunity(item: dict[str, Any], budget_jpy: int = DEFAULT_
         "decisionAudit": decision_audit,
         "material": material,
         "marketRelative": market_relative,
+        "preopenScore": item.get("preopenScore"),
+        "preopenReport": item.get("preopenReport"),
         "disclaimer": "シミュレーション専用の分析です。投資助言や注文指示ではありません。手動で判断する前に、リアルタイム価格、流動性、開示情報、リスクを確認してください。",
     }
 

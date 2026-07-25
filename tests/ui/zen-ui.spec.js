@@ -42,6 +42,19 @@ function mockPayload(source = 'synthetic') {
     emoji: 'DX',
     price: 2478,
     candidateScore: 72,
+    preopenScore: 76,
+    preopenReport: {
+      score: 76,
+      asOfDate: '2026-05-30',
+      keyReasons: ['前日出来高倍率 1.8倍', '流動性条件が相対的に良好'],
+      dataLeakGuard: {
+        inputCutoff: 'previous_session_close',
+        usesOnlyPreopenSafeInputs: true,
+        usesSyntheticHistory: synthetic,
+        historySource: source,
+        unavailableInputs: ['pts_or_preopen_board'],
+      },
+    },
     candidateReason: 'UI回帰テスト用の候補です。',
     priceSource: source,
     source,
@@ -1341,6 +1354,9 @@ test('生活導線4モードで手入力価格と引け後レビューを確認�
   await expect(panel).toBeVisible();
   await expect(panel).toContainText('生活導線デイトレ確認');
   await expect(panel).toContainText('実注文、自動売却、証券会社API接続は行いません');
+  await expect(panel.getByTestId('preopen-leader-card')).toContainText('寄り付き前の最有力調査候補');
+  await expect(panel.getByTestId('preopen-leader-card')).toContainText('前営業日引けまでのデータで比較');
+  await expect(panel.getByTestId('preopen-leader-card')).toContainText('実レビュー30件到達まで採点ロジックを固定します');
   await expect(panel.getByTestId('lifestyle-evidence-strip').first()).toContainText('高度分析');
   await expect(panel.getByTestId('lifestyle-evidence-strip').first()).toContainText('スプレッド推定');
   await expect(page.getByTestId('lifestyle-decision-brief')).toContainText('翌朝は調査のみです');

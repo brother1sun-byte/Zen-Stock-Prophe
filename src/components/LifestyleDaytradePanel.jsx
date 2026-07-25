@@ -5,6 +5,7 @@ import {
   buildDecisionSupportBrief,
   buildMorningGate,
   buildNightScanRows,
+  buildPreopenLeaderSummary,
   buildPreTradeChecklist,
   buildReviewDrivenInsights,
   buildWorkMonitorRows,
@@ -155,7 +156,14 @@ function DecisionSupportBrief({ brief, checklist }) {
   );
 }
 
-function TodayCheckDashboard({ brief, checklist, zenLoopDesk, showVerification, onToggleVerification }) {
+function TodayCheckDashboard({
+  brief,
+  checklist,
+  preopenLeader,
+  zenLoopDesk,
+  showVerification,
+  onToggleVerification,
+}) {
   const verifiedCount = zenLoopDesk.candidates.filter((candidate) => candidate.gate.isActionable).length;
   const researchOnlyCount = zenLoopDesk.candidates.length - verifiedCount;
   const skipReasons = zenLoopDesk.candidates
@@ -174,6 +182,54 @@ function TodayCheckDashboard({ brief, checklist, zenLoopDesk, showVerification, 
         <button type="button" className="secondary-button" onClick={onToggleVerification} data-testid="today-check-detail-toggle">
           {showVerification ? '要点表示に戻す' : '検証詳細を表示'}
         </button>
+      </div>
+      <div className="preopen-leader-card" data-testid="preopen-leader-card">
+        {preopenLeader.available ? (
+          <>
+            <div className="preopen-leader-head">
+              <div>
+                <span>{preopenLeader.label}</span>
+                <strong>{preopenLeader.ticker} {preopenLeader.companyName}</strong>
+                <small>前営業日引けまでのデータで比較</small>
+              </div>
+              <div className="preopen-leader-score">
+                <span>寄り付き前スコア</span>
+                <strong>{preopenLeader.preopenScore ?? preopenLeader.relativeScore ?? '-'}</strong>
+                <small>/ 100</small>
+              </div>
+            </div>
+            <div className="preopen-leader-meta">
+              <span>基準日: {preopenLeader.asOfDate || '未取得'}</span>
+              <span>取得元: {preopenLeader.historySource}</span>
+              <span>{preopenLeader.safePriorClose ? '前日までのデータ確認済み' : 'データ条件の確認が必要'}</span>
+            </div>
+            <div className="preopen-leader-evidence">
+              <div>
+                <strong>上位理由</strong>
+                {(preopenLeader.reasons.length ? preopenLeader.reasons : ['強い加点材料は限定的']).map((reason) => (
+                  <span key={reason}>{reason}</span>
+                ))}
+              </div>
+              <div>
+                <strong>寄り後に確認</strong>
+                {preopenLeader.openingChecks.map((condition) => <span key={condition}>{condition}</span>)}
+              </div>
+              <div>
+                <strong>見送り条件</strong>
+                {preopenLeader.skipConditions.map((condition) => <span key={condition}>{condition}</span>)}
+              </div>
+            </div>
+            {preopenLeader.unavailableInputs.length ? (
+              <p className="preopen-leader-missing">不足: {preopenLeader.unavailableInputs.join(' / ')}</p>
+            ) : null}
+            <p className="preopen-leader-notice">{preopenLeader.notice} {preopenLeader.calibrationNotice}</p>
+          </>
+        ) : (
+          <>
+            <strong>{preopenLeader.label}</strong>
+            <p className="preopen-leader-notice">{preopenLeader.notice}</p>
+          </>
+        )}
       </div>
       <div className="today-check-grid">
         <div className="today-check-item primary">
@@ -690,6 +746,7 @@ export default function LifestyleDaytradePanel({
     reviewInsights,
     fetchedAt,
   }), [advancedReportsByTicker, detailsByTicker, fetchedAt, reviewInsights, stocks, watchlistPreopenResults]);
+  const preopenLeader = useMemo(() => buildPreopenLeaderSummary(nightRows), [nightRows]);
 
   const selectedTicker = selectedStock?.ticker || selectedDetail?.ticker || nightRows[0]?.ticker;
   const selectedPreopen = useMemo(() => {
@@ -772,6 +829,7 @@ export default function LifestyleDaytradePanel({
       <TodayCheckDashboard
         brief={decisionBrief}
         checklist={preTradeChecklist}
+        preopenLeader={preopenLeader}
         zenLoopDesk={zenLoopDesk}
         showVerification={showVerification}
         onToggleVerification={() => setShowVerification((current) => !current)}

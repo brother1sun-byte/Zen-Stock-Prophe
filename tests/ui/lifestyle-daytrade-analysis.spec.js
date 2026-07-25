@@ -6,6 +6,7 @@ import {
   buildLifestyleBacktestSummary,
   buildMorningGate,
   buildNightScanRows,
+  buildPreopenLeaderSummary,
   buildPreTradeChecklist,
   buildReviewDrivenInsights,
   buildShadowCalibration,
@@ -40,6 +41,18 @@ const sampleDetail = {
       stop_loss: 2970,
     },
     indicators: { vwap: 2992 },
+  },
+  preopenReport: {
+    score: 76,
+    asOfDate: '2026-06-25',
+    keyReasons: ['前日出来高倍率 2.1倍', '流動性条件が相対的に良好'],
+    dataLeakGuard: {
+      inputCutoff: 'previous_session_close',
+      usesOnlyPreopenSafeInputs: true,
+      usesSyntheticHistory: false,
+      historySource: 'J-Quants',
+      unavailableInputs: ['pts_or_preopen_board'],
+    },
   },
 };
 
@@ -81,6 +94,30 @@ test('生活導線Night Scanは既存高度分析と検証材料を接続する'
   expect(rows[0].backtestSummary.status).toBe('検証材料あり');
   expect(rows[0].volumeSeasonality.status).toContain('推定');
   expect(rows[0].spreadRisk.status).toContain('スプレッド');
+});
+
+test('寄り付き前サマリーは前日引け時点の最上位候補と不足情報を返す', () => {
+  const rows = buildNightScanRows({
+    stocks: [sampleStock],
+    detailsByTicker: { '7203.T': sampleDetail },
+    advancedReportsByTicker: { '7203.T': sampleAdvancedReport },
+  });
+  const summary = buildPreopenLeaderSummary(rows);
+
+  expect(summary.available).toBe(true);
+  expect(summary.ticker).toBe('7203.T');
+  expect(summary.preopenScore).toBe(76);
+  expect(summary.safePriorClose).toBe(true);
+  expect(summary.unavailableInputs).toContain('PTS・寄り前気配');
+  expect(summary.notice).toContain('相対順位');
+  expect(summary.calibrationNotice).toContain('30件');
+});
+
+test('比較対象がない場合は寄り付き前予想を判断保留にする', () => {
+  expect(buildPreopenLeaderSummary([])).toMatchObject({
+    available: false,
+    label: '寄り付き前予想は判断保留',
+  });
 });
 
 test('Morning Gateは手入力価格と高度分析証拠を同時に扱う', () => {

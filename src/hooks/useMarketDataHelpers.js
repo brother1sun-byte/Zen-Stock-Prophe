@@ -340,6 +340,8 @@ export function normalizeIntradayOpportunity(opportunity, source) {
     surgeFlags: opportunity.surgeFlags || [],
     candidateQuality: opportunity.candidateQuality,
     dataQuality: opportunity.dataQuality,
+    preopenScore: opportunity.preopenScore ?? opportunity.preopenReport?.score ?? null,
+    preopenReport: opportunity.preopenReport || null,
     candidateReason: `短期スコア ${Number(opportunity.surgeScore || 0).toFixed(1)}、前日比 ${pctValue.toFixed(1)}%、過熱リスク ${Number(opportunity.overheatRisk || 0).toFixed(1)} を確認した監視候補です。`,
     whyBuy: opportunity.whyBuy || [],
     whyNotBuy: opportunity.whyNotBuy || [],

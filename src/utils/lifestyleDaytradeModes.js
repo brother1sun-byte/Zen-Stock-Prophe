@@ -755,6 +755,8 @@ export function buildNightScanRows({
     const spreadRisk = estimateSpreadRisk({ stock, detail, report: advancedReport });
     const priceLines = buildDaytradePriceLines({ stock, detail, candidate: stock });
     const reviewCaution = reviewInsightsForTicker(ticker, reviewInsights);
+    const preopenReport = stock.preopenReport || detail.preopenReport || null;
+    const preopenModelScore = safeNumber(preopenReport?.score ?? detail.preopenScore ?? stock.preopenScore, null);
     const price = priceLines.currentPrice.value || roundPrice(stock.price);
     const advancedScore = safeNumber(advancedSummary.score, stock.candidateScore ?? stock.preopenScore ?? 50);
     const validationScore = safeNumber(backtestSummary.walkForwardScore, 50);
@@ -807,10 +809,67 @@ export function buildNightScanRows({
       volumeSeasonality,
       spreadRisk,
       reviewCaution,
+      preopenReport,
+      preopenModelScore,
       dataSource: sourceSummary(stock, detail, preopen.sourceStatus?.earnings),
       fetchedAt,
     };
   }).sort((a, b) => b.score - a.score || a.ticker.localeCompare(b.ticker, 'ja'));
+}
+
+const PREOPEN_INPUT_LABELS = {
+  news_disclosure: '材料・開示',
+  pts_or_preopen_board: 'PTS・寄り前気配',
+  market_sector_strength: '市場・業種地合い',
+};
+
+export function buildPreopenLeaderSummary(rows = []) {
+  const candidates = (Array.isArray(rows) ? rows : []).filter((row) => row?.ticker);
+  if (!candidates.length) {
+    return {
+      available: false,
+      label: '寄り付き前予想は判断保留',
+      notice: '比較できる前日引けデータがありません。',
+    };
+  }
+
+  const nullableNumber = (value) => (
+    value === null || value === undefined || value === '' ? null : safeNumber(value, null)
+  );
+  const ranked = [...candidates].sort((left, right) => (
+    ((nullableNumber(right.preopenModelScore) ?? -1) - (nullableNumber(left.preopenModelScore) ?? -1))
+    || (safeNumber(right.score, 0) - safeNumber(left.score, 0))
+    || String(left.ticker).localeCompare(String(right.ticker), 'ja')
+  ));
+  const leader = ranked[0];
+  const report = leader.preopenReport || {};
+  const leakGuard = report.dataLeakGuard || {};
+  const safePriorClose = leakGuard.inputCutoff === 'previous_session_close'
+    && leakGuard.usesOnlyPreopenSafeInputs === true
+    && leakGuard.usesSyntheticHistory !== true;
+  const unavailableInputs = (Array.isArray(leakGuard.unavailableInputs) ? leakGuard.unavailableInputs : [])
+    .map((input) => PREOPEN_INPUT_LABELS[input] || input);
+  const reasons = (Array.isArray(report.keyReasons) && report.keyReasons.length
+    ? report.keyReasons
+    : leader.reasons || []).filter(Boolean).slice(0, 3);
+
+  return {
+    available: true,
+    ticker: leader.ticker,
+    companyName: leader.companyName,
+    label: safePriorClose ? '寄り付き前の最有力調査候補' : '候補内の最上位（データ要確認）',
+    relativeScore: nullableNumber(leader.score),
+    preopenScore: nullableNumber(leader.preopenModelScore),
+    asOfDate: report.asOfDate || leader.fetchedAt || '',
+    historySource: leakGuard.historySource || leader.dataSource?.value || '取得元未確認',
+    safePriorClose,
+    reasons,
+    unavailableInputs,
+    openingChecks: (leader.morningConditions || []).filter(Boolean).slice(0, 2),
+    skipConditions: (leader.skipConditions || []).filter(Boolean).slice(0, 2),
+    notice: '比較対象内の相対順位です。利益確率や注文指示ではありません。',
+    calibrationNotice: '実レビュー30件到達まで採点ロジックを固定します。',
+  };
 }
 
 function scoreMorningGate({ price, lines, preopen = {}, advancedSummary = {}, backtestSummary = {}, spreadRisk = {} }) {

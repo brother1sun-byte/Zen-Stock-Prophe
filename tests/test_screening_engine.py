@@ -497,6 +497,11 @@ class ScreeningEngineTests(unittest.TestCase):
             "volumeRatio": 1.6,
             "surgeScore": 72,
             "candidateScore": 68,
+            "preopenScore": 76,
+            "preopenReport": {
+                "score": 76,
+                "keyReasons": ["unit preopen"],
+            },
             "overheatRisk": 12,
             "liquidityOk": True,
             "liquidityGrade": "deep",
@@ -542,6 +547,8 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertIn("dataFreshness", opportunity)
         self.assertIn("decisionAudit", opportunity)
         self.assertTrue(opportunity["decisionAudit"]["gates"])
+        self.assertEqual(opportunity["preopenScore"], 76)
+        self.assertEqual(opportunity["preopenReport"]["keyReasons"], ["unit preopen"])
 
         visible_copy = [
             *opportunity["whyBuy"],
@@ -2750,6 +2757,8 @@ class ScreeningEngineTests(unittest.TestCase):
         self.assertIn("riskAdjustedReturnPct", item["candidateQuality"]["backtest"])
         self.assertIn(item["surgeStage"], {"本命急騰", "高騰初動", "上昇監視", "観察", "過熱注意"})
         self.assertIn("surgeScore", item)
+        self.assertEqual(item["preopenReport"]["dataLeakGuard"]["inputCutoff"], "previous_session_close")
+        self.assertTrue(item["preopenReport"]["dataLeakGuard"]["usesOnlyPreopenSafeInputs"])
 
     def test_market_item_caps_candidate_quality_when_price_history_is_stale(self):
         closes = [100 + index * 0.8 for index in range(90)]

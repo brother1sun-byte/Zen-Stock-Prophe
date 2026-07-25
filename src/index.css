@@ -645,6 +645,115 @@ h1 {
   font-size: 12px;
 }
 
+.preopen-leader-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.42);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.preopen-leader-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.preopen-leader-head span,
+.preopen-leader-head small,
+.preopen-leader-score span,
+.preopen-leader-score small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.preopen-leader-head strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.preopen-leader-score {
+  flex: 0 0 auto;
+  min-width: 110px;
+  text-align: right;
+}
+
+.preopen-leader-score strong {
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+}
+
+.preopen-leader-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.preopen-leader-meta span {
+  padding: 4px 7px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.preopen-leader-evidence {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.preopen-leader-evidence > div {
+  min-width: 0;
+}
+
+.preopen-leader-evidence strong,
+.preopen-leader-evidence span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.preopen-leader-evidence strong {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.preopen-leader-evidence span {
+  position: relative;
+  padding-left: 11px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.preopen-leader-evidence span::before {
+  position: absolute;
+  left: 0;
+  color: var(--green);
+  content: "-";
+}
+
+.preopen-leader-missing,
+.preopen-leader-notice {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.preopen-leader-missing {
+  color: #fbbf24;
+}
+
 .today-check-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1325,6 +1434,14 @@ h1 {
 
   .today-check-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preopen-leader-head {
+    align-items: flex-start;
+  }
+
+  .preopen-leader-evidence {
+    grid-template-columns: 1fr;
   }
 
   .lifestyle-source {
