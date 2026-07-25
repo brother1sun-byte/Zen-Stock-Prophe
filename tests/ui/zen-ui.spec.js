@@ -274,6 +274,10 @@ async function mockApi(page, source = 'synthetic', options = {}) {
       });
     }
     if (path.endsWith('/stocks')) return route.fulfill({ json: [data.stock, data.alternateStock] });
+    if (path.includes('/portfolio/positions/') && path.endsWith('/lifecycle') && options.staleLifecycleHolding) {
+      lifecycleSaved = true;
+      return route.fulfill({ status: 404, json: { detail: 'active holding not found' } });
+    }
     if (path.includes('/portfolio/positions/') && path.endsWith('/lifecycle') && options.failLifecycleSave) return route.fulfill({ status: 503, json: { detail: '台帳状態の保存に失敗しました。' } });
     if (path.includes('/portfolio/positions/') && path.endsWith('/lifecycle')) {
       lifecycleSaved = true;
@@ -1334,6 +1338,48 @@ test('保有台帳の入力ミス取消を練習台帳イベントとして残�
   await expect(page.getByTestId('portfolio-ledger-events')).toBeVisible();
   await expect(page.getByTestId('portfolio-ledger-event')).toBeVisible();
   await expect(page.getByTestId('portfolio-ledger-event')).toBeVisible();
+});
+
+test('台帳に存在しない参考保有は再同期し、生の404を表示しない', async ({ page }) => {
+  const emptyPortfolio = {
+    cash: 1000000,
+    holdings: [],
+    archivedHoldings: [],
+    totalAssets: 1000000,
+    unrealizedPnl: 0,
+    history: [],
+  };
+  await mockApi(page, 'yfinance', {
+    staleLifecycleHolding: true,
+    portfolioAfterLifecycleSave: emptyPortfolio,
+  });
+  await page.goto('/');
+
+  await page.locator('.detail-toggle').click();
+  const holding = page.getByTestId('holding-row').filter({ hasText: '7203.T' });
+  await holding.locator('button').first().click();
+
+  await expect(holding).toHaveCount(0);
+  await expect(page.getByTestId('portfolio-ledger-events')).toContainText('台帳を最新状態に更新しました');
+  await expect(page.getByTestId('portfolio-ledger-events')).not.toContainText('active holding not found');
+  await expect(page.getByTestId('portfolio-ledger-events')).not.toContainText('HTTP 404');
+});
+
+test('保有台帳は390px幅でも画面全体を横にはみ出さない', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page, 'yfinance');
+  await page.goto('/');
+  await page.locator('.detail-toggle').click();
+
+  const ledger = page.locator('.portfolio-manager');
+  await expect(ledger).toBeVisible();
+  const overflow = await page.evaluate(() => ({
+    document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ledger: document.querySelector('.portfolio-manager').scrollWidth
+      - document.querySelector('.portfolio-manager').clientWidth,
+  }));
+  expect(overflow.document).toBeLessThanOrEqual(1);
+  expect(overflow.ledger).toBeLessThanOrEqual(1);
 });
 
 test('練習注文の保存後に台帳再読込が失敗しても約定済みを維持する', async ({ page }) => {

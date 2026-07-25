@@ -6408,6 +6408,107 @@ table small {
   margin-top: 12px;
 }
 
+.holdings-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.holding-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 7, 11, 0.32);
+  cursor: pointer;
+}
+
+.holding-card:hover {
+  border-color: rgba(56, 189, 248, 0.38);
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.holding-card > div {
+  min-width: 0;
+}
+
+.holding-card > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.holding-card > div:nth-child(2) {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.holding-card span,
+.holding-card small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.holding-card > small,
+.holding-lifecycle-actions {
+  grid-column: 1 / -1;
+}
+
+.portfolio-ledger-events,
+.activity-log {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.portfolio-ledger-event {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.portfolio-ledger-event strong,
+.portfolio-ledger-event span,
+.portfolio-ledger-event small,
+.activity-log small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.portfolio-ledger-event span {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.portfolio-ledger-event small {
+  grid-column: 1 / -1;
+  color: var(--dim);
+}
+
+.portfolio-ledger-event.success {
+  border-color: rgba(16, 185, 129, 0.34);
+}
+
+.portfolio-ledger-event.neutral {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(120, 53, 15, 0.12);
+}
+
+.portfolio-ledger-event.error {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.16);
+}
+
 .ledger-event-strip,
 .ledger-lifecycle-message {
   display: grid;

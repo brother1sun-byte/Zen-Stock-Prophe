@@ -37,6 +37,11 @@ function lifecycleReason(action) {
   }[action] || 'portfolio lifecycle update';
 }
 
+function isMissingActiveHolding(error) {
+  return Number(error?.status) === 404
+    && /active holding not found/i.test(String(error?.message || ''));
+}
+
 export function portfolioStatusLabel(status) {
   const labels = {
     ACTIVE: '保有中',
@@ -116,8 +121,8 @@ export function usePortfolioLedger({
   const lifecycleFeed = useMemo(() => {
     const pending = lifecycleEvents.map((event) => ({
       ...event,
-      title: event.ok ? '台帳更新完了' : '台帳更新失敗',
-      subtitle: event.ok ? `${event.actionLabel}完了` : event.actionLabel,
+      title: event.reconciled ? '台帳を再同期' : event.ok ? '台帳更新完了' : '台帳更新失敗',
+      subtitle: event.reconciled ? '最新状態を反映' : event.ok ? `${event.actionLabel}完了` : event.actionLabel,
     }));
     const persisted = archivedHoldings.map((holding) => ({
       id: `archived-${holding.ticker}-${holding.updatedAt || holding.closedAt || holding.status}`,
@@ -192,6 +197,28 @@ export function usePortfolioLedger({
       }
       return { ok: true, result };
     } catch (error) {
+      if (isMissingActiveHolding(error)) {
+        const refreshResult = await refreshLedger?.();
+        const refreshed = !refreshResult?.errors?.length;
+        const message = refreshed
+          ? `${ticker} は現在の台帳に保有中として登録されていません。台帳を最新状態に更新しました。`
+          : `${ticker} は現在の台帳に保有中として登録されていません。再読込して最新状態を確認してください。`;
+        addLog?.('SYS', message);
+        recordLifecycleEvent({
+          ok: refreshed,
+          reconciled: true,
+          tone: refreshed ? 'neutral' : 'error',
+          ticker,
+          action,
+          actionLabel,
+          message,
+        });
+        setStatus?.({
+          tone: refreshed ? 'warn' : 'bad',
+          text: refreshed ? '台帳を最新化' : '台帳の再確認が必要',
+        });
+        return { ok: refreshed, reconciled: true, error };
+      }
       const message = `${ticker} の台帳状態更新に失敗しました: ${error.message}`;
       addLog?.('SYS', message);
       recordLifecycleEvent({

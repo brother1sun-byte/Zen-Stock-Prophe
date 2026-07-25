@@ -1962,7 +1962,7 @@ export default function App() {
           <div className="portfolio-ledger-events" data-testid="ai-portfolio-ledger-events">
             <div className="section-title"><Archive size={16} /><span>{pendingLifecycle ? '台帳更新中' : '保有履歴'}</span></div>
             {lifecycleFeed.length ? lifecycleFeed.map((event) => (
-              <div key={event.id} className={`portfolio-ledger-event ${event.ok ? 'success' : 'error'}`} data-testid="ai-portfolio-ledger-event">
+              <div key={event.id} className={`portfolio-ledger-event ${event.tone || (event.ok ? 'success' : 'error')}`} data-testid="ai-portfolio-ledger-event">
                 <strong>{event.title}</strong>
                 <span>{event.subtitle}</span>
                 <small>{event.message}</small>
@@ -3032,23 +3032,23 @@ export default function App() {
             <div className="metric"><span>データ出所</span><strong>{selectedSourceContext?.label || selectedSourceContext?.source || '-'}</strong></div>
           </div>
           <div className="holdings-list">
-            {(portfolio?.holdings || []).map((holding) => (
+            {holdings.map((holding) => (
               <article key={holding.ticker} data-testid="holding-row" className="holding-card" onClick={() => chooseTicker(holding, { source: 'portfolio', note: '保有銘柄から選択' })}>
                 <div><strong>{holding.ticker}</strong><span>{displayStockName(holding)}</span></div>
                 <div><span>{holding.shares}株</span><strong>{yen(holding.currentPrice || holding.price)}</strong></div>
                 <small className={Number(holding.pnl || 0) >= 0 ? 'up' : 'down'}>{yen(holding.pnl)} / {pct(holding.pnlPct)}</small>
                 <div className="holding-lifecycle-actions" aria-label={holding.ticker + ' 台帳操作'}>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'SOLD'); }}>売却済み</button>
-                  <button type="button" onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'VOIDED'); }}>非表示</button>
+                  <button type="button" disabled={pendingLifecycle?.ticker === holding.ticker} onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'SOLD'); }}>売却済み</button>
+                  <button type="button" disabled={pendingLifecycle?.ticker === holding.ticker} onClick={(event) => { event.stopPropagation(); closePortfolioPosition(holding, 'VOIDED'); }}>非表示</button>
                 </div>
               </article>
             ))}
-            {!(portfolio?.holdings || []).length && <small className="empty-note">保有銘柄はありません。</small>}
+            {!holdings.length && <small className="empty-note">保有銘柄はありません。</small>}
           </div>
           <div className="portfolio-ledger-events" data-testid="portfolio-ledger-events">
             <div className="section-title"><Archive size={16} /><span>{pendingLifecycle ? '台帳更新中' : '保有履歴'}</span></div>
             {lifecycleFeed.length ? lifecycleFeed.map((event) => (
-              <div key={event.id} className={`portfolio-ledger-event ${event.ok ? 'success' : 'error'}`} data-testid="portfolio-ledger-event">
+              <div key={event.id} className={`portfolio-ledger-event ${event.tone || (event.ok ? 'success' : 'error')}`} data-testid="portfolio-ledger-event">
                 <strong>{event.title}</strong><span>{event.subtitle}</span><small>{event.message}</small>
               </div>
             )) : <small>保有銘柄の更新履歴はまだありません。</small>}
