@@ -30,15 +30,15 @@ This system is inspired by world-class developer tools to ensure high precision,
   - Tight tracking on large headings to feel "Modern SaaS".
 
 ## 4. Components & Layout
-- **Cards (Glassmorphism Lite)**: 
-  - Background: `rgba(10, 10, 10, 0.7)` 
+- **Cards (Glassmorphism Lite)**:
+  - Background: `rgba(10, 10, 10, 0.7)`
   - Backdrop Filter: `blur(20px)`
   - Border: `1px solid rgba(255, 255, 255, 0.1)`
 - **Buttons**:
   - `Primary`: Solid background, white text, no gradient, 6px border-radius.
   - `Ghost`: Transparent, subtle border, strong hover effect.
-- **Grid System**: 
-  - Use `display: grid` or `flex` with defined constraints. 
+- **Grid System**:
+  - Use `display: grid` or `flex` with defined constraints.
   - **NEVER allow interactive elements (buttons) to span the full width of the screen unless explicitly centered in a container.**
 
 ## 5. Spacing & Elevation

@@ -1,5 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
+const reuseExistingServer = globalThis.process?.env?.ZEN_PLAYWRIGHT_REUSE_EXISTING !== '0';
+
 export default defineConfig({
   testDir: './tests/ui',
   timeout: 60_000,
@@ -15,13 +17,13 @@ export default defineConfig({
     {
       command: 'python backend/server.py',
       url: 'http://127.0.0.1:8889/api/stocks',
-      reuseExistingServer: true,
+      reuseExistingServer,
       timeout: 120_000,
     },
     {
       command: 'npm run dev',
       url: 'http://127.0.0.1:5174',
-      reuseExistingServer: true,
+      reuseExistingServer,
       timeout: 120_000,
     },
   ],
