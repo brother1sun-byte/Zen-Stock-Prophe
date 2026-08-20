@@ -1,35 +1,104 @@
-# AGENTS.md - Antigravity Operational Protocol (v1.0)
+# Codex model-routing policy
 
 ## 目的
-本ドキュメントは、Antigravity（AIエージェント）が「Always-run（自動承諾モード）」使用時に、確認ダイアログ（Run command?）によって停止することを根絶するための共通ルールを規定します。
 
-## 1. コマンド実行の原則
-### 1.1 アドホックコマンドの禁止
-Antigravity は、以下のコマンドをターミナルで直接組み立てて実行してはなりません（差分による停止を避けるため）。
-- `netstat -ano | findstr :8000`
-- `curl -X POST ...`
-- `Invoke-WebRequest ...`
-- `node scripts/diagnose_api.js` (単体実行)
+Codex では、メインの GPT-5.6 / max を司令塔として使い、通常の実装・探索は低コストのサブエージェントへ委譲する。
 
-### 1.2 固定スクリプトへの一本化
-すべての運用、診断、再起動操作は `scripts/` に格納された **固定スクリプト** 経由で行います。
+優先順位:
+1. 正確性を維持する。
+2. メイン GPT-5.6 / max の不要なコード読解・大量実装を減らす。
+3. サブエージェントへ渡す文脈を狭くする。
+4. 同じ作業を複数エージェントへ重複依頼しない。
 
-## 2. 標準実行コマンドリスト (Always-run 登録推奨)
-Antigravity は、以下の文字列を寸分違わず使用して実行します。変更が必要な場合は「スクリプトの内容」を更新し、実行コマンド文字列は維持してください。
+## ルーティング規則
 
-- **フルメンテナンス**: `powershell -ExecutionPolicy Bypass -File .\scripts\runbook.ps1`
-- **サービス再起動**: `powershell -ExecutionPolicy Bypass -File .\scripts\restart.ps1`
-- **ヘルスチェック**: `powershell -ExecutionPolicy Bypass -File .\scripts\healthcheck.ps1`
-- **ログ収集**: `powershell -ExecutionPolicy Bypass -File .\scripts\collect_logs.ps1`
+### explorer
 
-## 3. スクリプト作成のガイドライン
-- **非対話形式の徹底**: `Stop-Process -Force` や `New-Item -Force` など、ユーザー入力を求めないオプションを必須とします。
-- **冪等性の確保**: 何回実行しても安全なように、存在チェックやエラー無視 (`-ErrorAction SilentlyContinue`) を組み込みます。
-- **明確な終了コード**: 成功時は `exit 0`、失敗時は `exit 1` を返し、エージェントが結果を判断できるようにします。
+以下は原則 `explorer` に委譲する。
 
-## 4. VSCode 設定の推奨
-- **Agent Manager**: `Always run` を ON にする際、上記の「固定コマンド」を登録してください。
-- **Shell**: 標準シェルを PowerShell に固定してください。
+- ファイル・シンボル探索
+- grep / search
+- 実行経路の追跡
+- 設定確認
+- ログ解析
+- 依存関係把握
 
----
-*Created by Antigravity - System Infrastructure Stabilization Protocol*
+戻り値は、関連ファイル・シンボル・根拠・実装候補箇所の要約だけにする。
+大量ログやファイル全文をメインへ返さない。
+
+### worker
+
+以下は原則 `worker` に委譲する。
+
+- 通常のコード実装
+- 小～中規模のバグ修正
+- 範囲の明確なリファクタリング
+- テスト作成・修正
+- 設定変更
+- 定型的なファイル編集
+- 明確な lint / build 修正
+
+実装後は変更ファイル、実施した検証、未解決事項だけを簡潔に返す。
+
+### reviewer
+
+以下は `reviewer` に委譲する。
+
+- 難しいデバッグ
+- セキュリティ境界
+- 状態管理・並行処理
+- データ整合性
+- 回帰リスク
+- 非自明な最終レビュー
+- worker が繰り返し失敗したケース
+
+### architect
+
+以下だけ `architect` に委譲する。
+
+- 要件が実質的に曖昧
+- 複数サブシステムをまたぐ
+- 長期的な設計トレードオフ
+- 移行・互換戦略が必要
+- 高リスクの大規模リファクタリング
+
+通常実装には architect を使わない。
+
+## コスト制御
+
+- 1エージェントで十分なら複数起動しない。
+- 未知の箇所は `explorer -> worker` を基本とする。
+- 非自明な実装は `worker -> reviewer`。
+- 本当に複雑な案件だけ `architect -> explorer/worker -> reviewer`。
+- メインは要求整理、受入条件、委譲、最終判断に集中する。
+- 1行の安全な修正や簡単な非コード質問にサブエージェントを乱用しない。
+- 既に得た探索結果が有効なら再探索しない。
+
+## エスカレーション
+
+下位エージェントは以下で推測せずメインへ戻す。
+
+- 結果が大きく変わる要件曖昧性
+- 権限・セキュリティ境界
+- スキーマ・永続データ移行
+- 破壊的操作
+- 広範なアーキテクチャ変更
+- 原因不明のテスト失敗が継続
+
+## Zen Stock Prophet Pro の検証
+
+変更内容に応じて、必要最小限の検証を選ぶ。
+
+- `npm run typecheck`
+- `npm run lint:guards`
+- `npm run build`
+- `npm run test:e2e`
+
+## 完了条件
+
+メインスレッドが完了を報告する前に、以下を満たす。
+
+- 実装内容に応じた検証を実行している。
+- 未検証箇所や失敗があれば明示している。
+- 非自明な変更は可能な限り reviewer の確認を通している。
+- 最終報告は変更点、検証結果、残リスクに絞る。
